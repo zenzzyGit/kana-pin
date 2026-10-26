@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Kana PIN</title>
-<meta name="description" content="Japanisch für Faule, Lektion 1: Hiragana und Katakana lernen, jedes Mal wenn du dein Handy entsperrst. Kostenlose Android-App mit Rangliste.">
-<meta property="og:title" content="Kana PIN · Japanisch für Faule">
-<meta property="og:description" content="Erst die PIN, dann ein Kana. Lernen per Zwang – mit Rangliste für Freunde.">
+<meta name="description" content="Kana PIN fragt nach jedem Entsperren des Handys ein Hiragana oder Katakana ab. Kostenlose Android-App mit Lernstand pro Zeichen und Rangliste.">
+<meta property="og:title" content="Kana PIN">
+<meta property="og:description" content="Hiragana und Katakana üben beim Entsperren des Handys. Android-App mit Rangliste.">
 <meta property="og:image" content="https://zenzzygit.github.io/kana-pin/og.png">
 <meta property="og:type" content="website">
 <meta name="theme-color" content="#FBFCFD">
@@ -15,8 +15,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Klee+One:wght@400;600&display=swap">
 <style>
-/* Layout: eine Schulbuchseite auf Karopapier mit Randlinie – Kolumnentitel, Lektionsöffner,
-   Abbildung, Lernziele, Merke-Kasten, Übung, Tabelle, Lehrkräfte-Hinweis, Seitenzahl. */
+/* Layout: eine Schulbuchseite auf Karopapier mit Randlinie. Kolumnentitel, Lektionsöffner,
+   Abbildung, Abschnitte 1.1 bis 1.5, Hinweise, Seitenzahl. */
 :root {
   --paper: #FBFCFD;
   --grid: rgba(64, 104, 168, 0.12);
@@ -105,7 +105,9 @@ h1 {
   line-height: 1.05;
   color: var(--ink);
 }
+.nw { white-space: nowrap; }
 .subtitle {
+  text-wrap: balance;
   margin-top: 8px;
   font-size: 1.25rem; font-weight: 700;
 }
@@ -205,7 +207,7 @@ section { padding-block: 36px; border-top: 1px solid var(--rule); }
 h2 { font-size: clamp(1.5rem, 4.2vw, 2rem); line-height: 1.25; }
 
 /* Schreibheft-Kästchen (田字格) */
-.drill { display: flex; gap: 0; margin-top: 18px; overflow-x: auto; }
+.drill { display: flex; gap: 0; overflow-x: auto; }
 .cell {
   position: relative; flex: none; width: 64px; height: 64px;
   border: 1.5px solid var(--red); margin-left: -1.5px; background: var(--paper);
@@ -226,11 +228,7 @@ h2 { font-size: clamp(1.5rem, 4.2vw, 2rem); line-height: 1.25; }
 .box {
   width: 24px; height: 24px; margin-top: 4px; border: 2px solid var(--ink); position: relative;
 }
-.box::after {
-  content: "✓"; position: absolute; left: 3px; top: -16px;
-  font-family: var(--font-hand); font-weight: 600; font-size: 30px; color: var(--blue);
-  transform: rotate(-6deg);
-}
+
 .goals b { display: block; }
 .goals span.d { color: var(--muted); font-size: 1rem; }
 
@@ -266,7 +264,15 @@ td.p .circ {
   display: inline-block; padding: 0 8px; border: 2px solid var(--red); border-radius: 50%;
   transform: rotate(-4deg); color: var(--red);
 }
-.table-note { margin-top: 10px; font-family: var(--font-hand); color: var(--red); }
+.table-note { margin-top: 10px; font-size: 0.92rem; color: var(--muted); max-width: 40em; }
+.intro-text { margin-top: 16px; max-width: 40em; }
+.goals-intro { margin-top: 16px; font-weight: 700; }
+.method { margin: 18px 0 0; max-width: 40em; display: grid; gap: 16px; }
+.method dt { font-weight: 700; color: var(--blue); }
+.method dd { margin: 2px 0 0; }
+.notes { margin: 14px 0 0; padding-left: 1.2em; max-width: 40em; color: var(--muted); font-size: 0.97rem; display: grid; gap: 6px; }
+.fig-small { margin-top: 26px; }
+.fig-small figcaption { margin-top: 10px; }
 
 .teacher {
   margin-top: 4px; max-width: 40em;
@@ -297,7 +303,7 @@ td.p .circ {
 <div class="sheet">
 
   <div class="runhead">
-    <span><b>Japanisch für Faule</b> · Kapitel 1: Die Kana</span>
+    <span><b>Japanisch</b> · Schrift · Lektion 1</span>
     <span>Seite 1</span>
   </div>
 
@@ -306,12 +312,12 @@ td.p .circ {
       <div class="stamp" aria-hidden="true">よく<br>できました</div>
       <div class="lesson"><span class="jp">第1課</span><span class="de">Lektion 1</span></div>
       <h1>Kana PIN</h1>
-      <p class="subtitle">Erst die PIN, dann <mark>ein Kana.</mark></p>
-      <p class="lead">Jedes Mal, wenn du dein Handy entsperrst, fragt dich die App ein Hiragana oder Katakana ab. Was du nicht kannst, kommt öfter dran.</p>
+      <p class="subtitle">Hiragana und Katakana üben <mark>beim Entsperren</mark></p>
+      <p class="lead">Kana PIN fragt nach jedem Entsperren des Handys ein japanisches Schriftzeichen ab. Das Handy ist erst nach der richtigen Antwort freigegeben. So wird das Lesen der beiden Silbenschriften mehrmals am Tag wiederholt.</p>
 
       <div class="task">
-        <span class="task-label">Aufgabe 1</span>
-        <p>Lade die App herunter.</p>
+        <span class="task-label">Download</span>
+        <p>Kana PIN für Android</p>
         <a class="btn" href="Kana-PIN.apk" download="Kana-PIN.apk">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v13"/><path d="m6 11 6 6 6-6"/><path d="M4 21h16"/></svg>
           APK herunterladen
@@ -334,74 +340,97 @@ td.p .circ {
           </div>
         </div>
       </div>
-      <figcaption><b>Abb. 1</b> · Das Quiz direkt nach dem Entsperren</figcaption>
+      <figcaption><b>Abb. 1</b> · Abfrage nach dem Entsperren</figcaption>
     </figure>
-
   </header>
 
-  <section aria-labelledby="ziele">
-    <div class="sec-head"><span class="sec-no">1.1</span><h2 id="ziele">Für alle, die zu faul zum Lernen sind</h2></div>
-
-    <div class="drill" aria-hidden="true">
-      <div class="cell"><span>し</span></div>
-      <div class="cell t1"><span>し</span></div>
-      <div class="cell t2"><span>し</span></div>
-      <div class="cell"></div>
-      <div class="cell"></div>
-      <div class="cell"></div>
-    </div>
-    <p class="drill-note">Früher: Schreibheft. Heute: Sperrbildschirm.</p>
-
+  <section aria-labelledby="zielgruppe">
+    <div class="sec-head"><span class="sec-no">1.1</span><h2 id="zielgruppe">Zielgruppe</h2></div>
+    <p class="intro-text">Die App richtet sich an Lernende, denen regelmäßiges Üben schwerfällt. Die Wiederholung ist an das Entsperren des Handys gekoppelt und findet dadurch ohne eigenen Entschluss statt.</p>
     <div class="merke">
-      <span class="label">Merke!</span>
-      <p>Ans Handy kommst du erst, wenn du das Zeichen weißt. Lernen per Zwang – ganz ohne Disziplin.</p>
+      <span class="label">Merke</span>
+      <p>Kurze, regelmäßige Wiederholungen sind wirksamer als lange Lerneinheiten in großen Abständen.</p>
     </div>
+  </section>
 
+  <section aria-labelledby="ziele">
+    <div class="sec-head"><span class="sec-no">1.2</span><h2 id="ziele">Lernziele</h2></div>
+    <p class="goals-intro">Nach dieser Lektion kannst du</p>
     <ul class="goals">
-      <li><span class="box" aria-hidden="true"></span><span><b>Quiz nach dem Entsperren</b><span class="d">Nach PIN oder Fingerabdruck kommt ein Zeichen. Der Notfallknopf ist immer da.</span></span></li>
-      <li><span class="box" aria-hidden="true"></span><span><b>Lernt mit dir</b><span class="d">Verwechselst du シ und ツ, übt die App genau das. Was sitzt, kommt seltener.</span></span></li>
-      <li><span class="box" aria-hidden="true"></span><span><b>Eselsbrücken</b><span class="d">Ein Bilderrätsel als Tipp für jedes Zeichen – ohne die Lösung zu verraten.</span></span></li>
-      <li><span class="box" aria-hidden="true"></span><span><b>Rangliste</b><span class="d">Punkte sammeln und mit Freunden messen. Jeden Montag beginnt eine neue Wochenwertung.</span></span></li>
+      <li><span class="box" aria-hidden="true"></span><span>die 46 Hiragana lesen,</span></li>
+      <li><span class="box" aria-hidden="true"></span><span>die 46 Katakana lesen,</span></li>
+      <li><span class="box" aria-hidden="true"></span><span>ähnliche Zeichen wie <span class="nw">シ und ツ</span> oder <span class="nw">ぬ und め</span> unterscheiden,</span></li>
+      <li><span class="box" aria-hidden="true"></span><span>Zeichen mit Dakuten <span class="nw">(が, ぱ)</span> und zusammengesetzte Silben <span class="nw">(きゃ, しょ)</span> lesen.</span></li>
     </ul>
+    <figure class="fig-small">
+      <div class="drill" aria-hidden="true">
+        <div class="cell"><span>し</span></div>
+        <div class="cell t1"><span>し</span></div>
+        <div class="cell t2"><span>し</span></div>
+        <div class="cell"></div>
+        <div class="cell"></div>
+        <div class="cell"></div>
+      </div>
+      <figcaption><b>Abb. 2</b> · Übungskästchen für Kana. Die App trainiert das Lesen, nicht das Schreiben.</figcaption>
+    </figure>
+  </section>
+
+  <section aria-labelledby="methode">
+    <div class="sec-head"><span class="sec-no">1.3</span><h2 id="methode">Funktionsweise</h2></div>
+    <dl class="method">
+      <div><dt>Wiederholung nach Lernstand</dt><dd>Jedes Zeichen hat einen eigenen Lernstand. Falsch beantwortete Zeichen werden bald erneut abgefragt, sicher beherrschte in wachsenden Abständen.</dd></div>
+      <div><dt>Steigender Schwierigkeitsgrad</dt><dd>Zuerst wird die Lesung aus vier Möglichkeiten ausgewählt. Später wird das Zeichen zur Lesung gesucht und schließlich die Lesung eingetippt.</dd></div>
+      <div><dt>Erkennung von Verwechslungen</dt><dd>Die App merkt sich, welche Zeichen verwechselt werden, und bietet diese gezielt als Antwortmöglichkeiten an.</dd></div>
+      <div><dt>Eselsbrücken</dt><dd>Zu jedem Zeichen gibt es eine Eselsbrücke als Bildrätsel. Sie führt zur Lösung, ohne sie zu nennen.</dd></div>
+      <div><dt>Rangliste</dt><dd>Richtige Antworten ergeben Punkte. Die Rangliste zeigt Wochenpunkte, Gesamtpunkte und die Anzahl gelernter Zeichen. Die Wochenwertung beginnt jeden Montag neu.</dd></div>
+      <div><dt>Notfallknopf</dt><dd>Die Abfrage lässt sich jederzeit über den Notfallknopf beenden.</dd></div>
+    </dl>
   </section>
 
   <section aria-labelledby="install">
-    <div class="sec-head"><span class="sec-no">1.2</span><h2 id="install">Übung: Installieren</h2></div>
+    <div class="sec-head"><span class="sec-no">1.4</span><h2 id="install">Installation</h2></div>
     <ol class="steps">
-      <li><span class="l">a)</span><span><b>APK herunterladen</b> und die Datei öffnen.</span></li>
-      <li><span class="l">b)</span><span>Bei der Warnung auf <b>„Trotzdem installieren“</b> tippen.</span></li>
-      <li><span class="l">c)</span><span>In der App <b>„Über anderen Apps einblenden“</b> erlauben.
-        <span class="margin-note">Schalter gesperrt? → App-Info → ⋮ → „Eingeschränkte Einstellungen zulassen“</span></span></li>
-      <li><span class="l">d)</span><span><b>„Quiz beim Entsperren“</b> einschalten und in der Rangliste einen Namen eintragen.</span></li>
+      <li><span class="l">a)</span><span>Lade die Datei <b>Kana-PIN.apk</b> herunter und öffne sie.</span></li>
+      <li><span class="l">b)</span><span>Android weist darauf hin, dass die App nicht aus dem Play Store stammt. Bestätige mit <b>„Trotzdem installieren“</b>.</span></li>
+      <li><span class="l">c)</span><span>Öffne die App und erlaube <b>„Über anderen Apps einblenden“</b>.
+        <span class="margin-note">Ist der Schalter gesperrt: App-Info öffnen, oben rechts auf ⋮ tippen und „Eingeschränkte Einstellungen zulassen“ wählen.</span></span></li>
+      <li><span class="l">d)</span><span>Schalte <b>„Quiz beim Entsperren“</b> ein. Für die Rangliste legst du einen Namen fest.</span></li>
     </ol>
   </section>
 
   <section aria-labelledby="punkte">
-    <div class="sec-head"><span class="sec-no">1.3</span><h2 id="punkte">Punkte</h2></div>
+    <div class="sec-head"><span class="sec-no">1.5</span><h2 id="punkte">Punkte</h2></div>
     <div class="table-wrap">
       <table>
-        <caption><b>Tab. 1</b> · Punkte pro richtiger Antwort</caption>
+        <caption><b>Tab. 1</b> · Punkte je richtiger Antwort</caption>
         <thead><tr><th>Frage</th><th>Punkte</th></tr></thead>
         <tbody>
           <tr><td>Lesung auswählen (し → shi)</td><td class="p">10</td></tr>
           <tr><td>Zeichen auswählen (shi → し)</td><td class="p">15</td></tr>
           <tr><td>Lesung eintippen</td><td class="p">20</td></tr>
-          <tr><td>Schnell beantwortet</td><td class="p"><span class="circ">× 1,5</span></td></tr>
-          <tr><td>Mit Eselsbrücke</td><td class="p">3</td></tr>
+          <tr><td>Zuschlag für zusammengesetzte Silben (きゃ)</td><td class="p">+5</td></tr>
+          <tr><td>Schnelle Antwort</td><td class="p"><span class="circ">× 1,5</span></td></tr>
+          <tr><td>Antwort mit Eselsbrücke</td><td class="p">3</td></tr>
+          <tr><td>Falsche Antwort</td><td class="p">0</td></tr>
         </tbody>
       </table>
     </div>
-    <p class="table-note">Schnell sein lohnt sich!</p>
+    <p class="table-note">Als schnell gilt eine Antwort in unter 3 Sekunden (Lesung auswählen), unter 4 Sekunden (Zeichen auswählen) oder unter 6 Sekunden (Eintippen).</p>
   </section>
 
-  <section aria-labelledby="hinweis">
-    <h2 id="hinweis" class="sec-head" style="font-size:1.15rem">Hinweis für Lehrkräfte</h2>
-    <p class="teacher" style="margin-top:12px"><span class="label">Ehrlich gesagt:</span> Diese App wurde komplett mit KI gevibecodet. Sie ist ein privates Projekt und nur zum Lernen gedacht – keine Firma, kein Support, keine Garantie.</p>
+  <section aria-labelledby="hinweise">
+    <div class="sec-head"><h2 id="hinweise">Hinweise</h2></div>
+    <ul class="notes">
+      <li>Kana PIN ist ein privates Projekt und wurde mit Unterstützung von KI entwickelt („Vibe Coding“).</li>
+      <li>Die App dient ausschließlich Lernzwecken. Es besteht kein Anspruch auf Support oder Gewährleistung.</li>
+      <li>Die App ist nur für Android ab Version 12 verfügbar.</li>
+      <li>In der Rangliste sind Name und Punktestand für alle Teilnehmenden sichtbar.</li>
+    </ul>
   </section>
 
   <div class="folio">
-    <span>Kana PIN · mit KI gevibecodet · nur für Android · kein Konto nötig</span>
-    <span>Name und Punkte sind in der Rangliste für alle sichtbar.</span>
+    <span>Kana PIN · Version 3.0</span>
+    <span>Mit KI entwickelt · nur für Lernzwecke</span>
   </div>
   <div class="pageno">– 1 –</div>
 </div>
