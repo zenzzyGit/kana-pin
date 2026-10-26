@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kana PIN</title>
+<meta name="description" content="Lern Hiragana und Katakana jedes Mal, wenn du dein Handy entsperrst. Kostenlose Android-App mit Rangliste für Freunde.">
+<meta property="og:title" content="Kana PIN">
+<meta property="og:description" content="Erst die PIN, dann ein Kana. Hiragana & Katakana lernen beim Entsperren – mit Rangliste für Freunde.">
+<meta property="og:image" content="https://zenzzygit.github.io/kana-pin/og.png">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#12141A">
+<link rel="icon" href="icon.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+/* Layout: Zwei Spalten (Text | Handy), darunter Funktionen als 2×2-Raster, Installationsschritte, Punktetabelle. */
+:root {
+  --bg: #F2F3F6;
+  --surface: #FFFFFF;
+  --ink: #14161C;
+  --muted: #5B606D;
+  --line: #DCDFE6;
+  --accent: #B26E0C;
+  --accent-fill: #E8A33D;
+  --on-accent: #14161C;
+  /* Das Handy zeigt die App – in beiden Themes gleich */
+  --app-bg: #12141A;
+  --app-card: #1E222B;
+  --app-text: #F2F2F5;
+  --app-muted: #8A90A0;
+  --app-good: #2E9E5B;
+  --app-bad: #C8413B;
+  --font-display: "Dela Gothic One", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
+  --font-body: "Zen Kaku Gothic New", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E1015; --surface: #171A21; --ink: #ECEDF1; --muted: #9CA1AE; --line: #272B34;
+    --accent: #E8A33D; --accent-fill: #E8A33D; --on-accent: #14161C; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E1015; --surface: #171A21; --ink: #ECEDF1; --muted: #9CA1AE; --line: #272B34;
+  --accent: #E8A33D; --accent-fill: #E8A33D; --on-accent: #14161C; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 1.0625rem;
+  line-height: 1.65;
+}
+.wrap {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding-left: max(20px, env(safe-area-inset-left, 0px));
+  padding-right: max(20px, env(safe-area-inset-right, 0px));
+}
+h1, h2 { font-family: var(--font-display); font-weight: 400; text-wrap: balance; margin: 0; }
+p { margin: 0; }
+a { color: var(--accent); }
+:focus-visible { outline: 3px solid var(--accent-fill); outline-offset: 3px; border-radius: 6px; }
+
+/* ---------- Hero ---------- */
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: clamp(32px, 6vw, 72px);
+  align-items: center;
+  padding-block: clamp(40px, 8vw, 88px) clamp(40px, 7vw, 72px);
+}
+.eyebrow {
+  font-size: 0.8rem; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--muted); font-weight: 700;
+}
+.lock {
+  display: flex; align-items: center; gap: 14px; margin-top: 18px;
+  font-family: var(--font-display); font-size: clamp(1.4rem, 4vw, 1.9rem); color: var(--muted);
+}
+.lock .dots { letter-spacing: 0.18em; }
+.lock .arrow { font-family: var(--font-body); font-size: 0.8em; }
+.lock .kana { color: var(--accent); }
+h1 {
+  font-size: clamp(3rem, 10vw, 5.6rem);
+  line-height: 1;
+  letter-spacing: -0.01em;
+  margin-top: 10px;
+}
+.lead { margin-top: 20px; max-width: 30em; font-size: 1.15rem; color: var(--muted); }
+.lead strong { color: var(--ink); font-weight: 700; }
+.cta { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 20px; margin-top: 30px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 10px;
+  background: var(--accent-fill); color: var(--on-accent);
+  font-weight: 700; font-size: 1.1rem; text-decoration: none;
+  padding: 16px 26px; border-radius: 14px;
+  transition: transform .15s ease, box-shadow .15s ease;
+  box-shadow: 0 6px 20px -8px rgba(232, 163, 61, .7);
+}
+.btn:hover { transform: translateY(-1px); }
+.btn svg { width: 20px; height: 20px; flex: none; }
+.meta { font-size: 0.9rem; color: var(--muted); }
+.meta b { color: var(--ink); font-weight: 500; }
+
+/* ---------- Handy-Mockup ---------- */
+.phone {
+  justify-self: center;
+  width: min(300px, 100%);
+  aspect-ratio: 9 / 19;
+  max-width: 100%;
+  background: #05060A;
+  border-radius: 44px;
+  padding: 10px;
+  box-shadow: 0 30px 60px -24px rgba(10, 12, 20, .55), inset 0 0 0 2px #2A2E38;
+}
+.screen {
+  height: 100%;
+  background: var(--app-bg);
+  border-radius: 36px;
+  color: var(--app-text);
+  display: flex; flex-direction: column; align-items: center;
+  padding: 22px 16px 16px;
+  overflow: hidden;
+}
+.ph-top { width: 100%; display: flex; justify-content: space-between; font-size: 12px; color: var(--app-muted); }
+.ph-top .pts { color: var(--accent-fill); font-weight: 700; }
+.ph-prompt { margin-top: auto; font-size: 13px; color: var(--app-muted); }
+.ph-kana {
+  font-family: "Hiragino Sans", "Noto Sans JP", "Zen Kaku Gothic New", sans-serif;
+  font-size: 92px; line-height: 1.1; margin-top: 4px;
+  transition: opacity .35s ease;
+}
+.ph-script { font-size: 10px; letter-spacing: .2em; color: var(--app-muted); }
+.ph-feedback { min-height: 20px; margin-top: 10px; font-size: 12px; font-weight: 700; color: var(--app-good); transition: opacity .35s ease; }
+.ph-grid { margin-top: auto; width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.ph-grid span {
+  background: var(--app-card); border-radius: 12px; text-align: center;
+  padding: 14px 0; font-size: 17px; transition: background-color .35s ease;
+}
+.ph-grid span.ok { background: var(--app-good); }
+.ph-foot { width: 100%; display: flex; gap: 8px; margin-top: 12px; font-size: 11px; }
+.ph-foot span { flex: 1; text-align: center; padding: 9px 0; border-radius: 99px; color: var(--app-muted); }
+.ph-foot .sos { background: var(--app-bad); color: #fff; }
+.fade { opacity: 0; }
+
+/* ---------- Abschnitte ---------- */
+section { padding-block: clamp(40px, 7vw, 72px); border-top: 1px solid var(--line); }
+h2 { font-size: clamp(1.7rem, 4.5vw, 2.4rem); line-height: 1.15; }
+.sub { margin-top: 10px; color: var(--muted); max-width: 36em; }
+
+.features { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 32px; }
+.feature {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 20px;
+  padding: 22px 22px 24px; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 16px;
+}
+.feature .glyph {
+  grid-row: span 2; font-family: var(--font-display); font-size: 2.2rem; line-height: 1;
+  color: var(--accent); width: 1.3em; text-align: center; padding-top: 4px;
+}
+.feature h3 { margin: 0; font-size: 1.1rem; font-weight: 700; }
+.feature p { color: var(--muted); font-size: 1rem; }
+
+.steps { list-style: none; padding: 0; margin: 32px 0 0; display: grid; gap: 14px; max-width: 44em; counter-reset: step; }
+.steps li {
+  counter-increment: step; display: grid; grid-template-columns: 2.4rem minmax(0, 1fr); gap: 14px; align-items: start;
+}
+.steps li::before {
+  content: counter(step); font-family: var(--font-display); font-size: 1.05rem;
+  width: 2.4rem; height: 2.4rem; border-radius: 50%; display: grid; place-items: center;
+  background: var(--surface); border: 1px solid var(--line); color: var(--accent);
+}
+.steps b { font-weight: 700; }
+.steps .note { display: block; margin-top: 4px; font-size: 0.93rem; color: var(--muted); }
+
+.points-wrap { margin-top: 28px; overflow-x: auto; }
+table { border-collapse: collapse; min-width: 100%; max-width: 40em; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 12px 16px 12px 0; border-bottom: 1px solid var(--line); }
+th { font-size: 0.8rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+td.p { font-family: var(--font-display); color: var(--accent); white-space: nowrap; }
+
+footer { border-top: 1px solid var(--line); padding-block: 28px 40px; color: var(--muted); font-size: 0.9rem; }
+footer .row { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; }
+
+@media (max-width: 760px) {
+  .hero { grid-template-columns: minmax(0, 1fr); }
+  .phone { width: min(260px, 78%); }
+  .features { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ph-kana, .ph-feedback, .ph-grid span, .btn { transition: none; }
+}
+</style>
+</head>
+<body>
+<main class="wrap">
+
+  <header class="hero">
+    <div>
+      <div class="eyebrow">Android-App · kostenlos</div>
+      <h1>Kana PIN</h1>
+      <div class="lock" aria-label="Erst die PIN, dann ein Kana">
+        <span class="dots" aria-hidden="true">●●●●</span><span class="arrow" aria-hidden="true">→</span><span class="kana" aria-hidden="true">か</span>
+      </div>
+      <p class="lead">Erst die PIN, dann ein Kana. <strong>Jedes Mal, wenn du dein Handy entsperrst,</strong> fragt dich die App ein Hiragana oder Katakana ab – und merkt sich, was dir schwerfällt.</p>
+      <div class="cta">
+        <a class="btn" href="Kana-PIN.apk" download="Kana-PIN.apk">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v13"/><path d="m6 11 6 6 6-6"/><path d="M4 21h16"/></svg>
+          APK herunterladen
+        </a>
+        <span class="meta"><b>Version 3.0</b> · 87 KB · ab Android 12</span>
+      </div>
+    </div>
+
+    <div class="phone" aria-hidden="true">
+      <div class="screen">
+        <div class="ph-top"><span>かな</span><span class="pts">Woche: 340 P</span></div>
+        <div class="ph-prompt">Wie liest man das?</div>
+        <div class="ph-kana" id="ph-kana">し</div>
+        <div class="ph-script" id="ph-script">HIRAGANA</div>
+        <div class="ph-feedback" id="ph-feedback">Richtig · 1,4 s · +15</div>
+        <div class="ph-grid" id="ph-grid"><span>sa</span><span class="ok">shi</span><span>su</span><span>chi</span></div>
+        <div class="ph-foot"><span>Weiß ich nicht</span><span class="sos">Notfall · 112</span></div>
+      </div>
+    </div>
+  </header>
+
+  <section aria-labelledby="was">
+    <h2 id="was">Lernen nebenbei</h2>
+    <p class="sub">Du entsperrst dein Handy sowieso dutzende Male am Tag. Kana PIN macht aus jedem Mal eine kurze Übung.</p>
+    <div class="features">
+      <div class="feature">
+        <span class="glyph" aria-hidden="true">あ</span>
+        <h3>Quiz nach dem Entsperren</h3>
+        <p>Nach PIN oder Fingerabdruck kommt ein Zeichen. Richtig antworten, weiter geht's. Der Notfallknopf ist immer da.</p>
+      </div>
+      <div class="feature">
+        <span class="glyph" aria-hidden="true">ツ</span>
+        <h3>Lernt mit dir</h3>
+        <p>Was dir schwerfällt, kommt öfter dran. Verwechselst du シ und ツ, übt die App genau das.</p>
+      </div>
+      <div class="feature">
+        <span class="glyph" aria-hidden="true">ね</span>
+        <h3>Eselsbrücken</h3>
+        <p>Ein Bilderrätsel als Tipp für jedes Zeichen. Die Lösung verrät es nicht – draufkommen musst du selbst.</p>
+      </div>
+      <div class="feature">
+        <span class="glyph" aria-hidden="true">位</span>
+        <h3>Rangliste</h3>
+        <p>Punkte sammeln und mit Freunden messen. Jeden Montag startet eine neue Wochenwertung.</p>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="install">
+    <h2 id="install">Installieren</h2>
+    <p class="sub">Die App kommt nicht aus dem Play Store, deshalb fragt Android ein paarmal nach.</p>
+    <ol class="steps">
+      <li><span><b>APK herunterladen</b> und die Datei öffnen.</span></li>
+      <li><span>Bei der Warnung auf <b>„Trotzdem installieren“</b> tippen.</span></li>
+      <li><span>In der App <b>„Über anderen Apps einblenden“</b> erlauben.
+        <span class="note">Ist der Schalter gesperrt: App-Info → ⋮ oben rechts → „Eingeschränkte Einstellungen zulassen“.</span></span></li>
+      <li><span><b>„Quiz beim Entsperren“</b> einschalten und in der Rangliste einen Namen festlegen.</span></li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="punkte">
+    <h2 id="punkte">Punkte</h2>
+    <p class="sub">Je schwerer die Frage, desto mehr gibt es. Wer schnell ist, bekommt die Hälfte obendrauf.</p>
+    <div class="points-wrap">
+      <table>
+        <thead><tr><th>Frage</th><th>Punkte</th></tr></thead>
+        <tbody>
+          <tr><td>Lesung auswählen (し → shi)</td><td class="p">10</td></tr>
+          <tr><td>Zeichen auswählen (shi → し)</td><td class="p">15</td></tr>
+          <tr><td>Lesung eintippen</td><td class="p">20</td></tr>
+          <tr><td>Schnell beantwortet</td><td class="p">× 1,5</td></tr>
+          <tr><td>Mit Eselsbrücke</td><td class="p">3</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap row">
+    <span>Kana PIN · nur für Android · kein Konto nötig</span>
+    <span>Name und Punkte sind in der Rangliste für alle sichtbar.</span>
+  </div>
+</footer>
+
+<script>
+(() => {
+  const demo = [
+    { kana: "し", script: "HIRAGANA", opts: ["sa", "shi", "su", "chi"], ok: 1, fb: "Richtig · 1,4 s · +15" },
+    { kana: "ツ", script: "KATAKANA", opts: ["shi", "so", "tsu", "n"], ok: 2, fb: "Richtig · 2,1 s · +15" },
+    { kana: "ね", script: "HIRAGANA", opts: ["re", "ne", "wa", "nu"], ok: 1, fb: "Richtig · 0,9 s · +15" },
+    { kana: "キ", script: "KATAKANA", opts: ["ki", "sa", "chi", "ke"], ok: 0, fb: "Richtig · 1,2 s · +15" }
+  ];
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const kana = document.getElementById("ph-kana");
+  const script = document.getElementById("ph-script");
+  const fb = document.getElementById("ph-feedback");
+  const cells = document.querySelectorAll("#ph-grid span");
+  let i = 0;
+  setInterval(() => {
+    i = (i + 1) % demo.length;
+    const d = demo[i];
+    kana.classList.add("fade"); fb.classList.add("fade");
+    cells.forEach(c => c.classList.remove("ok"));
+    setTimeout(() => {
+      kana.textContent = d.kana; script.textContent = d.script;
+      cells.forEach((c, n) => { c.textContent = d.opts[n]; });
+      kana.classList.remove("fade");
+      setTimeout(() => {
+        cells[d.ok].classList.add("ok");
+        fb.textContent = d.fb; fb.classList.remove("fade");
+      }, 900);
+    }, 350);
+  }, 3400);
+})();
+</script>
+</body>
+</html>
