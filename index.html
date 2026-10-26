@@ -155,6 +155,10 @@ section { padding-block: clamp(40px, 7vw, 72px); border-top: 1px solid var(--lin
 h2 { font-size: clamp(1.7rem, 4.5vw, 2.4rem); line-height: 1.15; }
 .sub { margin-top: 10px; color: var(--muted); max-width: 36em; }
 
+.honest {
+  margin-top: 22px; max-width: 40em; padding: 14px 18px; border-radius: 14px;
+  border: 1px dashed var(--line); color: var(--muted); font-size: 0.97rem;
+}
 .features { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 32px; }
 .feature {
   background: var(--surface); border: 1px solid var(--line); border-radius: 20px;
@@ -203,7 +207,7 @@ footer .row { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: sp
 
   <header class="hero">
     <div>
-      <div class="eyebrow">Android-App · kostenlos</div>
+      <div class="eyebrow">Android-App · kostenlos · mit KI gevibecodet</div>
       <h1>Kana PIN</h1>
       <div class="lock" aria-label="Erst die PIN, dann ein Kana">
         <span class="dots" aria-hidden="true">●●●●</span><span class="arrow" aria-hidden="true">→</span><span class="kana" aria-hidden="true">か</span>
@@ -230,6 +234,12 @@ footer .row { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: sp
       </div>
     </div>
   </header>
+
+  <section aria-labelledby="faul">
+    <h2 id="faul">Für alle, die zu faul zum Lernen sind</h2>
+    <p class="sub">Lernkarten verstauben, Lern-Apps werden nie geöffnet. Kana PIN nimmt dir die Wahl ab: An dein Handy kommst du erst, wenn du das Zeichen weißt. Lernen per Zwang, ganz ohne Disziplin.</p>
+    <p class="honest">Ehrlich gesagt: Die App wurde komplett mit KI gevibecodet. Sie ist ein privates Projekt, nur zum Lernen gedacht – keine Firma, kein Support, keine Garantie.</p>
+  </section>
 
   <section aria-labelledby="was">
     <h2 id="was">Lernen nebenbei</h2>
@@ -291,7 +301,7 @@ footer .row { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: sp
 
 <footer>
   <div class="wrap row">
-    <span>Kana PIN · nur für Android · kein Konto nötig</span>
+    <span>Kana PIN · mit KI gevibecodet · nur für Android · kein Konto nötig</span>
     <span>Name und Punkte sind in der Rangliste für alle sichtbar.</span>
   </div>
 </footer>
