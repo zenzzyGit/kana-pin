@@ -4,198 +4,289 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Kana PIN</title>
-<meta name="description" content="Lern Hiragana und Katakana jedes Mal, wenn du dein Handy entsperrst. Kostenlose Android-App mit Rangliste für Freunde.">
-<meta property="og:title" content="Kana PIN">
-<meta property="og:description" content="Erst die PIN, dann ein Kana. Hiragana & Katakana lernen beim Entsperren – mit Rangliste für Freunde.">
+<meta name="description" content="Japanisch für Faule, Lektion 1: Hiragana und Katakana lernen, jedes Mal wenn du dein Handy entsperrst. Kostenlose Android-App mit Rangliste.">
+<meta property="og:title" content="Kana PIN · Japanisch für Faule">
+<meta property="og:description" content="Erst die PIN, dann ein Kana. Lernen per Zwang – mit Rangliste für Freunde.">
 <meta property="og:image" content="https://zenzzygit.github.io/kana-pin/og.png">
 <meta property="og:type" content="website">
-<meta name="theme-color" content="#12141A">
+<meta name="theme-color" content="#FBFCFD">
 <link rel="icon" href="icon.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Klee+One:wght@400;600&display=swap">
 <style>
-/* Layout: Zwei Spalten (Text | Handy), darunter Funktionen als 2×2-Raster, Installationsschritte, Punktetabelle. */
+/* Layout: eine Schulbuchseite auf Karopapier mit Randlinie – Kolumnentitel, Lektionsöffner,
+   Abbildung, Lernziele, Merke-Kasten, Übung, Tabelle, Lehrkräfte-Hinweis, Seitenzahl. */
 :root {
-  --bg: #F2F3F6;
-  --surface: #FFFFFF;
-  --ink: #14161C;
-  --muted: #5B606D;
-  --line: #DCDFE6;
-  --accent: #B26E0C;
-  --accent-fill: #E8A33D;
-  --on-accent: #14161C;
-  /* Das Handy zeigt die App – in beiden Themes gleich */
+  --paper: #FBFCFD;
+  --grid: rgba(64, 104, 168, 0.12);
+  --margin-line: rgba(210, 58, 47, 0.55);
+  --ink: #1D2230;
+  --muted: #5A6070;
+  --rule: #C3CCDD;
+  --blue: #1F3FA6;      /* Königsblau aus dem Füller */
+  --red: #D23A2F;       /* Rotstift der Lehrkraft */
+  --marker: #FFF0A0;    /* Textmarker */
+  --tape: rgba(255, 236, 170, 0.75);
   --app-bg: #12141A;
   --app-card: #1E222B;
   --app-text: #F2F2F5;
   --app-muted: #8A90A0;
   --app-good: #2E9E5B;
   --app-bad: #C8413B;
-  --font-display: "Dela Gothic One", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
-  --font-body: "Zen Kaku Gothic New", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
+  --amber: #E8A33D;
+  --font-hand: "Klee One", "Hiragino Mincho ProN", "Yu Mincho", serif;
+  --font-body: "BIZ UDPGothic", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
   color-scheme: light;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0E1015; --surface: #171A21; --ink: #ECEDF1; --muted: #9CA1AE; --line: #272B34;
-    --accent: #E8A33D; --accent-fill: #E8A33D; --on-accent: #14161C; color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #0E1015; --surface: #171A21; --ink: #ECEDF1; --muted: #9CA1AE; --line: #272B34;
-  --accent: #E8A33D; --accent-fill: #E8A33D; --on-accent: #14161C; color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
 body {
   margin: 0;
-  background: var(--bg);
+  background-color: var(--paper);
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 20px 20px;
   color: var(--ink);
   font-family: var(--font-body);
   font-size: 1.0625rem;
-  line-height: 1.65;
+  line-height: 1.75;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
-.wrap {
-  max-width: 1040px;
-  margin: 0 auto;
-  padding-left: max(20px, env(safe-area-inset-left, 0px));
-  padding-right: max(20px, env(safe-area-inset-right, 0px));
-}
-h1, h2 { font-family: var(--font-display); font-weight: 400; text-wrap: balance; margin: 0; }
 p { margin: 0; }
-a { color: var(--accent); }
-:focus-visible { outline: 3px solid var(--accent-fill); outline-offset: 3px; border-radius: 6px; }
+h1, h2, h3 { margin: 0; font-weight: 700; text-wrap: balance; }
+a { color: var(--blue); }
+:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
 
-/* ---------- Hero ---------- */
-.hero {
+/* ---------- Seite mit Randlinie ---------- */
+.sheet {
+  position: relative;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 0 0 64px;
+}
+.sheet::before {
+  content: "";
+  position: absolute; top: 0; bottom: 0; left: 40px;
+  width: 2px; background: var(--margin-line);
+}
+
+.runhead {
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px;
+  padding-block: 18px 10px;
+  border-bottom: 1px solid var(--rule);
+  font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);
+}
+.runhead b { color: var(--ink); font-weight: 700; }
+
+/* ---------- Lektionsöffner ---------- */
+.opener {
+  position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
-  gap: clamp(32px, 6vw, 72px);
-  align-items: center;
-  padding-block: clamp(40px, 8vw, 88px) clamp(40px, 7vw, 72px);
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  gap: 40px;
+  align-items: start;
+  padding-block: 48px 40px;
 }
-.eyebrow {
-  font-size: 0.8rem; letter-spacing: 0.14em; text-transform: uppercase;
-  color: var(--muted); font-weight: 700;
+.lesson {
+  display: flex; align-items: baseline; gap: 14px;
+  font-family: var(--font-hand); color: var(--red);
 }
-.lock {
-  display: flex; align-items: center; gap: 14px; margin-top: 18px;
-  font-family: var(--font-display); font-size: clamp(1.4rem, 4vw, 1.9rem); color: var(--muted);
-}
-.lock .dots { letter-spacing: 0.18em; }
-.lock .arrow { font-family: var(--font-body); font-size: 0.8em; }
-.lock .kana { color: var(--accent); }
+.lesson .jp { font-size: 2.1rem; font-weight: 600; line-height: 1; }
+.lesson .de { font-size: 1.05rem; letter-spacing: 0.04em; }
 h1 {
-  font-size: clamp(3rem, 10vw, 5.6rem);
-  line-height: 1;
-  letter-spacing: -0.01em;
   margin-top: 10px;
+  font-family: var(--font-hand);
+  font-weight: 600;
+  font-size: clamp(3.2rem, 11vw, 5.4rem);
+  line-height: 1.05;
+  color: var(--ink);
 }
-.lead { margin-top: 20px; max-width: 30em; font-size: 1.15rem; color: var(--muted); }
-.lead strong { color: var(--ink); font-weight: 700; }
-.cta { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 20px; margin-top: 30px; }
-.btn {
-  display: inline-flex; align-items: center; gap: 10px;
-  background: var(--accent-fill); color: var(--on-accent);
-  font-weight: 700; font-size: 1.1rem; text-decoration: none;
-  padding: 16px 26px; border-radius: 14px;
-  transition: transform .15s ease, box-shadow .15s ease;
-  box-shadow: 0 6px 20px -8px rgba(232, 163, 61, .7);
+.subtitle {
+  margin-top: 8px;
+  font-size: 1.25rem; font-weight: 700;
 }
-.btn:hover { transform: translateY(-1px); }
-.btn svg { width: 20px; height: 20px; flex: none; }
-.meta { font-size: 0.9rem; color: var(--muted); }
-.meta b { color: var(--ink); font-weight: 500; }
+.subtitle mark {
+  background: linear-gradient(transparent 52%, var(--marker) 52%, var(--marker) 92%, transparent 92%);
+  color: inherit; padding: 0 2px;
+}
+.lead { margin-top: 14px; max-width: 32em; color: var(--muted); }
 
-/* ---------- Handy-Mockup ---------- */
+.intro { position: relative; }
+.stamp {
+  position: absolute; right: 0; top: -6px;
+  width: 104px; height: 104px; border-radius: 50%;
+  border: 3px solid var(--red);
+  display: grid; place-items: center; text-align: center;
+  font-family: var(--font-hand); font-weight: 600; color: var(--red);
+  font-size: 0.95rem; line-height: 1.25;
+  transform: rotate(-14deg);
+  opacity: 0.82;
+  mix-blend-mode: multiply;
+  box-shadow: inset 0 0 0 3px var(--paper), inset 0 0 0 4px var(--red);
+}
+
+.task {
+  margin-top: 30px;
+  border: 2px solid var(--ink);
+  background: var(--paper);
+  padding: 18px 20px 20px;
+  max-width: 30em;
+}
+.task-label {
+  display: inline-block; margin-bottom: 8px;
+  background: var(--ink); color: var(--paper);
+  font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 2px 10px;
+}
+.task p { font-weight: 700; }
+.btn {
+  display: inline-flex; align-items: center; gap: 10px; margin-top: 14px;
+  background: var(--blue); color: #fff; text-decoration: none;
+  font-weight: 700; font-size: 1.08rem;
+  padding: 13px 22px;
+  border: 2px solid var(--ink);
+  box-shadow: 4px 4px 0 var(--ink);
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.btn:hover { transform: translate(-1px, -1px); box-shadow: 5px 5px 0 var(--ink); }
+.btn:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--ink); }
+.btn svg { width: 20px; height: 20px; flex: none; }
+.meta { margin-top: 12px; font-size: 0.88rem; color: var(--muted); }
+
+/* ---------- Abbildung ---------- */
+figure { margin: 0; }
+.fig { justify-self: center; text-align: center; padding-top: 18px; }
+.photo { position: relative; display: inline-block; transform: rotate(2.2deg); }
+.photo::before, .photo::after {
+  content: ""; position: absolute; width: 96px; height: 26px; background: var(--tape);
+  top: -10px; z-index: 2; box-shadow: 0 1px 2px rgba(0,0,0,.06);
+}
+.photo::before { left: -22px; transform: rotate(-32deg); }
+.photo::after { right: -22px; transform: rotate(30deg); }
 .phone {
-  justify-self: center;
-  width: min(300px, 100%);
-  aspect-ratio: 9 / 19;
-  max-width: 100%;
-  background: #05060A;
-  border-radius: 44px;
-  padding: 10px;
-  box-shadow: 0 30px 60px -24px rgba(10, 12, 20, .55), inset 0 0 0 2px #2A2E38;
+  width: 250px; max-width: 100%;
+  aspect-ratio: 9 / 18.5;
+  background: #05060A; border-radius: 38px; padding: 9px;
+  box-shadow: 6px 10px 0 rgba(29, 34, 48, 0.12);
 }
 .screen {
-  height: 100%;
-  background: var(--app-bg);
-  border-radius: 36px;
-  color: var(--app-text);
-  display: flex; flex-direction: column; align-items: center;
-  padding: 22px 16px 16px;
-  overflow: hidden;
+  height: 100%; background: var(--app-bg); border-radius: 30px; color: var(--app-text);
+  display: flex; flex-direction: column; align-items: center; padding: 18px 13px 13px; overflow: hidden;
+  font-family: system-ui, sans-serif;
 }
-.ph-top { width: 100%; display: flex; justify-content: space-between; font-size: 12px; color: var(--app-muted); }
-.ph-top .pts { color: var(--accent-fill); font-weight: 700; }
-.ph-prompt { margin-top: auto; font-size: 13px; color: var(--app-muted); }
-.ph-kana {
-  font-family: "Hiragino Sans", "Noto Sans JP", "Zen Kaku Gothic New", sans-serif;
-  font-size: 92px; line-height: 1.1; margin-top: 4px;
-  transition: opacity .35s ease;
-}
-.ph-script { font-size: 10px; letter-spacing: .2em; color: var(--app-muted); }
-.ph-feedback { min-height: 20px; margin-top: 10px; font-size: 12px; font-weight: 700; color: var(--app-good); transition: opacity .35s ease; }
-.ph-grid { margin-top: auto; width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.ph-grid span {
-  background: var(--app-card); border-radius: 12px; text-align: center;
-  padding: 14px 0; font-size: 17px; transition: background-color .35s ease;
-}
+.ph-top { width: 100%; display: flex; justify-content: space-between; font-size: 11px; color: var(--app-muted); }
+.ph-top .pts { color: var(--amber); font-weight: 700; }
+.ph-prompt { margin-top: auto; font-size: 12px; color: var(--app-muted); }
+.ph-kana { font-family: var(--font-hand); font-size: 80px; line-height: 1.15; transition: opacity .35s ease; }
+.ph-script { font-size: 9px; letter-spacing: .2em; color: var(--app-muted); }
+.ph-feedback { min-height: 18px; margin-top: 8px; font-size: 11px; font-weight: 700; color: var(--app-good); transition: opacity .35s ease; }
+.ph-grid { margin-top: auto; width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.ph-grid span { background: var(--app-card); border-radius: 11px; padding: 12px 0; font-size: 15px; transition: background-color .35s ease; }
 .ph-grid span.ok { background: var(--app-good); }
-.ph-foot { width: 100%; display: flex; gap: 8px; margin-top: 12px; font-size: 11px; }
-.ph-foot span { flex: 1; text-align: center; padding: 9px 0; border-radius: 99px; color: var(--app-muted); }
+.ph-foot { width: 100%; display: flex; gap: 7px; margin-top: 10px; font-size: 10px; }
+.ph-foot span { flex: 1; padding: 8px 0; border-radius: 99px; color: var(--app-muted); }
 .ph-foot .sos { background: var(--app-bad); color: #fff; }
 .fade { opacity: 0; }
+figcaption {
+  margin-top: 22px; font-family: var(--font-hand); font-size: 0.98rem; color: var(--muted);
+}
+figcaption b { color: var(--ink); font-weight: 600; }
 
 /* ---------- Abschnitte ---------- */
-section { padding-block: clamp(40px, 7vw, 72px); border-top: 1px solid var(--line); }
-h2 { font-size: clamp(1.7rem, 4.5vw, 2.4rem); line-height: 1.15; }
-.sub { margin-top: 10px; color: var(--muted); max-width: 36em; }
+section { padding-block: 36px; border-top: 1px solid var(--rule); }
+.sec-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.sec-no {
+  font-family: var(--font-hand); font-weight: 600; color: var(--red); font-size: 1.15rem;
+}
+h2 { font-size: clamp(1.5rem, 4.2vw, 2rem); line-height: 1.25; }
 
-.honest {
-  margin-top: 22px; max-width: 40em; padding: 14px 18px; border-radius: 14px;
-  border: 1px dashed var(--line); color: var(--muted); font-size: 0.97rem;
+/* Schreibheft-Kästchen (田字格) */
+.drill { display: flex; gap: 0; margin-top: 18px; overflow-x: auto; }
+.cell {
+  position: relative; flex: none; width: 64px; height: 64px;
+  border: 1.5px solid var(--red); margin-left: -1.5px; background: var(--paper);
+  display: grid; place-items: center;
+  font-family: var(--font-hand); font-size: 44px; line-height: 1; color: var(--ink);
 }
-.features { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 32px; }
-.feature {
-  background: var(--surface); border: 1px solid var(--line); border-radius: 20px;
-  padding: 22px 22px 24px; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 16px;
-}
-.feature .glyph {
-  grid-row: span 2; font-family: var(--font-display); font-size: 2.2rem; line-height: 1;
-  color: var(--accent); width: 1.3em; text-align: center; padding-top: 4px;
-}
-.feature h3 { margin: 0; font-size: 1.1rem; font-weight: 700; }
-.feature p { color: var(--muted); font-size: 1rem; }
+.cell:first-child { margin-left: 0; }
+.cell::before, .cell::after { content: ""; position: absolute; border: 0 dashed rgba(210,58,47,.45); }
+.cell::before { left: 50%; top: 0; bottom: 0; border-left-width: 1px; }
+.cell::after { top: 50%; left: 0; right: 0; border-top-width: 1px; }
+.cell span { position: relative; z-index: 1; }
+.cell.t1 { color: rgba(29,34,48,.28); }
+.cell.t2 { color: rgba(29,34,48,.12); }
+.drill-note { margin-top: 10px; font-family: var(--font-hand); color: var(--blue); font-size: 1.02rem; }
 
-.steps { list-style: none; padding: 0; margin: 32px 0 0; display: grid; gap: 14px; max-width: 44em; counter-reset: step; }
-.steps li {
-  counter-increment: step; display: grid; grid-template-columns: 2.4rem minmax(0, 1fr); gap: 14px; align-items: start;
+.goals { list-style: none; padding: 0; margin: 22px 0 0; display: grid; gap: 16px; max-width: 40em; }
+.goals li { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 14px; }
+.box {
+  width: 24px; height: 24px; margin-top: 4px; border: 2px solid var(--ink); position: relative;
 }
-.steps li::before {
-  content: counter(step); font-family: var(--font-display); font-size: 1.05rem;
-  width: 2.4rem; height: 2.4rem; border-radius: 50%; display: grid; place-items: center;
-  background: var(--surface); border: 1px solid var(--line); color: var(--accent);
+.box::after {
+  content: "✓"; position: absolute; left: 3px; top: -16px;
+  font-family: var(--font-hand); font-weight: 600; font-size: 30px; color: var(--blue);
+  transform: rotate(-6deg);
 }
+.goals b { display: block; }
+.goals span.d { color: var(--muted); font-size: 1rem; }
+
+.merke {
+  margin-top: 28px; max-width: 40em;
+  background: var(--marker);
+  border-left: 6px solid var(--ink);
+  padding: 16px 20px;
+}
+.merke .label { font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; font-size: 0.85rem; }
+.merke p { margin-top: 4px; font-size: 1.12rem; font-weight: 700; }
+
+.steps { list-style: none; padding: 0; margin: 22px 0 0; display: grid; gap: 14px; max-width: 40em; }
+.steps li { display: grid; grid-template-columns: 2rem minmax(0, 1fr); gap: 10px; position: relative; }
+.steps .l { font-family: var(--font-hand); font-weight: 600; font-size: 1.15rem; color: var(--blue); }
 .steps b { font-weight: 700; }
-.steps .note { display: block; margin-top: 4px; font-size: 0.93rem; color: var(--muted); }
+.margin-note {
+  display: block; margin-top: 6px;
+  font-family: var(--font-hand); color: var(--red); font-size: 1rem; line-height: 1.5;
+}
 
-.points-wrap { margin-top: 28px; overflow-x: auto; }
-table { border-collapse: collapse; min-width: 100%; max-width: 40em; font-variant-numeric: tabular-nums; }
-th, td { text-align: left; padding: 12px 16px 12px 0; border-bottom: 1px solid var(--line); }
-th { font-size: 0.8rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
-td.p { font-family: var(--font-display); color: var(--accent); white-space: nowrap; }
+.table-wrap { margin-top: 20px; overflow-x: auto; max-width: 40em; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; background: var(--paper); }
+caption {
+  caption-side: top; text-align: left; padding-bottom: 8px;
+  font-family: var(--font-hand); font-size: 1rem; color: var(--muted);
+}
+caption b { color: var(--ink); font-weight: 600; }
+th, td { text-align: left; padding: 10px 14px; border: 1.5px solid var(--ink); }
+th { font-size: 0.85rem; letter-spacing: 0.06em; text-transform: uppercase; background: #EEF1F7; }
+td.p { font-weight: 700; white-space: nowrap; width: 7em; }
+td.p .circ {
+  display: inline-block; padding: 0 8px; border: 2px solid var(--red); border-radius: 50%;
+  transform: rotate(-4deg); color: var(--red);
+}
+.table-note { margin-top: 10px; font-family: var(--font-hand); color: var(--red); }
 
-footer { border-top: 1px solid var(--line); padding-block: 28px 40px; color: var(--muted); font-size: 0.9rem; }
-footer .row { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; }
+.teacher {
+  margin-top: 4px; max-width: 40em;
+  border: 1.5px dashed var(--muted); padding: 14px 18px; font-size: 0.95rem; color: var(--muted);
+}
+.teacher .label { font-weight: 700; color: var(--ink); }
+
+.folio {
+  display: flex; flex-wrap: wrap; gap: 6px 20px; justify-content: space-between;
+  border-top: 1px solid var(--rule); padding-block: 18px 12px;
+  font-size: 0.82rem; color: var(--muted);
+}
+.pageno { text-align: center; padding-block: 6px 34px; font-family: var(--font-hand); color: var(--muted); }
 
 @media (max-width: 760px) {
-  .hero { grid-template-columns: minmax(0, 1fr); }
-  .phone { width: min(260px, 78%); }
-  .features { grid-template-columns: minmax(0, 1fr); }
+  .sheet { padding-left: 26px; }
+  .sheet::before { left: 10px; }
+  .opener { grid-template-columns: minmax(0, 1fr); gap: 34px; padding-top: 36px; }
+  .stamp { width: 84px; height: 84px; font-size: 0.8rem; right: 0; top: -8px; }
+  .phone { width: 220px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .ph-kana, .ph-feedback, .ph-grid span, .btn { transition: none; }
@@ -203,108 +294,117 @@ footer .row { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: sp
 </style>
 </head>
 <body>
-<main class="wrap">
+<div class="sheet">
 
-  <header class="hero">
-    <div>
-      <div class="eyebrow">Android-App · kostenlos · mit KI gevibecodet</div>
+  <div class="runhead">
+    <span><b>Japanisch für Faule</b> · Kapitel 1: Die Kana</span>
+    <span>Seite 1</span>
+  </div>
+
+  <header class="opener">
+    <div class="intro">
+      <div class="stamp" aria-hidden="true">よく<br>できました</div>
+      <div class="lesson"><span class="jp">第1課</span><span class="de">Lektion 1</span></div>
       <h1>Kana PIN</h1>
-      <div class="lock" aria-label="Erst die PIN, dann ein Kana">
-        <span class="dots" aria-hidden="true">●●●●</span><span class="arrow" aria-hidden="true">→</span><span class="kana" aria-hidden="true">か</span>
-      </div>
-      <p class="lead">Erst die PIN, dann ein Kana. <strong>Jedes Mal, wenn du dein Handy entsperrst,</strong> fragt dich die App ein Hiragana oder Katakana ab – und merkt sich, was dir schwerfällt.</p>
-      <div class="cta">
+      <p class="subtitle">Erst die PIN, dann <mark>ein Kana.</mark></p>
+      <p class="lead">Jedes Mal, wenn du dein Handy entsperrst, fragt dich die App ein Hiragana oder Katakana ab. Was du nicht kannst, kommt öfter dran.</p>
+
+      <div class="task">
+        <span class="task-label">Aufgabe 1</span>
+        <p>Lade die App herunter.</p>
         <a class="btn" href="Kana-PIN.apk" download="Kana-PIN.apk">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v13"/><path d="m6 11 6 6 6-6"/><path d="M4 21h16"/></svg>
           APK herunterladen
         </a>
-        <span class="meta"><b>Version 3.0</b> · 87 KB · ab Android 12</span>
+        <p class="meta">Version 3.0 · 87 KB · Android 12 oder neuer</p>
       </div>
     </div>
 
-    <div class="phone" aria-hidden="true">
-      <div class="screen">
-        <div class="ph-top"><span>かな</span><span class="pts">Woche: 340 P</span></div>
-        <div class="ph-prompt">Wie liest man das?</div>
-        <div class="ph-kana" id="ph-kana">し</div>
-        <div class="ph-script" id="ph-script">HIRAGANA</div>
-        <div class="ph-feedback" id="ph-feedback">Richtig · 1,4 s · +15</div>
-        <div class="ph-grid" id="ph-grid"><span>sa</span><span class="ok">shi</span><span>su</span><span>chi</span></div>
-        <div class="ph-foot"><span>Weiß ich nicht</span><span class="sos">Notfall · 112</span></div>
+    <figure class="fig">
+      <div class="photo" aria-hidden="true">
+        <div class="phone">
+          <div class="screen">
+            <div class="ph-top"><span>かな</span><span class="pts">Woche: 340 P</span></div>
+            <div class="ph-prompt">Wie liest man das?</div>
+            <div class="ph-kana" id="ph-kana">し</div>
+            <div class="ph-script" id="ph-script">HIRAGANA</div>
+            <div class="ph-feedback" id="ph-feedback">Richtig · 1,4 s · +15</div>
+            <div class="ph-grid" id="ph-grid"><span>sa</span><span class="ok">shi</span><span>su</span><span>chi</span></div>
+            <div class="ph-foot"><span>Weiß ich nicht</span><span class="sos">Notfall · 112</span></div>
+          </div>
+        </div>
       </div>
-    </div>
+      <figcaption><b>Abb. 1</b> · Das Quiz direkt nach dem Entsperren</figcaption>
+    </figure>
+
   </header>
 
-  <section aria-labelledby="faul">
-    <h2 id="faul">Für alle, die zu faul zum Lernen sind</h2>
-    <p class="sub">Lernkarten verstauben, Lern-Apps werden nie geöffnet. Kana PIN nimmt dir die Wahl ab: An dein Handy kommst du erst, wenn du das Zeichen weißt. Lernen per Zwang, ganz ohne Disziplin.</p>
-    <p class="honest">Ehrlich gesagt: Die App wurde komplett mit KI gevibecodet. Sie ist ein privates Projekt, nur zum Lernen gedacht – keine Firma, kein Support, keine Garantie.</p>
-  </section>
+  <section aria-labelledby="ziele">
+    <div class="sec-head"><span class="sec-no">1.1</span><h2 id="ziele">Für alle, die zu faul zum Lernen sind</h2></div>
 
-  <section aria-labelledby="was">
-    <h2 id="was">Lernen nebenbei</h2>
-    <p class="sub">Du entsperrst dein Handy sowieso dutzende Male am Tag. Kana PIN macht aus jedem Mal eine kurze Übung.</p>
-    <div class="features">
-      <div class="feature">
-        <span class="glyph" aria-hidden="true">あ</span>
-        <h3>Quiz nach dem Entsperren</h3>
-        <p>Nach PIN oder Fingerabdruck kommt ein Zeichen. Richtig antworten, weiter geht's. Der Notfallknopf ist immer da.</p>
-      </div>
-      <div class="feature">
-        <span class="glyph" aria-hidden="true">ツ</span>
-        <h3>Lernt mit dir</h3>
-        <p>Was dir schwerfällt, kommt öfter dran. Verwechselst du シ und ツ, übt die App genau das.</p>
-      </div>
-      <div class="feature">
-        <span class="glyph" aria-hidden="true">ね</span>
-        <h3>Eselsbrücken</h3>
-        <p>Ein Bilderrätsel als Tipp für jedes Zeichen. Die Lösung verrät es nicht – draufkommen musst du selbst.</p>
-      </div>
-      <div class="feature">
-        <span class="glyph" aria-hidden="true">位</span>
-        <h3>Rangliste</h3>
-        <p>Punkte sammeln und mit Freunden messen. Jeden Montag startet eine neue Wochenwertung.</p>
-      </div>
+    <div class="drill" aria-hidden="true">
+      <div class="cell"><span>し</span></div>
+      <div class="cell t1"><span>し</span></div>
+      <div class="cell t2"><span>し</span></div>
+      <div class="cell"></div>
+      <div class="cell"></div>
+      <div class="cell"></div>
     </div>
+    <p class="drill-note">Früher: Schreibheft. Heute: Sperrbildschirm.</p>
+
+    <div class="merke">
+      <span class="label">Merke!</span>
+      <p>Ans Handy kommst du erst, wenn du das Zeichen weißt. Lernen per Zwang – ganz ohne Disziplin.</p>
+    </div>
+
+    <ul class="goals">
+      <li><span class="box" aria-hidden="true"></span><span><b>Quiz nach dem Entsperren</b><span class="d">Nach PIN oder Fingerabdruck kommt ein Zeichen. Der Notfallknopf ist immer da.</span></span></li>
+      <li><span class="box" aria-hidden="true"></span><span><b>Lernt mit dir</b><span class="d">Verwechselst du シ und ツ, übt die App genau das. Was sitzt, kommt seltener.</span></span></li>
+      <li><span class="box" aria-hidden="true"></span><span><b>Eselsbrücken</b><span class="d">Ein Bilderrätsel als Tipp für jedes Zeichen – ohne die Lösung zu verraten.</span></span></li>
+      <li><span class="box" aria-hidden="true"></span><span><b>Rangliste</b><span class="d">Punkte sammeln und mit Freunden messen. Jeden Montag beginnt eine neue Wochenwertung.</span></span></li>
+    </ul>
   </section>
 
   <section aria-labelledby="install">
-    <h2 id="install">Installieren</h2>
-    <p class="sub">Die App kommt nicht aus dem Play Store, deshalb fragt Android ein paarmal nach.</p>
+    <div class="sec-head"><span class="sec-no">1.2</span><h2 id="install">Übung: Installieren</h2></div>
     <ol class="steps">
-      <li><span><b>APK herunterladen</b> und die Datei öffnen.</span></li>
-      <li><span>Bei der Warnung auf <b>„Trotzdem installieren“</b> tippen.</span></li>
-      <li><span>In der App <b>„Über anderen Apps einblenden“</b> erlauben.
-        <span class="note">Ist der Schalter gesperrt: App-Info → ⋮ oben rechts → „Eingeschränkte Einstellungen zulassen“.</span></span></li>
-      <li><span><b>„Quiz beim Entsperren“</b> einschalten und in der Rangliste einen Namen festlegen.</span></li>
+      <li><span class="l">a)</span><span><b>APK herunterladen</b> und die Datei öffnen.</span></li>
+      <li><span class="l">b)</span><span>Bei der Warnung auf <b>„Trotzdem installieren“</b> tippen.</span></li>
+      <li><span class="l">c)</span><span>In der App <b>„Über anderen Apps einblenden“</b> erlauben.
+        <span class="margin-note">Schalter gesperrt? → App-Info → ⋮ → „Eingeschränkte Einstellungen zulassen“</span></span></li>
+      <li><span class="l">d)</span><span><b>„Quiz beim Entsperren“</b> einschalten und in der Rangliste einen Namen eintragen.</span></li>
     </ol>
   </section>
 
   <section aria-labelledby="punkte">
-    <h2 id="punkte">Punkte</h2>
-    <p class="sub">Je schwerer die Frage, desto mehr gibt es. Wer schnell ist, bekommt die Hälfte obendrauf.</p>
-    <div class="points-wrap">
+    <div class="sec-head"><span class="sec-no">1.3</span><h2 id="punkte">Punkte</h2></div>
+    <div class="table-wrap">
       <table>
+        <caption><b>Tab. 1</b> · Punkte pro richtiger Antwort</caption>
         <thead><tr><th>Frage</th><th>Punkte</th></tr></thead>
         <tbody>
           <tr><td>Lesung auswählen (し → shi)</td><td class="p">10</td></tr>
           <tr><td>Zeichen auswählen (shi → し)</td><td class="p">15</td></tr>
           <tr><td>Lesung eintippen</td><td class="p">20</td></tr>
-          <tr><td>Schnell beantwortet</td><td class="p">× 1,5</td></tr>
+          <tr><td>Schnell beantwortet</td><td class="p"><span class="circ">× 1,5</span></td></tr>
           <tr><td>Mit Eselsbrücke</td><td class="p">3</td></tr>
         </tbody>
       </table>
     </div>
+    <p class="table-note">Schnell sein lohnt sich!</p>
   </section>
 
-</main>
+  <section aria-labelledby="hinweis">
+    <h2 id="hinweis" class="sec-head" style="font-size:1.15rem">Hinweis für Lehrkräfte</h2>
+    <p class="teacher" style="margin-top:12px"><span class="label">Ehrlich gesagt:</span> Diese App wurde komplett mit KI gevibecodet. Sie ist ein privates Projekt und nur zum Lernen gedacht – keine Firma, kein Support, keine Garantie.</p>
+  </section>
 
-<footer>
-  <div class="wrap row">
+  <div class="folio">
     <span>Kana PIN · mit KI gevibecodet · nur für Android · kein Konto nötig</span>
     <span>Name und Punkte sind in der Rangliste für alle sichtbar.</span>
   </div>
-</footer>
+  <div class="pageno">– 1 –</div>
+</div>
 
 <script>
 (() => {
