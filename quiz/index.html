@@ -4,94 +4,138 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Kana PIN · Web</title>
-<meta name="description" content="Hiragana und Katakana üben im Browser, mit derselben Rangliste wie die Android-App Kana PIN.">
-<meta name="theme-color" content="#12141A">
+<meta name="description" content="Hiragana, Katakana und Kanji üben im Browser, mit derselben Rangliste wie die Android-App Kana PIN.">
+<meta name="theme-color" content="#FBFCFD" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#14171E" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Kana PIN">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="../icon.png" type="image/png">
 <link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Klee+One:wght@400;600&display=swap">
+<script>
+  // Design vor dem ersten Zeichnen setzen (kein Aufblitzen)
+  try { const t = localStorage.getItem("kp_theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}
+</script>
 <style>
+/* Schulheft: Karopapier, rote Randlinie, Tinte, Füller-Blau, Rotstift, Textmarker */
 :root {
-  --bg: #12141A; --card: #1E222B; --text: #F2F2F5; --muted: #8A90A0;
-  --good: #2E9E5B; --bad: #C8413B; --accent: #E8A33D;
+  --paper: #FBFCFD; --card: #FFFFFF; --grid: rgba(64, 104, 168, .12); --margin: rgba(210, 58, 47, .55);
+  --ink: #1D2230; --muted: #5A6070; --rule: #C3CCDD; --blue: #1F3FA6; --on-blue: #FFFFFF;
+  --red: #D23A2F; --green: #2E8B57; --marker: #FFF0A0; --on-marker: #1D2230; --shadow: #1D2230;
+  --hand: "Klee One", "Hiragino Mincho ProN", "Yu Mincho", serif;
+  --body: "BIZ UDPGothic", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #14171E; --card: #1C202A; --grid: rgba(140, 165, 215, .10); --margin: rgba(255, 107, 94, .45);
+    --ink: #E9ECF3; --muted: #9AA3B5; --rule: #343B4A; --blue: #8AA4FF; --on-blue: #0E1220;
+    --red: #FF6B5E; --green: #4CC38A; --marker: #3D3820; --on-marker: #F4E7A8; --shadow: #05060A;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #14171E; --card: #1C202A; --grid: rgba(140, 165, 215, .10); --margin: rgba(255, 107, 94, .45);
+  --ink: #E9ECF3; --muted: #9AA3B5; --rule: #343B4A; --blue: #8AA4FF; --on-blue: #0E1220;
+  --red: #FF6B5E; --green: #4CC38A; --marker: #3D3820; --on-marker: #F4E7A8; --shadow: #05060A;
   color-scheme: dark;
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body { height: 100%; }
+html, body { min-height: 100%; }
 body {
-  margin: 0; background: var(--bg); color: var(--text);
-  font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
-  -webkit-text-size-adjust: 100%;
+  margin: 0; color: var(--ink); font-family: var(--body); -webkit-text-size-adjust: 100%; line-height: 1.4;
+  background-color: var(--paper);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+body::before {
+  content: ""; position: fixed; top: 0; bottom: 0; left: max(22px, env(safe-area-inset-left)); width: 2px;
+  background: var(--margin); pointer-events: none;
 }
 button { font: inherit; color: inherit; cursor: pointer; }
 .app {
-  min-height: 100%; max-width: 520px; margin: 0 auto;
-  display: flex; flex-direction: column;
-  padding: max(14px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  min-height: 100vh; min-height: 100dvh; max-width: 540px; margin: 0 auto; display: flex; flex-direction: column;
+  padding: max(12px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) calc(max(22px, env(safe-area-inset-left)) + 18px);
 }
-.top { display: flex; align-items: center; gap: 8px; }
-.brand { color: var(--muted); font-size: 15px; flex: 1; }
-.progress { color: var(--accent); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.brand { flex: 0 0 auto; margin-right: auto; }
-.icon-btn { background: none; border: 0; color: var(--muted); font-size: 20px; padding: 6px 8px; border-radius: 10px; }
-.icon-btn:active { background: var(--card); }
+.top { display: flex; align-items: center; gap: 4px; padding-bottom: 8px; border-bottom: 1px solid var(--rule); }
+.brand { font-family: var(--hand); font-weight: 600; color: var(--red); font-size: 19px; margin-right: auto; white-space: nowrap; flex: none; }
+.progress { color: var(--blue); font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-right: 4px; min-width: 0; flex: 0 1 auto; }
+.icon-btn { background: none; border: 0; color: var(--muted); font-size: 19px; padding: 6px 8px; border-radius: 10px; }
+.icon-btn:active { background: var(--rule); }
 .spacer { flex: 1; min-height: 8px; }
 .center { text-align: center; }
+.notice {
+  margin-top: 10px; padding: 10px 14px 10px 18px; font-weight: 700; color: var(--on-marker);
+  background: var(--marker); border-left: 5px solid var(--ink); border-radius: 4px; white-space: pre-line;
+}
 .badge {
-  display: inline-block; background: var(--accent); color: var(--bg); font-weight: 700; font-size: 12px;
-  letter-spacing: .12em; border-radius: 12px; padding: 3px 12px; visibility: hidden;
+  display: inline-block; background: var(--ink); color: var(--paper); font-weight: 700; font-size: 11px;
+  letter-spacing: .1em; padding: 2px 9px; visibility: hidden;
 }
 .badge.on { visibility: visible; }
 .prompt { color: var(--muted); font-size: 16px; margin-top: 10px; }
-.big { font-size: 150px; line-height: 1.1; margin: 0; white-space: nowrap; font-weight: 400; }
-.big.rev { font-weight: 700; }
-.script { color: var(--muted); font-size: 13px; letter-spacing: .18em; }
-.hint-btn {
-  margin-top: 12px; background: var(--bg); color: var(--accent); border: 1px solid var(--accent);
-  border-radius: 20px; padding: 8px 18px; font-size: 14px;
-}
+.big { font-family: var(--hand); font-weight: 600; font-size: 150px; line-height: 1.12; margin: 0; overflow-wrap: anywhere; }
+.big.latin { font-family: var(--body); font-weight: 700; }
+.big.tap { cursor: pointer; }
+.script { color: var(--muted); font-size: 12px; letter-spacing: .2em; }
+.hint-btn { margin-top: 12px; background: var(--paper); color: var(--blue); border: 1.5px solid var(--blue); border-radius: 20px; padding: 8px 18px; font-size: 14px; }
 .hint-btn.hidden { visibility: hidden; }
-.hint { background: var(--card); border-radius: 16px; padding: 12px 16px; margin: 10px 6px 0; font-size: 15px; line-height: 1.5; text-align: center; white-space: pre-line; }
-.feedback { min-height: 30px; margin-top: 10px; font-weight: 700; font-size: 18px; color: var(--good); text-align: center; }
-.options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 6px; }
-.opt {
-  background: var(--card); border: 0; border-radius: 18px; height: 76px; font-size: 26px;
-  transition: background-color .2s ease;
+.hint, .ex-mn {
+  background: var(--marker); color: var(--on-marker); border-left: 5px solid var(--ink); border-radius: 4px;
+  padding: 11px 14px 11px 16px; font-size: 15px; line-height: 1.55; white-space: pre-line;
 }
-.opt.good { background: var(--good); }
-.typerow { display: flex; gap: 12px; padding: 0 6px; }
+.hint { margin: 10px 2px 0; }
+.feedback { min-height: 30px; margin-top: 10px; font-weight: 700; font-size: 17px; color: var(--green); text-align: center; }
+.options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 4px; }
+.opt, .card-btn {
+  background: var(--card); color: var(--ink); border: 1.5px solid var(--ink); border-radius: 12px;
+  box-shadow: 3px 3px 0 var(--shadow); transition: transform .1s ease, box-shadow .1s ease, background-color .2s ease;
+}
+.opt { min-height: 78px; font-size: 26px; padding: 6px; white-space: pre-line; line-height: 1.2; }
+.opt.kana { font-family: var(--hand); font-weight: 600; }
+.opt:active, .card-btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--shadow); }
+.opt.good { background: var(--green); color: #fff; }
+.typerow { display: flex; gap: 12px; padding: 0 4px; }
 .typerow input {
-  flex: 1; min-width: 0; height: 64px; border: 0; border-radius: 18px; background: var(--card); color: var(--text);
-  font-size: 26px; text-align: center; outline: none;
+  flex: 1; min-width: 0; height: 64px; border: 1.5px solid var(--ink); border-radius: 12px; background: var(--card); color: var(--ink);
+  font-size: 26px; text-align: center; outline: none; font-family: var(--body);
 }
-.typerow input:focus { box-shadow: 0 0 0 2px var(--accent); }
-.btn-accent { background: var(--accent); color: var(--bg); border: 0; border-radius: 18px; font-weight: 700; font-size: 18px; padding: 0 22px; height: 56px; }
-.typerow .btn-accent { height: 64px; }
+.typerow input:focus { border-color: var(--blue); box-shadow: 0 0 0 2px var(--blue); }
+.btn-primary {
+  background: var(--blue); color: var(--on-blue); border: 1.5px solid var(--ink); border-radius: 12px; font-weight: 700; font-size: 17px;
+  padding: 0 22px; min-height: 54px; box-shadow: 3px 3px 0 var(--shadow);
+}
+.btn-primary:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--shadow); }
+.typerow .btn-primary { min-height: 64px; }
 .link-btn { background: none; border: 0; color: var(--muted); font-size: 14px; padding: 12px; width: 100%; }
-.explain { background: var(--card); border-radius: 22px; padding: 18px 20px; margin: 0 6px; }
+.explain {
+  background: var(--card); border: 1.5px solid var(--ink); border-radius: 14px; box-shadow: 4px 4px 0 var(--shadow);
+  padding: 16px 18px 18px; margin: 0 4px;
+}
 .explain-head { display: flex; gap: 10px; align-items: center; }
 .explain-head > div { flex: 1; min-width: 0; }
-.ex-title { color: var(--bad); font-weight: 700; font-size: 15px; }
-.ex-main { font-weight: 700; font-size: 40px; line-height: 1.2; overflow-wrap: anywhere; }
+.ex-title { color: var(--red); font-family: var(--hand); font-weight: 600; font-size: 18px; }
+.ex-main { font-family: var(--hand); font-weight: 600; font-size: 40px; line-height: 1.2; overflow-wrap: anywhere; }
 .ex-main.long { font-size: 28px; }
-.ex-chosen { color: var(--muted); font-size: 17px; }
-.ex-tip { margin-top: 12px; font-size: 15px; line-height: 1.5; white-space: pre-line; }
-.ex-mn { margin-top: 10px; font-size: 15px; line-height: 1.5; color: var(--accent); }
+.ex-chosen { color: var(--muted); font-size: 16px; }
+.ex-tip { margin-top: 12px; font-size: 15px; line-height: 1.55; white-space: pre-line; }
+.ex-mn { margin-top: 10px; }
 .ex-actions { display: flex; gap: 10px; margin-top: 16px; }
-.ex-actions .btn-accent { flex: 1; }
-.speak { width: 64px; height: 56px; border-radius: 18px; border: 0; background: var(--bg); color: var(--accent); font-size: 22px; }
-svg.strokes { width: 92px; height: 92px; flex: none; background: var(--bg); border-radius: 12px; }
-svg.strokes .guide { stroke: #3A4050; stroke-width: .6; stroke-dasharray: 3 3; fill: none; }
-svg.strokes .s { fill: none; stroke: var(--text); stroke-width: 6.5; stroke-linecap: round; stroke-linejoin: round; }
-svg.strokes .ghost { fill: none; stroke: #3A4050; stroke-width: 6.5; stroke-linecap: round; stroke-linejoin: round; }
-svg.strokes circle { fill: var(--accent); }
-svg.strokes text { fill: var(--bg); font-size: 9px; font-weight: 700; text-anchor: middle; }
-.foot { display: flex; gap: 10px; margin: 18px 6px 0; }
-.foot button { flex: 1; height: 52px; border-radius: 26px; border: 0; background: var(--bg); color: var(--muted); font-size: 15px; }
-.foot button.dark { background: var(--card); color: var(--text); }
+.ex-actions .btn-primary { flex: 1; }
+.speak { width: 64px; min-height: 54px; font-size: 22px; }
+svg.strokes { width: 92px; height: 92px; flex: none; background: var(--paper); border: 2px solid var(--red); border-radius: 12px; }
+svg.strokes .guide { stroke: var(--red); opacity: .45; stroke-width: .6; stroke-dasharray: 3 3; fill: none; }
+svg.strokes .s { fill: none; stroke: var(--ink); stroke-width: 6.5; stroke-linecap: round; stroke-linejoin: round; }
+svg.strokes .ghost { fill: none; stroke: var(--ink); opacity: .14; stroke-width: 6.5; stroke-linecap: round; stroke-linejoin: round; }
+svg.strokes circle { fill: var(--red); }
+svg.strokes text { fill: #fff; font-size: 9px; font-weight: 700; text-anchor: middle; font-family: system-ui, sans-serif; }
+.foot { display: flex; gap: 10px; margin: 16px 4px 0; }
+.foot button { flex: 1; min-height: 50px; border-radius: 12px; border: 0; background: none; color: var(--muted); font-size: 15px; }
 [hidden] { display: none !important; }
 .explaining .prompt, .explaining .script, .explaining .badge, .explaining .feedback { display: none; }
 .explaining .big { font-size: 64px !important; }
@@ -100,60 +144,77 @@ svg.strokes text { fill: var(--bg); font-size: 9px; font-weight: 700; text-ancho
 /* Ende einer Runde */
 .done { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 14px; }
 .stamp {
-  display: inline-block; color: var(--bad); border: 3px solid var(--bad); border-radius: 14px;
-  font-weight: 700; font-size: 30px; padding: 12px 24px; transform: rotate(-12deg);
+  display: inline-block; color: var(--red); border: 3px solid var(--red); border-radius: 14px; background: var(--paper);
+  font-family: var(--hand); font-weight: 600; font-size: 30px; padding: 12px 24px; transform: rotate(-12deg);
   animation: stamp .32s cubic-bezier(.2, 1.4, .5, 1) both;
 }
 @keyframes stamp { from { transform: rotate(-12deg) scale(2.4); opacity: 0; } to { transform: rotate(-12deg) scale(1); opacity: 1; } }
 .done h2 { margin: 18px 0 0; font-size: 22px; }
-.done p { margin: 0; color: var(--muted); line-height: 1.5; }
-.done .btn-accent { min-width: 220px; }
+.done p { margin: 0; color: var(--muted); line-height: 1.55; white-space: pre-line; }
 .done .row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 10px; }
-.btn-dark { background: var(--card); color: var(--text); border: 0; border-radius: 18px; height: 56px; padding: 0 22px; font-size: 16px; }
-.tiny { font-size: 13px; color: var(--muted); max-width: 30em; }
+.card-btn { min-height: 54px; padding: 0 20px; font-size: 16px; }
+.tiny { font-size: 13px; color: var(--muted); max-width: 30em; line-height: 1.5; }
+.goalbar { width: min(280px, 80%); height: 10px; border-radius: 6px; background: var(--rule); overflow: hidden; }
+.goalbar i { display: block; height: 100%; background: var(--green); transition: width .4s ease; }
 
 /* Dialoge */
-dialog {
-  width: min(520px, 100vw); max-height: 100%; height: 100%; margin: 0 auto; border: 0; padding: 0;
-  background: var(--bg); color: var(--text);
-}
-dialog::backdrop { background: rgba(0, 0, 0, .6); }
+dialog { width: min(540px, 100vw); max-width: 100vw; height: 100%; max-height: 100%; margin: 0 auto; border: 0; padding: 0; background: transparent; color: var(--ink); }
+dialog::backdrop { background: rgba(0, 0, 0, .5); }
 .sheet {
-  min-height: 100%; display: flex; flex-direction: column; gap: 6px;
-  padding: max(14px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom));
+  min-height: 100%; display: flex; flex-direction: column; gap: 4px;
+  padding: max(14px, env(safe-area-inset-top)) 18px max(20px, env(safe-area-inset-bottom)) 40px;
+  background-color: var(--paper);
+  background-image: linear-gradient(90deg, transparent 21px, var(--margin) 21px, var(--margin) 23px, transparent 23px),
+    linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 100% 100%, 20px 20px, 20px 20px;
 }
-.sheet h2 { margin: 0; font-size: 26px; flex: 1; }
+.sheet h2 { margin: 0; font-family: var(--hand); font-weight: 600; font-size: 30px; flex: 1; }
 .sheet-head { display: flex; align-items: center; }
-.sec { color: var(--accent); font-size: 13px; font-weight: 700; letter-spacing: .08em; margin-top: 20px; }
+.sec { display: flex; gap: 10px; align-items: baseline; margin-top: 22px; padding-bottom: 6px; border-bottom: 1px solid var(--rule); }
+.sec b { font-family: var(--hand); color: var(--red); font-size: 18px; }
+.sec span { font-weight: 700; font-size: 18px; }
 label.chk { display: flex; align-items: center; gap: 12px; font-size: 16px; padding: 8px 0; }
-label.chk input { width: 22px; height: 22px; accent-color: var(--accent); }
+label.chk input { width: 22px; height: 22px; accent-color: var(--blue); }
 .field { display: flex; align-items: center; gap: 12px; padding: 8px 0; font-size: 16px; }
 .field span { flex: 1; }
-select, .text-in {
-  background: var(--card); color: var(--text); border: 0; border-radius: 10px; padding: 10px 12px; font-size: 16px;
-}
+select, .text-in { background: var(--card); color: var(--ink); border: 1.5px solid var(--ink); border-radius: 10px; padding: 9px 12px; font-size: 16px; font-family: var(--body); }
 .text-in { width: 100%; }
-.tabs { display: flex; gap: 6px; margin-top: 16px; }
-.tabs button { flex: 1; height: 44px; border-radius: 22px; border: 0; background: rgba(136, 136, 136, .14); color: var(--muted); }
-.tabs button.on { background: var(--accent); color: var(--bg); font-weight: 700; }
-.me { font-size: 15px; line-height: 1.5; cursor: pointer; }
-.grp { color: var(--accent); font-size: 15px; cursor: pointer; margin-top: 4px; }
-.winner { background: rgba(232, 163, 61, .14); border-radius: 14px; padding: 10px 14px; font-weight: 700; margin-top: 12px; }
+.seg { display: flex; gap: 6px; margin-top: 6px; }
+.seg button { flex: 1; min-height: 42px; border-radius: 8px; border: 1px solid var(--rule); background: none; color: var(--muted); }
+.seg button.on { border: 1.5px solid var(--red); color: var(--red); font-weight: 700; background: color-mix(in srgb, var(--red) 12%, transparent); }
+.me-card { background: var(--card); border: 2px solid var(--ink); border-radius: 4px; box-shadow: 4px 4px 0 var(--shadow); padding: 12px 16px 14px; margin-top: 12px; }
+.me { font-size: 15px; line-height: 1.55; cursor: pointer; white-space: pre-line; }
+.grp { color: var(--blue); font-weight: 700; font-size: 15px; cursor: pointer; margin-top: 6px; }
+.winner { margin-top: 12px; padding: 10px 14px 10px 18px; background: var(--marker); color: var(--on-marker); border-left: 5px solid var(--ink); border-radius: 4px; font-weight: 700; }
 .rows { display: grid; gap: 6px; margin-top: 10px; }
 .rowx {
-  display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-radius: 14px; background: rgba(136, 136, 136, .08);
+  display: flex; align-items: center; gap: 8px; padding: 11px 14px; border-radius: 6px; background: var(--card); border: 1px solid var(--rule);
   animation: rowin .22s ease both;
 }
-.rowx.me { background: rgba(232, 163, 61, .2); font-weight: 700; }
-.rowx .rk { width: 40px; text-align: center; font-size: 16px; }
+.rowx.me { background: var(--marker); color: var(--on-marker); border-color: transparent; border-left: 5px solid var(--ink); font-weight: 700; }
+.rowx .rk { width: 40px; text-align: center; font-family: var(--hand); color: var(--muted); font-size: 17px; }
 .rowx .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.rowx .val { font-weight: 700; }
+.rowx .val { font-family: var(--hand); font-weight: 600; color: var(--blue); }
+.rowx.me .val { color: inherit; }
 @keyframes rowin { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-.status { color: var(--muted); text-align: center; padding: 18px 0; }
+.status { color: var(--muted); text-align: center; padding: 16px 0; }
+.code { font: 700 34px/1.3 ui-monospace, Menlo, monospace; letter-spacing: .1em; text-align: center; margin: 12px 0 4px; }
+.bars { display: grid; grid-template-columns: repeat(14, 1fr); gap: 4px; align-items: end; height: 110px; margin-top: 10px; border-bottom: 1.5px solid var(--ink); position: relative; }
+.bars i { display: block; background: var(--blue); border-radius: 3px 3px 0 0; min-height: 0; }
+.bars i.goal { background: var(--green); }
+.bars .gl { position: absolute; left: 0; right: 0; border-top: 1.5px dashed var(--red); }
+.days { display: grid; grid-template-columns: repeat(14, 1fr); gap: 4px; font-size: 10px; color: var(--muted); text-align: center; margin-top: 3px; }
+.badges { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px 6px; margin-top: 12px; }
+.bdg { text-align: center; font-size: 11px; color: var(--muted); cursor: pointer; }
+.bdg i {
+  display: grid; place-items: center; width: 52px; height: 52px; margin: 0 auto 4px; border-radius: 50%;
+  border: 1.5px dashed var(--muted); font-style: normal; font-family: var(--hand); font-size: 20px; opacity: .7;
+}
+.bdg.on { color: var(--ink); }
+.bdg.on i { border: 2.5px solid var(--red); color: var(--red); transform: rotate(-10deg); opacity: 1; background: color-mix(in srgb, var(--red) 12%, transparent); }
 .toast {
   position: fixed; left: 50%; bottom: max(24px, env(safe-area-inset-bottom)); transform: translateX(-50%);
-  background: var(--card); color: var(--text); padding: 10px 16px; border-radius: 12px; font-size: 14px;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, .4); z-index: 10;
+  background: var(--ink); color: var(--paper); padding: 10px 16px; border-radius: 10px; font-size: 14px; z-index: 10; max-width: 90vw;
 }
 
 /* Animationen */
@@ -170,7 +231,7 @@ select, .text-in {
 @media (prefers-reduced-motion: reduce) {
   .pop, .rise, .pulse, .shake, .slide, .stamp, .rowx { animation: none !important; }
 }
-@media (max-height: 640px) { .big { font-size: 110px; } .opt { height: 64px; } }
+@media (max-height: 640px) { .big { font-size: 110px; } .opt { min-height: 64px; } }
 </style>
 </head>
 <body>
@@ -178,9 +239,11 @@ select, .text-in {
   <div class="top">
     <span class="brand">かな</span>
     <span class="progress" id="progress"></span>
+    <button class="icon-btn" id="btn-stats" aria-label="Progress">📊</button>
     <button class="icon-btn" id="btn-board" aria-label="Leaderboard">🏆</button>
     <button class="icon-btn" id="btn-settings" aria-label="Settings">⚙︎</button>
   </div>
+  <div class="notice" id="notice" hidden></div>
 
   <div id="quiz" style="display:flex;flex-direction:column;flex:1">
     <div class="spacer"></div>
@@ -196,7 +259,7 @@ select, .text-in {
     <div id="type" hidden>
       <div class="typerow">
         <input id="type-in" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done">
-        <button class="btn-accent" id="type-ok"></button>
+        <button class="btn-primary" id="type-ok"></button>
       </div>
       <button class="link-btn" id="type-choice"></button>
     </div>
@@ -212,8 +275,8 @@ select, .text-in {
       <div class="ex-tip" id="ex-tip"></div>
       <div class="ex-mn" id="ex-mn"></div>
       <div class="ex-actions">
-        <button class="speak" id="ex-speak" aria-label="Play">🔊</button>
-        <button class="btn-accent" id="ex-continue"></button>
+        <button class="card-btn speak" id="ex-speak" aria-label="Play">🔊</button>
+        <button class="btn-primary" id="ex-continue"></button>
       </div>
     </div>
     <div class="foot"><button id="dontknow"></button></div>
@@ -223,10 +286,11 @@ select, .text-in {
     <div class="stamp" lang="ja">よくできました</div>
     <h2 id="done-title"></h2>
     <p id="done-points"></p>
+    <div class="goalbar" id="done-goalbar"><i></i></div>
     <p id="done-stats"></p>
     <div class="row">
-      <button class="btn-accent" id="again"></button>
-      <button class="btn-dark" id="done-board"></button>
+      <button class="btn-primary" id="again"></button>
+      <button class="card-btn" id="done-board"></button>
     </div>
     <p class="tiny" id="done-home"></p>
   </div>
@@ -235,39 +299,61 @@ select, .text-in {
 <dialog id="dlg-settings">
   <div class="sheet">
     <div class="sheet-head"><h2 id="st-title"></h2><button class="icon-btn" data-close>✕</button></div>
-    <div class="sec" id="st-chars"></div>
+    <div class="sec"><b>1</b><span data-ui="h_chars"></span></div>
     <label class="chk"><input type="checkbox" data-set="hira"> Hiragana あ</label>
     <label class="chk"><input type="checkbox" data-set="kata"> Katakana ア</label>
     <label class="chk"><input type="checkbox" data-set="daku"> Dakuten が ぱ</label>
     <label class="chk"><input type="checkbox" data-set="yoon"> Yōon きゃ</label>
-    <div class="sec" id="st-learn"></div>
+    <label class="chk"><input type="checkbox" data-set="kanji"> <span data-ui="kanji_setting"></span> 山 日</label>
+    <div class="sec"><b>2</b><span data-ui="h_learning"></span></div>
+    <div class="field"><span data-ui="daily_goal"></span><select id="st-goal"></select></div>
+    <div class="field"><span data-ui="per_round"></span>
+      <select id="st-per"><option>1</option><option>3</option><option>5</option><option>10</option><option>20</option></select></div>
     <label class="chk"><input type="checkbox" data-set="gradual"> <span data-ui="gradual"></span></label>
     <label class="chk"><input type="checkbox" data-set="typing"> <span data-ui="typing"></span></label>
     <label class="chk"><input type="checkbox" data-set="words"> <span data-ui="words_setting"></span></label>
+    <label class="chk"><input type="checkbox" data-set="listen"> <span data-ui="listen_setting"></span></label>
     <label class="chk"><input type="checkbox" data-set="speak"> <span data-ui="speak_auto"></span></label>
-    <div class="field"><span data-ui="per_round"></span>
-      <select id="st-per"><option>1</option><option>3</option><option>5</option><option>10</option><option>20</option></select></div>
+    <div class="sec"><b>3</b><span data-ui="h_data"></span></div>
+    <div class="field"><span data-ui="theme"></span></div>
+    <div class="seg" id="st-theme"><button data-t="system" data-ui="theme_system"></button><button data-t="light" data-ui="theme_light"></button><button data-t="dark" data-ui="theme_dark"></button></div>
     <div class="field"><span data-ui="language"></span>
       <select id="st-lang">
         <option value="de">Deutsch</option><option value="en">English</option><option value="es">Español</option>
         <option value="fr">Français</option><option value="it">Italiano</option><option value="pt">Português</option>
       </select></div>
-    <p class="tiny" data-ui="web_note" style="margin-top:16px"></p>
+    <p class="tiny" data-ui="web_note" style="margin-top:14px"></p>
     <p class="tiny" data-ui="home_hint"></p>
-    <p class="tiny" data-ui="credit"></p>
+    <p class="tiny"><span data-ui="credit"></span><br><span data-ui="credit_font"></span></p>
+  </div>
+</dialog>
+
+<dialog id="dlg-stats">
+  <div class="sheet">
+    <div class="sheet-head"><h2 data-ui="h_progress"></h2><button class="icon-btn" data-close>✕</button></div>
+    <div class="me-card"><b id="sx-goal"></b><div class="goalbar" id="sx-goalbar" style="width:100%;margin-top:8px"><i></i></div><div id="sx-streak" style="margin-top:8px"></div><div class="tiny" id="sx-known" style="margin-top:6px"></div></div>
+    <div class="sec"><b>1</b><span data-ui="history_days"></span></div>
+    <div class="bars" id="sx-bars"></div>
+    <div class="days" id="sx-days"></div>
+    <div class="sec"><b>2</b><span data-ui="h_badges"></span></div>
+    <div class="tiny" id="sx-badgecount"></div>
+    <div class="badges" id="sx-badges"></div>
+    <p class="tiny" id="sx-badgedesc" style="margin-top:12px;min-height:3em"></p>
   </div>
 </dialog>
 
 <dialog id="dlg-board">
   <div class="sheet">
-    <div class="sheet-head"><h2 id="bd-title"></h2><button class="icon-btn" data-close>✕</button></div>
-    <div class="me" id="bd-me"></div>
-    <div class="grp" id="bd-group"></div>
+    <div class="sheet-head"><h2 data-ui="tab_title_board"></h2><button class="icon-btn" data-close>✕</button></div>
+    <div class="me-card"><div class="me" id="bd-me"></div><div class="grp" id="bd-group"></div></div>
     <div class="winner" id="bd-winner" hidden></div>
-    <div class="tabs" id="bd-tabs"><button data-tab="0"></button><button data-tab="1"></button><button data-tab="2"></button></div>
+    <div class="seg" id="bd-tabs" style="margin-top:16px"><button data-tab="0"></button><button data-tab="1"></button><button data-tab="2"></button></div>
     <div class="status" id="bd-status"></div>
     <div class="rows" id="bd-rows"></div>
-    <button class="btn-dark" id="bd-refresh" style="margin-top:16px"></button>
+    <div style="display:flex;gap:10px;margin-top:18px">
+      <button class="card-btn" id="bd-refresh" style="flex:1"></button>
+      <button class="card-btn" id="bd-link" style="flex:1"></button>
+    </div>
   </div>
 </dialog>
 
@@ -275,18 +361,19 @@ select, .text-in {
   <div class="sheet" style="justify-content:center">
     <h2 id="in-title" style="flex:none"></h2>
     <p class="tiny" id="in-msg"></p>
+    <div class="code" id="in-code" hidden></div>
     <input class="text-in" id="in-text" maxlength="24" autocomplete="off">
-    <div class="row" style="display:flex;gap:10px;margin-top:14px">
-      <button class="btn-dark" id="in-cancel" style="flex:1"></button>
-      <button class="btn-dark" id="in-alt" style="flex:1" hidden></button>
-      <button class="btn-accent" id="in-ok" style="flex:1"></button>
+    <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+      <button class="card-btn" id="in-cancel" style="flex:1"></button>
+      <button class="card-btn" id="in-alt" style="flex:1" hidden></button>
+      <button class="btn-primary" id="in-ok" style="flex:1"></button>
     </div>
   </div>
 </dialog>
 
 <script>
 "use strict";
-const CFG = {"url": "https://qjdgejwqfwggcgicdnhq.supabase.co", "key": "sb_publishable_G9gnEkkiM1kSZB7Af3h-6Q_wm57Y90z", "langs": ["de", "en", "es", "fr", "it", "pt"], "words": [["ねこ", "neko"], ["いぬ", "inu"], ["さかな", "sakana"], ["やま", "yama"], ["かわ", "kawa"], ["そら", "sora"], ["あめ", "ame"], ["はな", "hana"], ["みず", "mizu"], ["ひと", "hito"], ["くるま", "kuruma"], ["でんわ", "denwa"], ["ほん", "hon"], ["うみ", "umi"], ["ゆき", "yuki"], ["つき", "tsuki"], ["ほし", "hoshi"], ["たまご", "tamago"], ["さくら", "sakura"], ["ともだち", "tomodachi"], ["かぞく", "kazoku"], ["あさ", "asa"], ["よる", "yoru"], ["なつ", "natsu"], ["ふゆ", "fuyu"], ["はる", "haru"], ["あき", "aki"], ["くち", "kuchi"], ["みみ", "mimi"], ["あたま", "atama"], ["めがね", "megane"], ["かばん", "kaban"], ["ごはん", "gohan"], ["にく", "niku"], ["おかね", "okane"], ["でぐち", "deguchi"], ["いりぐち", "iriguchi"], ["ひだり", "hidari"], ["みぎ", "migi"], ["ちず", "chizu"], ["カメラ", "kamera"], ["テレビ", "terebi"], ["パン", "pan"], ["ホテル", "hoteru"], ["ナイフ", "naifu"], ["ペン", "pen"], ["バス", "basu"], ["アイス", "aisu"], ["ピアノ", "piano"], ["メロン", "meron"], ["トマト", "tomato"], ["バナナ", "banana"], ["ドア", "doa"], ["テニス", "tenisu"], ["ラジオ", "rajio"], ["ネクタイ", "nekutai"], ["ワイン", "wain"], ["ピザ", "piza"], ["パスタ", "pasuta"], ["ビル", "biru"], ["ガム", "gamu"], ["ゴルフ", "gorufu"], ["ボタン", "botan"], ["アニメ", "anime"], ["カナダ", "kanada"], ["ドイツ", "doitsu"], ["イタリア", "itaria"], ["スペイン", "supein"], ["フランス", "furansu"], ["パリ", "pari"], ["ロンドン", "rondon"], ["メモ", "memo"], ["サラダ", "sarada"], ["レモン", "remon"], ["ミルク", "miruku"], ["ベルト", "beruto"], ["マスク", "masuku"]]};
+const CFG = {"url": "https://qjdgejwqfwggcgicdnhq.supabase.co", "key": "sb_publishable_G9gnEkkiM1kSZB7Af3h-6Q_wm57Y90z", "langs": ["de", "en", "es", "fr", "it", "pt"], "words": [["ねこ", "neko"], ["いぬ", "inu"], ["さかな", "sakana"], ["やま", "yama"], ["かわ", "kawa"], ["そら", "sora"], ["あめ", "ame"], ["はな", "hana"], ["みず", "mizu"], ["ひと", "hito"], ["くるま", "kuruma"], ["でんわ", "denwa"], ["ほん", "hon"], ["うみ", "umi"], ["ゆき", "yuki"], ["つき", "tsuki"], ["ほし", "hoshi"], ["たまご", "tamago"], ["さくら", "sakura"], ["ともだち", "tomodachi"], ["かぞく", "kazoku"], ["あさ", "asa"], ["よる", "yoru"], ["なつ", "natsu"], ["ふゆ", "fuyu"], ["はる", "haru"], ["あき", "aki"], ["くち", "kuchi"], ["みみ", "mimi"], ["あたま", "atama"], ["めがね", "megane"], ["かばん", "kaban"], ["ごはん", "gohan"], ["にく", "niku"], ["おかね", "okane"], ["でぐち", "deguchi"], ["いりぐち", "iriguchi"], ["ひだり", "hidari"], ["みぎ", "migi"], ["ちず", "chizu"], ["カメラ", "kamera"], ["テレビ", "terebi"], ["パン", "pan"], ["ホテル", "hoteru"], ["ナイフ", "naifu"], ["ペン", "pen"], ["バス", "basu"], ["アイス", "aisu"], ["ピアノ", "piano"], ["メロン", "meron"], ["トマト", "tomato"], ["バナナ", "banana"], ["ドア", "doa"], ["テニス", "tenisu"], ["ラジオ", "rajio"], ["ネクタイ", "nekutai"], ["ワイン", "wain"], ["ピザ", "piza"], ["パスタ", "pasuta"], ["ビル", "biru"], ["ガム", "gamu"], ["ゴルフ", "gorufu"], ["ボタン", "botan"], ["アニメ", "anime"], ["カナダ", "kanada"], ["ドイツ", "doitsu"], ["イタリア", "itaria"], ["スペイン", "supein"], ["フランス", "furansu"], ["パリ", "pari"], ["ロンドン", "rondon"], ["メモ", "memo"], ["サラダ", "sarada"], ["レモン", "remon"], ["ミルク", "miruku"], ["ベルト", "beruto"], ["マスク", "masuku"], ["がっこう", "gakkou"], ["きって", "kitte"], ["ざっし", "zasshi"], ["きっぷ", "kippu"], ["にっき", "nikki"], ["ちょっと", "chotto"], ["まっすぐ", "massugu"], ["おちゃ", "ocha"], ["しゃしん", "shashin"], ["でんしゃ", "densha"], ["きょう", "kyou"], ["りょこう", "ryokou"], ["びょういん", "byouin"], ["ぎゅうにゅう", "gyuunyuu"], ["じしょ", "jisho"], ["しゅくだい", "shukudai"], ["おとうさん", "otousan"], ["おかあさん", "okaasan"], ["とうきょう", "toukyou"], ["きゃく", "kyaku"], ["コーヒー", "koohii"], ["ケーキ", "keeki"], ["ゲーム", "geemu"], ["スーパー", "suupaa"], ["ノート", "nooto"], ["コンピューター", "konpyuutaa"], ["チーズ", "chiizu"], ["タクシー", "takushii"], ["ビール", "biiru"], ["サッカー", "sakkaa"], ["ベッド", "beddo"], ["カップ", "kappu"], ["チョコレート", "chokoreeto"], ["ジュース", "juusu"], ["シャツ", "shatsu"], ["メニュー", "menyuu"], ["ニュース", "nyuusu"], ["ギター", "gitaa"], ["スキー", "sukii"], ["ボール", "booru"]], "kanji": [["一", "いち", "ichi"], ["二", "に", "ni"], ["三", "さん", "san"], ["四", "よん", "yon"], ["五", "ご", "go"], ["六", "ろく", "roku"], ["七", "なな", "nana"], ["八", "はち", "hachi"], ["九", "きゅう", "kyuu"], ["十", "じゅう", "juu"], ["百", "ひゃく", "hyaku"], ["千", "せん", "sen"], ["円", "えん", "en"], ["日", "にち", "nichi"], ["月", "つき", "tsuki"], ["火", "ひ", "hi"], ["水", "みず", "mizu"], ["木", "もく", "moku"], ["金", "きん", "kin"], ["土", "つち", "tsuchi"], ["山", "やま", "yama"], ["川", "かわ", "kawa"], ["田", "た", "ta"], ["石", "いし", "ishi"], ["空", "そら", "sora"], ["天", "てん", "ten"], ["雨", "あめ", "ame"], ["気", "き", "ki"], ["夕", "ゆう", "yuu"], ["早", "はやい", "hayai"], ["年", "とし", "toshi"], ["人", "ひと", "hito"], ["子", "こ", "ko"], ["女", "おんな", "onna"], ["男", "おとこ", "otoko"], ["王", "おう", "ou"], ["玉", "たま", "tama"], ["口", "くち", "kuchi"], ["目", "め", "me"], ["耳", "みみ", "mimi"], ["手", "て", "te"], ["足", "あし", "ashi"], ["力", "ちから", "chikara"], ["上", "うえ", "ue"], ["下", "した", "shita"], ["中", "なか", "naka"], ["大", "おおきい", "ookii"], ["小", "ちいさい", "chiisai"], ["左", "ひだり", "hidari"], ["右", "みぎ", "migi"], ["先", "さき", "saki"], ["生", "いきる", "ikiru"], ["正", "ただしい", "tadashii"], ["立", "たつ", "tatsu"], ["見", "みる", "miru"], ["休", "やすむ", "yasumu"], ["出", "でる", "deru"], ["入", "はいる", "hairu"], ["音", "おと", "oto"], ["名", "な", "na"], ["字", "じ", "ji"], ["学", "がく", "gaku"], ["校", "こう", "kou"], ["文", "ぶん", "bun"], ["本", "ほん", "hon"], ["林", "はやし", "hayashi"], ["森", "もり", "mori"], ["竹", "たけ", "take"], ["草", "くさ", "kusa"], ["花", "はな", "hana"], ["貝", "かい", "kai"], ["犬", "いぬ", "inu"], ["虫", "むし", "mushi"], ["糸", "いと", "ito"], ["車", "くるま", "kuruma"], ["町", "まち", "machi"], ["村", "むら", "mura"], ["白", "しろ", "shiro"], ["青", "あお", "ao"], ["赤", "あか", "aka"]], "clash": ["空天"]};
 
 // ------------------------------------------------------------------ Speicher
 const store = {
@@ -295,8 +382,8 @@ const store = {
 };
 const $ = id => document.getElementById(id);
 
-// ------------------------------------------------------------------ Kana-Tabellen (wie in der App)
-const HIRA = 0, KATA = 1, BASE = 0, DAKU = 1, YOON = 2;
+// ------------------------------------------------------------------ Zeichen (wie Kana.java)
+const HIRA = 0, KATA = 1, KANJI = 2, BASE = 0, DAKU = 1, YOON = 2, KANJI_G = 3;
 const H_BASE = ["あいうえお", "かきくけこ", "さしすせそ", "たちつてと", "なにぬねの", "はひふへほ", "まみむめも", "や・ゆ・よ", "らりるれろ", "わ・・・を", "ん・・・・"];
 const K_BASE = ["アイウエオ", "カキクケコ", "サシスセソ", "タチツテト", "ナニヌネノ", "ハヒフヘホ", "マミムメモ", "ヤ・ユ・ヨ", "ラリルレロ", "ワ・・・ヲ", "ン・・・・"];
 const R_BASE = [["a","i","u","e","o"],["ka","ki","ku","ke","ko"],["sa","shi","su","se","so"],["ta","chi","tsu","te","to"],["na","ni","nu","ne","no"],["ha","hi","fu","he","ho"],["ma","mi","mu","me","mo"],["ya",null,"yu",null,"yo"],["ra","ri","ru","re","ro"],["wa",null,null,null,"wo"],["n",null,null,null,null]];
@@ -307,11 +394,11 @@ const DAKU_BASE_ROW = [1, 2, 3, 5, 5];
 const YOON_FIRST = ["きしちにひみりぎじびぴ", "キシチニヒミリギジビピ"], YOON_SMALL = ["ゃゅょ", "ャュョ"];
 const YOON_PREFIX = ["ky","sh","ch","ny","hy","my","ry","gy","j","by","py"], YOON_VOWEL = ["a","u","o"];
 const YOON_RELATED = [[0, 7], [1, 8], [4, 9, 10]];
-const ROWS = [11, 5, 11], COLS = [5, 5, 3];
+const COLS = [5, 5, 3, 5];
 const ALL = [], BY = {}, POS = {};
 const posKey = (s, g, r, c) => s * 100000 + g * 10000 + r * 10 + c;
-function add(kana, romaji, script, group, row, col) {
-  const it = { kana, romaji, script, group, row, col };
+function add(kana, romaji, script, group, row, col, reading) {
+  const it = { kana, romaji, script, group, row, col, reading: reading || null };
   ALL.push(it); BY[kana] = it; POS[posKey(script, group, row, col)] = it;
 }
 function addTable(rows, rom, script, group) {
@@ -320,8 +407,12 @@ function addTable(rows, rom, script, group) {
 addTable(H_BASE, R_BASE, HIRA, BASE); addTable(K_BASE, R_BASE, KATA, BASE);
 addTable(H_DAKU, R_DAKU, HIRA, DAKU); addTable(K_DAKU, R_DAKU, KATA, DAKU);
 for (const s of [HIRA, KATA]) [...YOON_FIRST[s]].forEach((f, r) => [...YOON_SMALL[s]].forEach((sm, c) => add(f + sm, YOON_PREFIX[r] + YOON_VOWEL[c], s, YOON, r, c)));
+CFG.kanji.forEach(([k, reading, romaji], i) => add(k, romaji, KANJI, KANJI_G, Math.floor(i / 5), i % 5, reading));
 const at = (s, g, r, c) => POS[posKey(s, g, r, c)];
-const scriptName = it => it.script === KATA ? "Katakana" : "Hiragana";
+const isKanji = it => it.script === KANJI;
+const scriptName = it => isKanji(it) ? "Kanji" : it.script === KATA ? "Katakana" : "Hiragana";
+const answerOf = it => isKanji(it) ? `${it.reading} (${it.romaji})` : it.romaji;
+const spokenOf = it => isKanji(it) ? it.reading : it.kana;
 function rowMates(it) { const o = []; for (let c = 0; c < COLS[it.group]; c++) { const x = at(it.script, it.group, it.row, c); if (x && x !== it) o.push(x); } return o; }
 function rowString(it) {
   const k = [], r = [];
@@ -330,6 +421,7 @@ function rowString(it) {
 }
 function dakuRel(it) {
   const o = [];
+  if (isKanji(it)) return o;
   if (it.group === BASE) DAKU_BASE_ROW.forEach((br, dr) => { if (br === it.row) { const x = at(it.script, DAKU, dr, it.col); if (x) o.push(x); } });
   else if (it.group === DAKU) {
     const b = at(it.script, BASE, DAKU_BASE_ROW[it.row], it.col); if (b) o.push(b);
@@ -338,34 +430,84 @@ function dakuRel(it) {
   return o;
 }
 const SIMILAR = {};
-for (const g of ["ぬめ","ねれわ","るろ","さち","きさ","はほけ","ほま","いり","こに","あお","あめぬ","たな","うら","ちら","シツ","ソンノ","クケタ","コユロ","ウワフ","チテ","ナメ","マムア","スヌ","ルレ","サセ","ヲフ","ニミ"])
+for (const g of ["ぬめ","ねれわ","るろ","さち","きさ","はほけ","ほま","いり","こに","あお","あめぬ","たな","うら","ちら","シツ","ソンノ","クケタ","コユロ","ウワフ","チテ","ナメ","マムア","スヌ","ルレ","サセ","ヲフ","ニミ",
+                 "木本休","日目白","人入八","千十","右石左","王玉","大犬天","子字","田町","林森","上下","口四"])
   for (const a of g) for (const b of g) if (a !== b) (SIMILAR[a] = SIMILAR[a] || new Set()).add(b);
 function similar(it) {
   const s = SIMILAR[it.kana[0]]; if (!s) return [];
   return [...s].map(c => BY[it.kana.length === 1 ? c : c + it.kana[1]]).filter(Boolean);
 }
+const clash = (a, b) => isKanji(a) && isKanji(b) && CFG.clash.some(c => c.includes(a.kana) && c.includes(b.kana));
 const findByRomaji = (script, r) => ALL.find(it => it.script === script && it.romaji === r) || null;
 const ALT = { si: "shi", ti: "chi", tu: "tsu", hu: "fu", zi: "ji", di: "ji", du: "zu", nn: "n", sya: "sha", syu: "shu", syo: "sho", tya: "cha", tyu: "chu", tyo: "cho", cya: "cha", cyu: "chu", cyo: "cho", zya: "ja", zyu: "ju", zyo: "jo", jya: "ja", jyu: "ju", jyo: "jo" };
 const canon = s => { s = String(s || "").trim().toLowerCase().replace(/[\s'’]/g, ""); return ALT[s] || s; };
-const matches = (it, s) => { const c = canon(s); return c === it.romaji || (it.romaji === "wo" && c === "o"); };
-const WORDS = CFG.words.map(([kana, romaji]) => ({ kana, romaji, chars: [...kana].map(c => BY[c]), get script() { return this.chars[0].script; } }))
-  .filter(w => w.chars.every(Boolean));
+function matches(it, s) {
+  if (isKanji(it)) {
+    const t = String(s || "").trim().toLowerCase().replace(/[\s'’]/g, "");
+    if (t === it.reading || t === it.romaji) return true;
+    const m = t.replace(/[āâ]/g, "aa").replace(/[īî]/g, "ii").replace(/[ūû]/g, "uu").replace(/[ēê]/g, "ee").replace(/[ōô]/g, "ou");
+    return m === it.romaji || m.replace(/oo/g, "ou") === it.romaji.replace(/oo/g, "ou");
+  }
+  const c = canon(s); return c === it.romaji || (it.romaji === "wo" && c === "o");
+}
+
+// ------------------------------------------------------------------ Wörter mit っ, ー und Yōon (wie Words.java)
+const R_NONE = 0, R_SOKUON = 1, R_CHOON = 2;
+function parseWord(kana) {
+  const u = [];
+  for (let i = 0; i < kana.length;) {
+    const c = kana[i];
+    if (c === "っ" || c === "ッ") { u.push({ kana: c, item: null, rule: R_SOKUON }); i++; }
+    else if (c === "ー") { u.push({ kana: c, item: null, rule: R_CHOON }); i++; }
+    else {
+      const two = BY[kana.slice(i, i + 2)];
+      if (kana.length > i + 1 && two && two.kana.length === 2) { u.push({ kana: two.kana, item: two, rule: R_NONE }); i += 2; }
+      else { const one = BY[c]; if (!one || isKanji(one)) return null; u.push({ kana: c, item: one, rule: R_NONE }); i++; }
+    }
+  }
+  return u.length && u[0].item ? u : null;
+}
+function parts(units) {
+  const out = [];
+  units.forEach((u, i) => {
+    if (u.rule === R_SOKUON) { const n = units[i + 1] && units[i + 1].item ? units[i + 1].item.romaji : ""; out.push(n.startsWith("ch") ? "t" : n.slice(0, 1)); }
+    else if (u.rule === R_CHOON) { const p = out[i - 1] || ""; out.push(p.slice(-1)); }
+    else out.push(u.item.romaji);
+  });
+  return out;
+}
+function romanize(units, pos, alt, drop) {
+  let u = units.slice();
+  if (pos >= 0 && alt) u[pos] = { kana: alt.kana, item: alt, rule: R_NONE };
+  if (drop) u = u.filter(x => x.rule !== drop);
+  return parts(u).join("");
+}
+const WORDS = CFG.words.map(([kana, romaji]) => {
+  const units = parseWord(kana); if (!units) return null;
+  const w = { kana, units, chars: units.filter(u => u.item).map(u => u.item) };
+  w.romaji = romanize(units, -1, null, R_NONE); w.script = w.chars[0].script;
+  return w.romaji === romaji ? w : null;
+}).filter(Boolean);
+const hasRule = (w, r) => w.units.some(u => u.rule === r);
+const breakdown = w => { const p = parts(w.units); return w.units.map((u, i) => u.kana + " " + p[i]).join("  ·  "); };
 
 // ------------------------------------------------------------------ Texte
 let L = { ui: {}, arr: {} }, EN = { ui: {}, arr: {} }, lang = "en";
 const fmt = (s, a) => String(s).replace(/%(\d+)\$[sd]/g, (m, n) => a[n - 1]).replace(/%%/g, "%");
 const ui = (k, ...a) => fmt(L.ui[k] ?? EN.ui[k] ?? k, a);
-const tmpl = (k, ...a) => { const s = (L.t || {})[k] ?? (EN.t || {})[k]; return s ? fmt(s, a) : ""; };
-const tipText = key => (L.tips || {})[key] ?? (EN.tips || {})[key] ?? null;
-const mnem = kana => ((L.m || {})[kana] || (EN.m || {})[kana] || null);
-const meaning = kana => (L.w || {})[kana] || (EN.w || {})[kana] || "";
+const arr = k => (L.arr && L.arr[k]) || (EN.arr && EN.arr[k]) || [];
+const sect = (sec, k) => ((L[sec] || {})[k] ?? (EN[sec] || {})[k] ?? null);
+const tmpl = (k, ...a) => { const s = sect("t", k); return s ? fmt(s, a) : ""; };
+const mnem = kana => sect("m", kana);
+const meaning = kana => sect("w", kana) || "";
+const kMeaning = kana => sect("k", kana) || "";
 function tip(t, c) {
   if (!t || !c || t === c) return null;
   if (dakuRel(t).includes(c)) return tmpl("daku_tip");
   if (t.group === YOON && c.group === YOON && t.row === c.row) return tmpl("yoon_tip");
   const key = (a, b) => [a, b].sort().join("|");
-  if (t.kana.length === 1 && c.kana.length === 1) return tipText(key(t.kana, c.kana));
-  if (t.group === YOON && c.group === YOON && t.col === c.col) return tipText(key(t.kana[0], c.kana[0]));
+  if (t.kana.length === 1 && c.kana.length === 1) return sect("tips", key(t.kana, c.kana));
+  if (t.group === YOON && c.group === YOON && t.col === c.col) return sect("tips", key(t.kana[0], c.kana[0]));
   return null;
 }
 function tableHint(it) {
@@ -375,6 +517,10 @@ function tableHint(it) {
   return s.trim();
 }
 function hintText(it, level, reverse) {
+  if (isKanji(it)) {
+    if (level >= 2) return reverse && STROKES && STROKES.chars[it.kana] ? tmpl("kanji_hint_strokes", STROKES.chars[it.kana].length) : tmpl("kanji_hint_reading", it.reading[0]);
+    return sect("kh", it.kana) || "";
+  }
   if (level >= 2) return tableHint(it);
   const m = mnem(it.kana); if (m) return m[0];
   if (it.group === DAKU) {
@@ -386,6 +532,7 @@ function hintText(it, level, reverse) {
   return tableHint(it);
 }
 function fullMnemonic(it) {
+  if (isKanji(it)) { const h = sect("kh", it.kana); return (h ? h + "  →  " : "") + it.reading + " · " + kMeaning(it.kana); }
   const m = mnem(it.kana); if (m) return m[0] + "  →  " + m[1];
   if (it.group === DAKU) { const b = dakuRel(it)[0]; return `${b.kana} (${b.romaji}) + ${it.row === 4 ? "゜" : "゛"}  →  ${it.romaji}`; }
   if (it.group === YOON) { const f = BY[it.kana[0]]; return `${it.kana[0]} (${f ? f.romaji : ""}) + ${tmpl("small")} ${it.kana[1]}  →  ${it.romaji}`; }
@@ -407,16 +554,20 @@ function pickLang() {
 }
 
 // ------------------------------------------------------------------ Lernstand (wie Learner.java)
-const Q_READ = 0, Q_REVERSE = 1, Q_TYPE = 2, Q_WORD = 4, MAX_LEVEL = 9, MAX_LEARNING = 4;
+const Q_READ = 0, Q_REVERSE = 1, Q_TYPE = 2, Q_WORD = 4, Q_LISTEN = 5, MAX_LEVEL = 9, MAX_LEARNING = 4;
 const MIN = 60000, HOUR = 60 * MIN, DAY = 24 * HOUR;
 const INTERVAL = [0, MIN, 5 * MIN, 20 * MIN, HOUR, 4 * HOUR, 12 * HOUR, DAY, 3 * DAY, 7 * DAY];
-const S = Object.assign({ items: {}, wk: "", wp: 0, tp: 0, st: 0, la: "", day: "", dc: 0, dw: 0 }, store.get("kp_state", {}));
-const SET = Object.assign({ hira: true, kata: true, daku: false, yoon: false, gradual: true, typing: true, words: true, speak: false, per: 5 }, store.get("kp_settings", {}));
-const st = it => S.items[it.kana] || (S.items[it.kana] = { l: 0, d: 0, s: 0, c: 0, w: 0, i: false, t: 0, cf: {} });
-const save = () => store.set("kp_state", S);
+const BADGES = ["hira_all", "kata_all", "daku_all", "yoon_all", "kanji_20", "kanji_all", "streak_7", "streak_30", "streak_100", "goal_7", "words_10", "words_100", "listen_50", "draw_50", "points_1000", "points_10000"];
+const BADGE_ICONS = ["あ", "ア", "が", "きゃ", "山", "森", "🔥", "🔥", "🔥", "🎯", "語", "語", "🔊", "✎", "★", "★"];
+const COUNTERS = ["tp", "wr", "lo", "dk", "gd"];
+let S = Object.assign({ items: {}, wk: "", wp: 0, tp: 0, st: 0, bs: 0, la: "", day: "", dc: 0, dw: 0, wr: 0, lo: 0, dk: 0, gd: 0, h: {}, ach: {} }, store.get("kp_state", {}));
+const SET = Object.assign({ hira: true, kata: true, daku: false, yoon: false, kanji: false, gradual: true, typing: true, words: true, listen: true, speak: false, per: 5, goal: 20 }, store.get("kp_settings", {}));
+let version = 0, goalJust = false, newBadges = [];
+const st = it => S.items[it.kana] || (S.items[it.kana] = { l: 0, d: 0, s: 0, c: 0, w: 0, x: 0, t: 0, i: false, ls: 0, dr: 0, cf: {} });
+const save = () => { version++; store.set("kp_state", S); };
 const errRate = s => (s.w + 1) / (s.s + 2);
 function pool() {
-  let o = ALL.filter(it => (it.script === HIRA ? SET.hira : SET.kata) && (it.group !== DAKU || SET.daku) && (it.group !== YOON || SET.yoon));
+  let o = ALL.filter(it => isKanji(it) ? SET.kanji : (it.script === HIRA ? SET.hira : SET.kata) && (it.group !== DAKU || SET.daku) && (it.group !== YOON || SET.yoon));
   if (!o.length) o = ALL.filter(it => it.script === HIRA && it.group === BASE);
   return o;
 }
@@ -439,29 +590,34 @@ function pick(avoid) {
   let cand = intro.length > 1 ? intro.filter(x => x !== avoid) : intro; if (!cand.length) cand = p;
   return weighted(cand, it => { const s = st(it), mins = Math.max(0, (s.d - now) / 60000); return (1 + 3 * errRate(s)) * (MAX_LEVEL + 1 - s.l) / (1 + mins / 30); });
 }
-function questionType(it) {
-  const l = st(it).l, r = Math.random();
+function questionType(it, canListen) {
+  const l = st(it).l; let r = Math.random();
   if (l <= 1) return Q_READ;
+  if (canListen && !isKanji(it) && l >= 3 && r < 0.3) return Q_LISTEN;
+  r = Math.random();
   if (l <= 3) return r < 0.6 ? Q_READ : Q_REVERSE;
   if (SET.typing) return r < 0.5 ? Q_TYPE : (r < 0.75 ? Q_REVERSE : Q_READ);
   return r < 0.5 ? Q_REVERSE : Q_READ;
 }
 function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
-function distractors(t, n) {
-  let same = pool().filter(it => it.script === t.script && it.romaji !== t.romaji);
-  if (new Set(same.map(x => x.romaji)).size < n) same = ALL.filter(it => it.script === t.script && it.romaji !== t.romaji);
+const sound = it => it.romaji === "wo" ? "o" : it.romaji;
+function distractors(t, n, listen) {
+  const okD = it => it.script === t.script && it.romaji !== t.romaji && !clash(t, it) && (!listen || sound(it) !== sound(t));
+  let same = pool().filter(okD);
+  if (new Set(same.map(x => x.romaji)).size < n) same = ALL.filter(okD);
   const allowed = new Set(same), s = st(t), hard = new Set();
   Object.entries(s.cf).sort((a, b) => b[1] - a[1]).forEach(([r]) => { const x = findByRomaji(t.script, r); if (x && allowed.has(x)) hard.add(x); });
   for (const x of same) { const xs = S.items[x.kana]; if (xs && xs.cf && xs.cf[t.romaji]) hard.add(x); }
-  for (const src of [similar(t), dakuRel(t), rowMates(t)]) shuffle([...src]).forEach(x => { if (allowed.has(x)) hard.add(x); });
+  for (const src of [similar(t), dakuRel(t), isKanji(t) ? [] : rowMates(t)]) shuffle([...src]).forEach(x => { if (allowed.has(x)) hard.add(x); });
   const hardCount = s.l <= 1 ? 1 : (s.l <= 3 ? 2 : 3), out = [], used = new Set([t.romaji]);
-  for (const x of hard) { if (out.length >= Math.min(hardCount, n)) break; if (!used.has(x.romaji)) { used.add(x.romaji); out.push(x); } }
+  const fits = x => out.every(c => !clash(c, x) && sound(c) !== sound(x));
+  for (const x of hard) { if (out.length >= Math.min(hardCount, n)) break; if (!used.has(x.romaji) && fits(x)) { used.add(x.romaji); out.push(x); } }
   const rest = shuffle([...same]).sort((a, b) => Number(!introduced(a)) - Number(!introduced(b)));
-  for (const x of rest) { if (out.length >= n) break; if (!used.has(x.romaji)) { used.add(x.romaji); out.push(x); } }
+  for (const x of rest) { if (out.length >= n) break; if (!used.has(x.romaji) && fits(x)) { used.add(x.romaji); out.push(x); } }
   return out;
 }
-const fastLimit = q => q === Q_TYPE ? 6000 : q === Q_REVERSE ? 4000 : 3000;
-function dayKey(t) { const d = new Date(t); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate() + ""; }
+const fastLimit = q => q === Q_TYPE ? 6000 : q === Q_LISTEN ? 5000 : q === Q_REVERSE ? 4000 : 3000;
+function dayKey(t) { const d = new Date(t); return String(d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate()); }
 function rollDay() { const d = dayKey(Date.now()); if (S.day !== d) { S.day = d; S.dc = 0; S.dw = 0; } }
 function isoWeek(t) {
   const d = new Date(t); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7);
@@ -475,30 +631,70 @@ function award(p) {
   S.wp += p; S.tp += p;
   const today = dayKey(Date.now());
   if (S.la !== today) { S.st = S.la === dayKey(Date.now() - DAY) ? S.st + 1 : 1; S.la = today; }
+  S.bs = Math.max(S.bs || 0, S.st);
+}
+function countDay(ok, pts) {
+  if (ok) S.dc++; else S.dw++;
+  const h = S.h[S.day] || (S.h[S.day] = [0, 0, 0, 0]);
+  if (ok) h[0]++; else h[1]++;
+  h[2] += pts;
+  const goal = Number(SET.goal) || 0;
+  if (ok && goal > 0 && !h[3] && S.dc >= goal) { h[3] = 1; S.gd = (S.gd || 0) + 1; goalJust = true; }
+  const keys = Object.keys(S.h).sort(); while (keys.length > 400) delete S.h[keys.shift()];
 }
 const weekPoints = () => S.wk === currentWeek() ? S.wp : 0;
 const streakDays = () => (S.la === dayKey(Date.now()) || S.la === dayKey(Date.now() - DAY)) ? S.st : 0;
 const knownCount = () => Object.values(S.items).filter(s => s.l >= 4).length;
+function knownIn(script, group) { return ALL.filter(it => it.group === group && (script < 0 || it.script === script) && (S.items[it.kana] || { l: 0 }).l >= 4).length; }
+function badgeProgress(id) {
+  switch (id) {
+    case "hira_all": return [knownIn(HIRA, BASE), 46];
+    case "kata_all": return [knownIn(KATA, BASE), 46];
+    case "daku_all": return [knownIn(-1, DAKU), 46];
+    case "yoon_all": return [knownIn(-1, YOON), 66];
+    case "kanji_20": return [knownIn(KANJI, KANJI_G), 20];
+    case "kanji_all": return [knownIn(KANJI, KANJI_G), CFG.kanji.length];
+    case "streak_7": return [S.bs || 0, 7];
+    case "streak_30": return [S.bs || 0, 30];
+    case "streak_100": return [S.bs || 0, 100];
+    case "goal_7": return [S.gd || 0, 7];
+    case "words_10": return [S.wr || 0, 10];
+    case "words_100": return [S.wr || 0, 100];
+    case "listen_50": return [S.lo || 0, 50];
+    case "draw_50": return [S.dk || 0, 50];
+    case "points_1000": return [S.tp, 1000];
+    default: return [S.tp, 10000];
+  }
+}
+function checkBadges(announce) {
+  for (const id of BADGES) {
+    if (S.ach[id]) continue;
+    const [a, b] = badgeProgress(id);
+    if (a >= b) { S.ach[id] = Date.now(); if (announce) newBadges.push(id); }
+  }
+}
 function record(it, ok, ms, chosenR, q, hinted) {
   const s = st(it), now = Date.now(), first = s.s === 0 && !hinted;
   const timed = ms > 0 && ms < 20000 && !hinted, slow = hinted || (timed && ms > fastLimit(q));
-  s.s++; s.i = true;
+  s.s++; s.i = true; s.ls = now;
   if (ok) {
     s.c++;
+    if (timed) s.t = s.t ? Math.round(s.t * 0.7 + ms * 0.3) : Math.round(ms);
     if (first && timed && !slow) s.l = 3; else if (slow) s.l = Math.max(1, s.l); else s.l = Math.min(MAX_LEVEL, s.l + 1);
     s.d = now + INTERVAL[s.l] * (0.9 + 0.2 * Math.random());
   } else {
-    s.w++; s.l = s.l >= 4 ? 2 : 0; s.d = now + 30000;
+    s.w++; if (s.l >= 3) s.x++; s.l = s.l >= 4 ? 2 : 0; s.d = now + 30000;
     if (chosenR && chosenR !== it.romaji) s.cf[chosenR] = (s.cf[chosenR] || 0) + 1;
   }
-  rollDay(); if (ok) S.dc++; else S.dw++;
+  rollDay();
   let pts = 0;
   if (ok) {
-    pts = hinted ? 3 : (q === Q_TYPE ? 20 : q === Q_REVERSE ? 15 : 10) + (it.group === YOON ? 5 : 0);
+    pts = hinted ? 3 : (q === Q_TYPE ? 20 : (q === Q_REVERSE || q === Q_LISTEN) ? 15 : 10) + ((it.group === YOON || isKanji(it)) ? 5 : 0);
     if (!hinted && timed && !slow) pts = Math.floor(pts * 3 / 2);
+    if (q === Q_LISTEN && !hinted) S.lo = (S.lo || 0) + 1;
     award(pts);
   }
-  save();
+  countDay(ok, pts); checkBadges(true); save();
   return pts;
 }
 function pickWord(avoid) {
@@ -508,11 +704,38 @@ function pickWord(avoid) {
 function recordWord(w, ok, ms, hinted, missed, alt) {
   if (!ok && missed) { record(missed, false, 0, alt ? alt.romaji : null, Q_READ, false); return 0; }
   rollDay(); let pts = 0;
-  if (ok) { S.dc++; pts = hinted ? 3 : (ms > 0 && ms < 1500 * w.chars.length ? 30 : 20); award(pts); } else S.dw++;
-  save(); return pts;
+  if (ok) { pts = hinted ? 3 : (ms > 0 && ms < 1500 * w.units.length ? 30 : 20); S.wr = (S.wr || 0) + 1; award(pts); }
+  countDay(ok, pts); checkBadges(true); save(); return pts;
+}
+
+// ------------------------------------------------------------------ Abgleich (gleiche Regeln wie Learner.merge)
+function merge(local, remote, base) {
+  if (!remote || !remote.items) return local;
+  base = base || {};
+  const out = JSON.parse(JSON.stringify(remote));
+  for (const [k, l] of Object.entries(local.items || {})) { const r = out.items[k]; if (!r || (l.ls || 0) >= (r.ls || 0)) out.items[k] = l; }
+  for (const c of COUNTERS) out[c] = (remote[c] || 0) + Math.max(0, (local[c] || 0) - (base[c] || 0));
+  const wk = currentWeek(), d = dayKey(Date.now());
+  const wv = (o, k) => o.wk === wk ? (o[k] || 0) : 0, dv = (o, k) => o.day === d ? (o[k] || 0) : 0;
+  out.wk = wk; out.wp = wv(remote, "wp") + Math.max(0, wv(local, "wp") - wv(base, "wp"));
+  out.day = d; out.dc = dv(remote, "dc") + Math.max(0, dv(local, "dc") - dv(base, "dc")); out.dw = dv(remote, "dw") + Math.max(0, dv(local, "dw") - dv(base, "dw"));
+  const la = local.la || "", ra = remote.la || "";
+  if (la > ra || (la === ra && (local.st || 0) > (remote.st || 0))) { out.la = la; out.st = local.st || 0; }
+  out.bs = Math.max(local.bs || 0, remote.bs || 0);
+  out.h = out.h || {};
+  for (const [k, a] of Object.entries(local.h || {})) { const b = out.h[k]; out.h[k] = b ? [0, 1, 2, 3].map(i => Math.max(a[i] || 0, b[i] || 0)) : a; }
+  out.ach = out.ach || {};
+  for (const [k, t] of Object.entries(local.ach || {})) if (!out.ach[k] || out.ach[k] > t) out.ach[k] = t;
+  out.v = 2;
+  return out;
 }
 
 // ------------------------------------------------------------------ Aussprache
+function hasJaVoice() {
+  if (!("speechSynthesis" in window)) return false;
+  const v = speechSynthesis.getVoices();
+  return v.length === 0 || v.some(x => /^ja/i.test(x.lang));
+}
 function speak(text) {
   if (!("speechSynthesis" in window)) { toast(ui("speak_none")); return; }
   const voices = speechSynthesis.getVoices(), v = voices.find(x => /^ja/i.test(x.lang));
@@ -567,11 +790,12 @@ async function showStrokes(it) {
 // ------------------------------------------------------------------ Quiz
 const R = { need: 5, streak: 0, answered: 0, points: 0, retry: [], gaps: [] };
 let cur = null, word = null, lastWord = null, q = Q_READ, phase = "ask", hint = 0, isNew = false, isRetry = false, shownAt = 0;
-let opts = [], wopts = [], explainFor = null;
+let opts = [], wopts = [];
 
 function startRound() {
   Object.assign(R, { need: Number(SET.per) || 5, streak: 0, answered: 0, points: 0, retry: [], gaps: [] });
-  cur = null; $("quiz").hidden = false; $("done").hidden = true; next();
+  newBadges = []; goalJust = false;
+  cur = null; $("quiz").hidden = false; $("done").hidden = true; $("notice").hidden = true; next();
 }
 function next() {
   phase = "ask"; hint = 0; isRetry = false; word = null;
@@ -587,25 +811,32 @@ function next() {
   }
   if (!it) it = pick(cur);
   cur = it; isNew = st(it).s === 0;
-  q = (isRetry || isNew) ? Q_READ : questionType(it);
-  if (q !== Q_TYPE) { opts = shuffle([it, ...distractors(it, 3)]); }
+  q = (isRetry || isNew) ? Q_READ : questionType(it, SET.listen && hasJaVoice());
+  if (q !== Q_TYPE) opts = shuffle([it, ...distractors(it, 3, q === Q_LISTEN)]);
   render(true);
   shownAt = performance.now();
   if (q === Q_TYPE) { const inp = $("type-in"); inp.value = ""; setTimeout(() => inp.focus(), 60); }
+  if (q === Q_LISTEN) setTimeout(() => speak(spokenOf(cur)), 200);
 }
 function buildWordOptions() {
-  const w = word, list = [{ t: w.romaji, miss: null, alt: null }], used = new Set([w.romaji]);
+  const w = word, list = [{ t: w.romaji, miss: null, alt: null, rule: R_NONE }], used = new Set([w.romaji]);
+  for (const rule of [R_SOKUON, R_CHOON]) {
+    if (!hasRule(w, rule) || list.length >= 3) continue;
+    const t = romanize(w.units, -1, null, rule);
+    if (!used.has(t)) { used.add(t); list.push({ t, miss: null, alt: null, rule }); }
+  }
   for (let tries = 0; tries < 80 && list.length < 4; tries++) {
-    const pos = Math.floor(Math.random() * w.chars.length), c = w.chars[pos];
+    const pos = Math.floor(Math.random() * w.units.length), c = w.units[pos].item;
+    if (!c) continue;
     let cand = [...Object.keys(st(c).cf).map(r => findByRomaji(c.script, r)).filter(Boolean), ...similar(c), ...dakuRel(c)];
     if (tries > 25) cand = cand.concat(rowMates(c));
     if (!cand.length) continue;
     const alt = cand[Math.floor(Math.random() * cand.length)];
-    if (alt.kana.length !== 1 || alt.romaji === c.romaji) continue;
-    const t = w.chars.map((x, i) => i === pos ? alt.romaji : x.romaji).join("");
-    if (!used.has(t)) { used.add(t); list.push({ t, miss: c, alt }); }
+    if (alt.kana.length !== c.kana.length || alt.romaji === c.romaji) continue;
+    const t = romanize(w.units, pos, alt, R_NONE);
+    if (!used.has(t)) { used.add(t); list.push({ t, miss: c, alt, rule: R_NONE }); }
   }
-  for (const o of WORDS) { if (list.length >= 4) break; if (o.script === w.script && !used.has(o.romaji)) { used.add(o.romaji); list.push({ t: o.romaji, miss: null, alt: null }); } }
+  for (const o of WORDS) { if (list.length >= 4) break; if (o.script === w.script && !used.has(o.romaji)) { used.add(o.romaji); list.push({ t: o.romaji, miss: null, alt: null, rule: R_NONE }); } }
   wopts = shuffle(list);
 }
 function progressText() {
@@ -615,31 +846,40 @@ function progressText() {
   return s;
 }
 function anim(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+function optLabel(o) {
+  if (q === Q_REVERSE || q === Q_LISTEN) return o.kana;
+  return isKanji(o) ? o.reading + "\n" + kMeaning(o.kana) : o.romaji;
+}
 function render(fresh) {
-  const explain = phase === "explain", it = cur;
+  const explain = phase === "explain", it = cur, kanji = isKanji(it) && q !== Q_WORD;
   $("progress").textContent = progressText();
-  const badge = isRetry ? ui("badge_retry") : isNew ? ui("badge_new") : q === Q_WORD ? ui("badge_word") : "";
+  const badge = isRetry ? ui("badge_retry") : isNew ? ui("badge_new") : q === Q_WORD ? ui("badge_word") : q === Q_LISTEN ? ui("badge_listen") : "";
   $("badge").textContent = badge; $("badge").classList.toggle("on", !!badge);
   const big = $("big"), compact = q === Q_TYPE || hint > 0 || explain;
-  big.classList.toggle("rev", q === Q_REVERSE);
+  big.classList.remove("latin", "tap"); big.onclick = null;
   if (q === Q_WORD) {
     $("prompt").textContent = ui("prompt_word"); big.textContent = word.kana;
-    const n = word.kana.length, size = n <= 2 ? 110 : n === 3 ? 88 : n === 4 ? 70 : 58;
+    const n = word.kana.length, size = n <= 2 ? 110 : n === 3 ? 88 : n === 4 ? 70 : n <= 6 ? 54 : 44;
     big.style.fontSize = (compact ? size * 0.75 : size) + "px";
+  } else if (q === Q_LISTEN) {
+    $("prompt").textContent = ui("prompt_listen"); big.textContent = "🔊"; big.classList.add("tap");
+    big.onclick = () => speak(spokenOf(cur)); big.style.fontSize = (compact ? 64 : 96) + "px";
   } else if (q === Q_REVERSE) {
-    $("prompt").textContent = ui("prompt_reverse"); big.textContent = it.romaji; big.style.fontSize = (compact ? 64 : 84) + "px";
+    $("prompt").textContent = ui(kanji ? "prompt_kanji_reverse" : "prompt_reverse"); big.classList.add("latin");
+    big.textContent = kanji ? kMeaning(it.kana) : it.romaji; big.style.fontSize = (kanji ? (compact ? 34 : 44) : (compact ? 64 : 84)) + "px";
   } else {
-    $("prompt").textContent = ui(q === Q_TYPE ? "prompt_type" : "prompt_read"); big.textContent = it.kana;
+    $("prompt").textContent = ui(q === Q_TYPE ? "prompt_type" : kanji ? "prompt_kanji_read" : "prompt_read"); big.textContent = it.kana;
     const two = it.kana.length > 1; big.style.fontSize = (compact ? (two ? 80 : 104) : (two ? 110 : 150)) + "px";
   }
   $("script").textContent = scriptName(it).toUpperCase();
   if (fresh) $("feedback").textContent = "";
-  const maxHint = q === Q_WORD ? 1 : 2, canHint = !explain && phase === "ask" && hint < maxHint;
+  const maxHint = (q === Q_WORD || q === Q_LISTEN) ? 1 : 2, canHint = !explain && phase === "ask" && hint < maxHint;
   const hb = $("hint-btn"); hb.hidden = explain; hb.classList.toggle("hidden", !canHint);
   hb.textContent = ui(hint === 0 ? "hint_mnemonic" : "hint_more");
   const hv = $("hint");
   if (hint > 0 && !explain) {
     hv.textContent = q === Q_WORD ? it.kana + "   " + hintText(it, 1, false)
+      : q === Q_LISTEN ? hintText(it, 1, true)
       : hintText(it, 1, q === Q_REVERSE) + (hint > 1 ? "\n\n" + hintText(it, 2, q === Q_REVERSE) : "");
     hv.hidden = false;
   } else hv.hidden = true;
@@ -647,12 +887,15 @@ function render(fresh) {
   ob.hidden = explain || q === Q_TYPE;
   if (!ob.hidden && fresh) {
     ob.innerHTML = "";
-    const labels = q === Q_WORD ? wopts.map(o => o.t) : opts.map(o => q === Q_REVERSE ? o.kana : o.romaji);
+    const labels = q === Q_WORD ? wopts.map(o => o.t) : opts.map(optLabel);
     const longest = Math.max(...labels.map(t => t.length));
+    const kanaOpt = q === Q_REVERSE || q === Q_LISTEN;
     labels.forEach((t, i) => {
-      const b = document.createElement("button"); b.className = "opt rise"; b.style.animationDelay = (80 + i * 50) + "ms";
-      b.textContent = t; if (q === Q_REVERSE) b.lang = "ja";
-      if (q === Q_REVERSE) b.style.fontSize = (t.length > 1 ? 30 : 36) + "px"; else if (q === Q_WORD) b.style.fontSize = (longest > 7 ? 20 : 24) + "px";
+      const b = document.createElement("button"); b.className = "opt rise" + (kanaOpt ? " kana" : ""); b.style.animationDelay = (80 + i * 50) + "ms";
+      b.textContent = t; if (kanaOpt) b.lang = "ja";
+      if (kanaOpt) b.style.fontSize = (t.length > 1 ? 30 : 36) + "px";
+      else if (q === Q_WORD) b.style.fontSize = (longest > 7 ? 20 : 24) + "px";
+      else if (kanji) b.style.fontSize = "17px";
       b.onclick = () => onOption(i, b); ob.appendChild(b);
     });
   }
@@ -674,63 +917,85 @@ function onType() {
   $("type-in").blur();
 }
 const willFinish = () => !R.retry.length && R.streak >= R.need;
+function showNotices() {
+  const n = [];
+  if (goalJust) { n.push("🎯  " + ui("goal_reached")); goalJust = false; }
+  while (newBadges.length) n.push("🏅  " + ui("badge_new_unlocked", sect("bn", newBadges.shift()) || ""));
+  if (!n.length) return false;
+  const el = $("notice"); el.textContent = n.join("\n"); el.hidden = false; anim(el, "slide");
+  setTimeout(() => { el.hidden = true; }, 4000);
+  return true;
+}
 function answer(ok, chosen, typed, idx, btn) {
   const ms = performance.now() - shownAt; phase = "wait";
-  let pts, retryItem = cur, wordChosen = null;
+  let pts, retryItem = cur, wordChosen = null, rule = R_NONE;
   if (q === Q_WORD) {
     const o = idx >= 0 ? wopts[idx] : null;
-    chosen = o ? o.alt : null; wordChosen = o ? o.t : null;
+    chosen = o ? o.alt : null; wordChosen = o ? o.t : null; rule = o ? o.rule : R_NONE;
     pts = recordWord(word, ok, ms, hint > 0, o ? o.miss : null, chosen); retryItem = o ? o.miss : null;
   } else pts = record(cur, ok, ms, (!ok && chosen) ? chosen.romaji : null, q, hint > 0);
   R.answered++; R.gaps = R.gaps.map(g => g - 1);
+  const noticed = showNotices();
   if (ok) {
     R.streak++; R.points += pts;
     if (btn) { btn.classList.add("good"); anim(btn, "pulse"); }
     anim($("big"), "pulse");
-    if (SET.speak) speak(word ? word.kana : cur.kana);
-    let t = ui("correct") + "  ·  " + (word ? `${word.kana} = ${word.romaji}  ·  ${meaning(word.kana)}` : `${cur.kana} = ${cur.romaji}`);
+    if (SET.speak && q !== Q_LISTEN) speak(word ? word.kana : spokenOf(cur));
+    let t = ui("correct") + "  ·  " + (word ? `${word.kana} = ${word.romaji}  ·  ${meaning(word.kana)}`
+      : `${cur.kana} = ${answerOf(cur)}` + (isKanji(cur) ? "  ·  " + kMeaning(cur.kana) : ""));
     if (hint === 0 && ms < 20000) t += "  ·  " + (ms / 1000).toFixed(1).replace(".", lang === "en" ? "." : ",") + " s";
     $("feedback").textContent = t + "  ·  +" + pts;
     $("progress").textContent = progressText();
-    setTimeout(advance, willFinish() ? (word ? 900 : 450) : (word ? 1300 : 700));
+    let delay = (word || isKanji(cur)) ? 1300 : 700;
+    if (noticed) delay += 900;
+    if (willFinish()) delay = Math.min(delay, word ? 900 : 450);
+    setTimeout(advance, delay);
   } else {
     R.streak = 0;
     if (retryItem) {
       const k = R.retry.indexOf(retryItem), gap = pool().length > 3 ? 1 : 0;
       if (k >= 0) R.gaps[k] = gap; else { R.retry.push(retryItem); R.gaps.push(gap); }
     }
-    if (q === Q_WORD) explainWord(retryItem, chosen, wordChosen); else explainChar(chosen, typed);
+    if (q === Q_WORD) explainWord(retryItem, chosen, wordChosen, rule); else explainChar(chosen, typed);
     phase = "explain"; render(false);
     anim($("big"), "shake"); anim($("explain"), "slide");
     if (navigator.vibrate) navigator.vibrate(60);
-    if (SET.speak) speak(word ? word.kana : cur.kana);
+    if (SET.speak || q === Q_LISTEN) speak(word ? word.kana : spokenOf(cur));
   }
 }
 function setExplain(title, main, chosen, tipT, mn, strokesFor) {
   $("ex-title").textContent = title; $("ex-main").textContent = main; $("ex-main").classList.toggle("long", main.length > 12);
   $("ex-chosen").textContent = chosen; $("ex-chosen").hidden = !chosen;
-  $("ex-tip").textContent = tipT; $("ex-mn").textContent = mn; $("ex-mn").hidden = !mn;
+  $("ex-tip").textContent = tipT; $("ex-tip").hidden = !tipT; $("ex-mn").textContent = mn; $("ex-mn").hidden = !mn;
   showStrokes(strokesFor);
 }
 function explainChar(chosen, typed) {
   const it = cur, dk = !chosen && !(typed && typed.trim());
   let ch = "";
-  if (chosen) ch = ui("explain_your_answer", chosen.kana, chosen.romaji); else if (!dk) ch = ui("explain_your_input", typed.trim());
+  if (chosen) ch = ui("explain_your_answer", chosen.kana, answerOf(chosen)); else if (!dk) ch = ui("explain_your_input", typed.trim());
+  let lines = [];
+  if (isKanji(it)) {
+    lines.push(ui("label_meaning") + kMeaning(it.kana));
+    if (chosen && isKanji(chosen)) lines.push(`${chosen.kana} = ${answerOf(chosen)}  ·  ${kMeaning(chosen.kana)}`);
+  }
   let t = tip(it, chosen);
   if (!t) {
     const conf = Object.entries(st(it).cf).sort((a, b) => b[1] - a[1])[0], c = conf && findByRomaji(it.script, conf[0]);
-    if (c && conf[1] >= 2) { const t2 = tip(it, c); t = ui("explain_often_confused", it.kana, c.kana, c.romaji) + (t2 ? " " + t2 : ""); }
+    if (c && conf[1] >= 2) { const t2 = tip(it, c); t = ui("explain_often_confused", it.kana, c.kana, answerOf(c)) + (t2 ? " " + t2 : ""); }
   }
-  if (!t) for (const s of similar(it)) { const t3 = tip(it, s); if (t3) { t = ui("explain_dont_confuse", s.kana, s.romaji) + " " + t3; break; } }
-  if (!t) t = ui("label_row") + " " + rowString(it);
+  if (!t) for (const s of similar(it)) { const t3 = tip(it, s); if (t3) { t = ui("explain_dont_confuse", s.kana, answerOf(s)) + " " + t3; break; } }
+  if (!t && !isKanji(it)) t = ui("label_row") + " " + rowString(it);
+  const body = lines.join("\n") + (t ? (lines.length ? "\n\n" : "") + t : "");
   const mn = fullMnemonic(it);
-  setExplain(ui(dk ? "explain_dontknow" : "explain_wrong"), `${it.kana}  =  ${it.romaji}`, ch, t, mn ? ui("label_mnemonic") + " " + mn : "", it);
+  setExplain(ui(dk ? "explain_dontknow" : "explain_wrong"), `${it.kana}  =  ${answerOf(it)}`, ch, body, mn ? ui("label_mnemonic") + " " + mn : "", it);
 }
-function explainWord(missed, alt, chosenLabel) {
+function explainWord(missed, alt, chosenLabel, rule) {
   const w = word; let t = "";
   const m = meaning(w.kana); if (m) t += ui("label_meaning") + m + "\n";
-  t += w.chars.map(c => c.kana + " " + c.romaji).join("  ·  ");
+  t += breakdown(w);
   if (missed && alt) { const tt = tip(missed, alt); t += `\n\n${missed.kana} (${missed.romaji})  ·  ` + ui("explain_dont_confuse", alt.kana, alt.romaji) + (tt ? " " + tt : ""); }
+  if (rule === R_SOKUON || (!chosenLabel && hasRule(w, R_SOKUON))) t += "\n\n" + tmpl("rule_sokuon");
+  if (rule === R_CHOON || (!chosenLabel && hasRule(w, R_CHOON))) t += "\n\n" + tmpl("rule_choon");
   const mn = missed ? fullMnemonic(missed) : null;
   setExplain(ui(chosenLabel ? "explain_wrong" : "explain_dontknow"), `${w.kana}  =  ${w.romaji}`,
     chosenLabel ? ui("explain_your_reading", chosenLabel) : "", t, mn ? ui("label_mnemonic") + " " + missed.kana + "  " + mn : "", missed);
@@ -739,21 +1004,28 @@ function advance() {
   clearTimeout(strokeTimer);
   if (willFinish()) finishRound(); else next();
 }
+function goalLine() {
+  const goal = Number(SET.goal) || 0; rollDay();
+  return goal > 0 ? ui("goal_progress", Math.min(S.dc, goal), goal) : ui("summary_today", S.dc, S.dw);
+}
+function setGoalBar(el) {
+  const goal = Number(SET.goal) || 0;
+  el.hidden = goal <= 0; el.querySelector("i").style.width = goal > 0 ? Math.min(100, 100 * S.dc / goal) + "%" : "0";
+}
 function finishRound() {
   $("quiz").hidden = true; $("done").hidden = false;
   const stamp = document.querySelector(".stamp"); anim(stamp, "stamp");
   $("done-title").textContent = ui("round_done");
-  $("done-points").textContent = ui("round_points", R.points);
+  $("done-points").textContent = ui("round_points", R.points) + "\n" + goalLine();
+  setGoalBar($("done-goalbar"));
   const p = pool(), known = p.filter(it => (S.items[it.kana] || { l: 0 }).l >= 4).length, sd = streakDays();
-  rollDay();
-  $("done-stats").textContent = ui("summary_known", known, p.length) + "\n" + ui("summary_today", S.dc, S.dw) + (sd > 1 ? "  ·  🔥 " + ui("streak_days", sd) : "");
-  $("done-stats").style.whiteSpace = "pre-line";
+  $("done-stats").textContent = ui("summary_known", known, p.length) + (sd > 0 ? "\n🔥 " + ui("streak_days", sd) : "");
   $("progress").textContent = "";
-  submit();
+  submit().then(() => sync(false));
 }
 
-// ------------------------------------------------------------------ Rangliste
-const B = Object.assign({ id: null, secret: null, name: "", group: null }, store.get("kp_board", {}));
+// ------------------------------------------------------------------ Server: Rangliste, Abgleich, Geräte verbinden
+const B = Object.assign({ id: null, secret: null, name: "", group: null, server2: false }, store.get("kp_board", {}));
 const saveB = () => store.set("kp_board", B);
 const uuid = () => (crypto.randomUUID ? crypto.randomUUID() : "10000000-1000-4000-8000-100000000000".replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)));
 async function rpc(fn, body) {
@@ -768,11 +1040,31 @@ async function submit() {
   if (!B.id) { B.id = uuid(); B.secret = uuid(); saveB(); }
   const body = { p_id: B.id, p_secret: B.secret, p_name: B.name, p_week: currentWeek(), p_week_points: weekPoints(), p_total_points: S.tp, p_known: knownCount(), p_streak: streakDays() };
   if (B.group !== null) body.p_group = B.group;
+  if (B.server2) body.p_badges = Object.keys(S.ach).length;
   try { await rpc("kana_submit", body); } catch (e) {}
+}
+let lastSync = 0, syncing = false;
+async function sync(force) {
+  if (!B.name || !B.id || syncing || (!force && Date.now() - lastSync < 120000)) return false;
+  syncing = true; lastSync = Date.now();
+  try {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const res = await rpc("kana_progress_get", { p_id: B.id, p_secret: B.secret });
+      if (!B.server2) { B.server2 = true; saveB(); }
+      const v = version, merged = merge(JSON.parse(JSON.stringify(S)), res.data, store.get("kp_sync_base", {}));
+      const rev = await rpc("kana_progress_put", { p_id: B.id, p_secret: B.secret, p_rev: res.rev, p_data: merged });
+      if (rev < 0) continue;
+      if (version === v) { S = Object.assign(S, merged); checkBadges(false); store.set("kp_state", S); }
+      const base = {}; for (const k of [...COUNTERS, "wp", "dc", "dw"]) base[k] = merged[k] || 0; base.wk = merged.wk; base.day = merged.day;
+      store.set("kp_sync_base", base);
+      return true;
+    }
+  } catch (e) { return false; } finally { syncing = false; }
+  return false;
 }
 function friendly(e) {
   const m = String(e && e.message);
-  if (/PGRST202|HTTP 404/.test(m)) return ui("err_setup");
+  if (/PGRST202|HTTP 404/.test(m)) return ui("sync_server_old");
   if (/HTTP 40[13]/.test(m)) return ui("err_key");
   if (e instanceof TypeError) return navigator.onLine === false ? ui("err_offline") : ui("err_conn");
   return ui("err_generic", m);
@@ -783,24 +1075,24 @@ function openBoard() {
   if (!B.name) askName(true); else loadBoard();
 }
 function updateMe() {
-  $("bd-title").textContent = ui("leaderboard");
-  const sd = streakDays();
-  $("bd-me").textContent = (B.name || ui("set_name")) + "  ✎\n" + ui("me_line", weekPoints(), S.tp, knownCount()) + (sd > 0 ? "  ·  🔥 " + sd : "");
-  $("bd-me").style.whiteSpace = "pre-line";
+  const sd = streakDays(), nb = Object.keys(S.ach).length;
+  $("bd-me").textContent = (B.name || ui("set_name")) + "  ✎\n" + ui("me_line", weekPoints(), S.tp, knownCount()) + (sd > 0 ? "  ·  🔥 " + sd : "") + (nb ? "  ·  🏅 " + nb : "");
   $("bd-group").textContent = (B.group ? ui("group_label", B.group) : ui("group_none")) + "  ✎";
-  $("bd-refresh").textContent = ui("refresh");
+  $("bd-refresh").textContent = ui("refresh"); $("bd-link").textContent = ui("link_title");
   [...$("bd-tabs").children].forEach((b, i) => { b.textContent = ui(["tab_week", "tab_total", "tab_known"][i]); b.classList.toggle("on", i === tab); });
 }
 async function loadBoard() {
   updateMe(); $("bd-status").textContent = "…"; $("bd-rows").innerHTML = "";
   try {
     await submit();
+    sync(false);
     const qy = { p_week: currentWeek() }; if (B.group) qy.p_group = B.group;
     const res = await rpc("kana_board", qy), pw = previousWeek();
     rows = (res || []).map(o => ({
-      id: o.id, name: o.name || "?", week: o.week_points | 0, total: o.total_points | 0, known: o.known | 0, streak: o.streak | 0, me: o.id === B.id,
+      id: o.id, name: o.name || "?", week: o.week_points | 0, total: o.total_points | 0, known: o.known | 0, streak: o.streak | 0, badges: o.badges | 0, me: o.id === B.id,
       last: o.week === pw ? (o.week_raw | 0) : (o.prev_week === pw ? (o.prev_week_points | 0) : 0)
     }));
+    if (res && res[0] && "badges" in res[0] && !B.server2) { B.server2 = true; saveB(); }
     $("bd-status").textContent = rows.length ? "" : ui("board_empty");
     const w = rows.filter(r => r.last > 0).sort((a, b) => b.last - a.last)[0];
     $("bd-winner").hidden = !w; if (w) $("bd-winner").textContent = "🏆  " + ui("winner_line", w.name, w.last) + (w.me ? ui("you") : "");
@@ -818,21 +1110,22 @@ function renderBoard() {
     const v = val(r); if (v !== prev) rank = i + 1; prev = v;
     const row = document.createElement("div"); row.className = "rowx" + (r.me ? " me" : ""); row.style.animationDelay = Math.min(i, 15) * 35 + "ms";
     const rk = document.createElement("span"); rk.className = "rk"; rk.textContent = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : rank + ".";
-    const nm = document.createElement("span"); nm.className = "nm"; nm.textContent = r.name + (r.me ? ui("you") : "") + (r.streak > 1 ? "   🔥" + r.streak : "");
+    const nm = document.createElement("span"); nm.className = "nm"; nm.textContent = r.name + (r.me ? ui("you") : "") + (r.streak > 1 ? "   🔥" + r.streak : "") + (r.badges > 0 ? "   🏅" + r.badges : "");
     const vl = document.createElement("span"); vl.className = "val"; vl.textContent = v + unit;
     row.append(rk, nm, vl); box.appendChild(row);
   });
 }
-function ask({ title, msg, value, hint, max, ok, alt, onOk, onAlt, onCancel }) {
+function ask({ title, msg, value, hint, max, ok, alt, code, noInput, onOk, onAlt, onCancel }) {
   const d = $("dlg-input");
   $("in-title").textContent = title; $("in-msg").textContent = msg || ""; $("in-msg").hidden = !msg;
-  const inp = $("in-text"); inp.value = value || ""; inp.placeholder = hint || ""; inp.maxLength = max || 24;
-  $("in-ok").textContent = ok || ui("ok"); $("in-cancel").textContent = ui("cancel");
+  $("in-code").hidden = !code; $("in-code").textContent = code || "";
+  const inp = $("in-text"); inp.hidden = !!noInput; inp.value = value || ""; inp.placeholder = hint || ""; inp.maxLength = max || 24;
+  $("in-ok").textContent = ok || ui("ok"); $("in-cancel").textContent = ui("cancel"); $("in-cancel").hidden = !!noInput;
   $("in-alt").hidden = !alt; $("in-alt").textContent = alt || "";
-  $("in-ok").onclick = () => { if (onOk(inp.value) !== false) d.close(); };
+  $("in-ok").onclick = async () => { if ((await onOk(inp.value)) !== false) d.close(); };
   $("in-alt").onclick = () => { d.close(); onAlt && onAlt(); };
   $("in-cancel").onclick = () => { d.close(); onCancel && onCancel(); };
-  d.showModal(); setTimeout(() => inp.focus(), 50);
+  d.showModal(); if (!noInput) setTimeout(() => inp.focus(), 50);
 }
 function askName(first) {
   ask({
@@ -848,22 +1141,83 @@ function askGroup() {
     onAlt: () => { B.group = ""; saveB(); loadBoard(); }
   });
 }
+function askLink() {
+  if (!B.name) { toast(ui("sync_need_name")); return; }
+  ask({
+    title: ui("link_title"), msg: ui("link_msg"), noInput: true, ok: ui("link_show"), alt: ui("link_enter"),
+    onOk: async () => {
+      try {
+        await submit();
+        const code = String(await rpc("kana_link_create", { p_id: B.id, p_secret: B.secret }));
+        setTimeout(() => ask({ title: ui("link_code_title"), msg: ui("link_code_msg"), code: code.slice(0, 4) + " " + code.slice(4), noInput: true, onOk: () => true }), 50);
+      } catch (e) { toast(friendly(e)); }
+    },
+    onAlt: () => ask({
+      title: ui("link_enter"), msg: ui("link_enter_msg"), hint: "ABCD EFGH", max: 9,
+      onOk: async v => {
+        const code = v.replace(/\s/g, "").toUpperCase();
+        if (code.length !== 8) { toast(ui("link_bad_code")); return false; }
+        try {
+          const res = await rpc("kana_link_claim", { p_code: code, p_old_id: B.id, p_old_secret: B.secret });
+          if (!res) { toast(ui("link_bad_code")); return false; }
+          Object.assign(B, { id: res.id, secret: res.secret, name: res.name || B.name, group: res.group || B.group, server2: true }); saveB();
+          store.set("kp_sync_base", {});
+          await sync(true); toast(ui("link_ok")); loadBoard();
+        } catch (e) { toast(friendly(e)); return false; }
+      }
+    })
+  });
+}
 
-// ------------------------------------------------------------------ Einstellungen
-function openSettings() {
-  $("st-title").textContent = ui("settings"); $("st-chars").textContent = ui("sec_characters"); $("st-learn").textContent = ui("sec_learning");
-  document.querySelectorAll("[data-set]").forEach(c => { c.checked = !!SET[c.dataset.set]; });
-  $("st-per").value = String(SET.per); $("st-lang").value = lang;
-  $("dlg-settings").showModal();
+// ------------------------------------------------------------------ Fortschritt
+function openStats() {
+  rollDay();
+  $("sx-goal").textContent = goalLine(); setGoalBar($("sx-goalbar"));
+  const sd = streakDays(); $("sx-streak").textContent = sd > 0 ? "🔥 " + ui("streak_days", sd) : ui("streak_none");
+  const p = pool(); $("sx-known").textContent = ui("summary_known", p.filter(it => (S.items[it.kana] || { l: 0 }).l >= 4).length, p.length);
+  const goal = Number(SET.goal) || 0, days = [];
+  for (let i = 13; i >= 0; i--) { const t = Date.now() - i * DAY; days.push({ d: new Date(t).getDate(), h: S.h[dayKey(t)] || [0, 0, 0, 0] }); }
+  const max = Math.max(goal, 1, ...days.map(x => x.h[0]));
+  $("sx-bars").innerHTML = days.map(x => `<i class="${x.h[3] ? "goal" : ""}" style="height:${100 * x.h[0] / max}%"></i>`).join("") + (goal > 0 ? `<span class="gl" style="bottom:${100 * goal / max}%"></span>` : "");
+  $("sx-days").innerHTML = days.map(x => `<span>${x.d}</span>`).join("");
+  $("sx-badgecount").textContent = ui("badges_count", Object.keys(S.ach).length, BADGES.length);
+  $("sx-badges").innerHTML = "";
+  BADGES.forEach((id, i) => {
+    const d = document.createElement("div"); d.className = "bdg" + (S.ach[id] ? " on" : "");
+    const ic = document.createElement("i"); ic.textContent = BADGE_ICONS[i]; d.appendChild(ic);
+    d.appendChild(document.createTextNode(sect("bn", id) || id));
+    d.onclick = () => { const [a, b] = badgeProgress(id); $("sx-badgedesc").textContent = (sect("bn", id) || "") + ": " + (sect("bd", id) || "") + "  ·  " + ui("badge_progress", Math.min(a, b), b); };
+    $("sx-badges").appendChild(d);
+  });
+  $("sx-badgedesc").textContent = "";
+  $("dlg-stats").showModal();
+}
+
+// ------------------------------------------------------------------ Einstellungen und Design
+function applyTheme() {
+  const t = store.get("kp_theme_v", "system");
+  if (t === "system") delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = t;
+  try { localStorage.setItem("kp_theme", t); } catch (e) {}
+  document.querySelectorAll("#st-theme button").forEach(b => b.classList.toggle("on", b.dataset.t === t));
 }
 let settingsDirty = false;
+function openSettings() {
+  $("st-title").textContent = ui("settings");
+  document.querySelectorAll("[data-set]").forEach(c => { c.checked = !!SET[c.dataset.set]; });
+  $("st-per").value = String(SET.per); $("st-lang").value = lang;
+  const g = $("st-goal"); g.innerHTML = [0, 10, 20, 30, 50, 100].map((v, i) => `<option value="${v}">${arr("goal_labels")[i] || v}</option>`).join(""); g.value = String(SET.goal);
+  applyTheme();
+  $("dlg-settings").showModal();
+}
 document.querySelectorAll("[data-set]").forEach(c => c.addEventListener("change", () => {
   const k = c.dataset.set; settingsDirty = true;
   if ((k === "hira" || k === "kata") && !c.checked && !SET[k === "hira" ? "kata" : "hira"]) { c.checked = true; return; }
   SET[k] = c.checked; store.set("kp_settings", SET);
-  if (k === "speak" && c.checked) speak("かな");
+  if ((k === "speak" || k === "listen") && c.checked) speak("かな");
 }));
 $("st-per").addEventListener("change", e => { settingsDirty = true; SET.per = Number(e.target.value); store.set("kp_settings", SET); });
+$("st-goal").addEventListener("change", e => { SET.goal = Number(e.target.value); store.set("kp_settings", SET); });
+$("st-theme").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; store.set("kp_theme_v", b.dataset.t); applyTheme(); });
 $("st-lang").addEventListener("change", async e => { store.set("kp_lang", e.target.value); await loadLang(e.target.value); applyStatic(); openSettings(); if (phase !== "explain") render(false); });
 document.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", () => {
   const d = b.closest("dialog"); d.close();
@@ -878,28 +1232,34 @@ function applyStatic() {
   $("done-board").textContent = ui("leaderboard"); $("done-home").textContent = ui("home_hint");
   document.title = ui("web_title");
 }
-$("hint-btn").onclick = () => { if (phase === "ask" && hint < (q === Q_WORD ? 1 : 2)) { hint++; render(false); } };
+$("hint-btn").onclick = () => { if (phase === "ask" && hint < ((q === Q_WORD || q === Q_LISTEN) ? 1 : 2)) { hint++; render(false); } };
 $("dontknow").onclick = () => { if (phase === "ask") answer(false, null, null, -1, null); };
 $("type-ok").onclick = onType;
 $("type-in").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); onType(); } });
-$("type-choice").onclick = () => { if (phase !== "ask" || q !== Q_TYPE) return; q = Q_READ; opts = shuffle([cur, ...distractors(cur, 3)]); render(true); };
+$("type-choice").onclick = () => { if (phase !== "ask" || q !== Q_TYPE) return; q = Q_READ; opts = shuffle([cur, ...distractors(cur, 3, false)]); render(true); };
 $("ex-continue").onclick = () => { if (phase === "explain") { phase = "wait"; advance(); } };
-$("ex-speak").onclick = () => speak(word ? word.kana : cur.kana);
+$("ex-speak").onclick = () => speak(word ? word.kana : spokenOf(cur));
 $("again").onclick = startRound;
 $("done-board").onclick = openBoard;
 $("btn-board").onclick = openBoard;
 $("btn-settings").onclick = openSettings;
+$("btn-stats").onclick = openStats;
 $("bd-me").onclick = () => askName(false);
 $("bd-group").onclick = askGroup;
 $("bd-refresh").onclick = loadBoard;
+$("bd-link").onclick = askLink;
 $("bd-tabs").addEventListener("click", e => { const b = e.target.closest("button"); if (b) { tab = Number(b.dataset.tab); renderBoard(); } });
-document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") submit(); });
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") { submit(); sync(false); } });
 if ("speechSynthesis" in window) speechSynthesis.getVoices();
 
 (async () => {
+  checkBadges(false);
+  applyTheme();
   await loadLang(pickLang());
   applyStatic();
   startRound();
+  loadStrokes();
+  sync(false);
 })();
 </script>
 </body>
