@@ -204,8 +204,8 @@ select, .text-in { background: var(--card); color: var(--ink); border: 1.5px sol
 .bars i.goal { background: var(--green); }
 .bars .gl { position: absolute; left: 0; right: 0; border-top: 1.5px dashed var(--red); }
 .days { display: grid; grid-template-columns: repeat(14, 1fr); gap: 4px; font-size: 10px; color: var(--muted); text-align: center; margin-top: 3px; }
-.badges { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px 6px; margin-top: 12px; }
-.bdg { text-align: center; font-size: 11px; color: var(--muted); cursor: pointer; }
+.badges { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px 6px; margin-top: 12px; }
+.bdg { text-align: center; font-size: 11px; color: var(--muted); cursor: pointer; overflow-wrap: anywhere; hyphens: auto; }
 .bdg i {
   display: grid; place-items: center; width: 52px; height: 52px; margin: 0 auto 4px; border-radius: 50%;
   border: 1.5px dashed var(--muted); font-style: normal; font-family: var(--hand); font-size: 20px; opacity: .7;
@@ -235,6 +235,25 @@ select, .text-in { background: var(--card); color: var(--ink); border: 1.5px sol
 /* ---------- ab Version 3.6 ---------- */
 .preview { min-height: 30px; text-align: center; font-family: var(--hand); font-weight: 600; font-size: 22px; color: var(--blue); margin-top: 4px; }
 .big.sentence { font-size: 34px !important; line-height: 1.5; padding: 0 6px; }
+.script.cardsub { font-size: 16px; letter-spacing: 0; white-space: pre-line; color: var(--blue); }
+.recall { display: grid; gap: 12px; padding: 0 4px; }
+.recall .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.recall button { min-height: 64px; font-size: 18px; }
+.ev-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+.ev-btns button { min-height: 50px; padding: 0 10px; font-size: 15px; }
+.sp-scenes { display: flex; gap: 6px; overflow-x: auto; padding: 4px 2px 8px; margin-top: 10px; }
+.sp-scenes button { flex: none; min-height: 40px; padding: 0 14px; font-size: 14px; }
+.sp-scenes button.on { background: var(--blue); color: var(--on-blue); }
+.sp-card { margin-top: 10px; background: var(--card); border: 1.5px solid var(--ink); border-radius: 12px; box-shadow: 3px 3px 0 var(--shadow); padding: 14px 16px 16px; }
+.sp-meta { display: flex; justify-content: space-between; font-size: 13px; }
+.sp-meta b { color: var(--red); letter-spacing: .05em; }
+.sp-tr { margin-top: 10px; font-size: 19px; font-weight: 700; }
+.sp-jp { margin-top: 10px; font-family: var(--hand); font-weight: 600; font-size: 34px; line-height: 1.3; cursor: pointer; overflow-wrap: anywhere; }
+.sp-rd { margin-top: 4px; color: var(--blue); font-size: 15px; white-space: pre-line; }
+.sp-card .btnrow button { white-space: nowrap; }
+.sp-res { margin-top: 12px; font-weight: 700; white-space: pre-line; }
+.sp-heard { margin-top: 4px; font-family: var(--hand); font-size: 24px; }
+.sp-heard .miss { color: var(--red); text-decoration: underline; }
 .opt.particle { font-family: var(--hand); font-weight: 600; font-size: 34px; }
 .opt.small { font-size: 17px; }
 .opt.bad { background: var(--red); color: #fff; }
@@ -308,6 +327,10 @@ select, .text-in { background: var(--card); color: var(--ink); border: 1.5px sol
     <div class="feedback" id="feedback"></div>
     <div class="spacer"></div>
     <div class="options" id="options"></div>
+    <div class="recall" id="recall" hidden>
+      <button class="btn-primary" id="rc-show"></button>
+      <div class="row" id="rc-rate"><button class="card-btn" id="rc-again"></button><button class="btn-primary" id="rc-knew"></button></div>
+    </div>
     <div id="type" hidden>
       <div class="typerow">
         <input id="type-in" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done">
@@ -362,6 +385,10 @@ select, .text-in { background: var(--card); color: var(--ink); border: 1.5px sol
     <label class="chk"><input type="checkbox" data-set="kanji"> <span data-ui="kanji_setting"></span> 山 日</label>
     <label class="chk"><input type="checkbox" data-set="kanji2"> <span data-ui="kanji2_setting"></span> 雲 話</label>
     <label class="chk"><input type="checkbox" data-set="kanji3"> <span data-ui="kanji3_setting"></span> 駅 旅</label>
+    <label class="chk"><input type="checkbox" data-set="vocab"> <span data-ui="vocab_setting"></span> <span lang="ja">私 食べる</span></label>
+    <label class="chk"><input type="checkbox" data-set="numbers"> <span data-ui="numbers_setting"></span> <span lang="ja">3時 500円</span></label>
+    <label class="chk"><input type="checkbox" data-set="phrases"> <span data-ui="phrases_setting"></span> <span lang="ja">すみません</span></label>
+    <p class="tiny" id="st-everyday"></p>
     <div class="sec"><b>2</b><span data-ui="h_learning"></span></div>
     <div class="field"><span data-ui="daily_goal"></span><select id="st-goal"></select></div>
     <div class="field"><span data-ui="per_round"></span>
@@ -397,24 +424,49 @@ select, .text-in { background: var(--card); color: var(--ink); border: 1.5px sol
   </div>
 </dialog>
 
+<dialog id="dlg-speak">
+  <div class="sheet">
+    <div class="sheet-head"><h2 data-ui="speak_title"></h2><button class="icon-btn" data-close>✕</button></div>
+    <p class="tiny" data-ui="speak_intro"></p>
+    <div class="sp-scenes" id="sp-scenes"></div>
+    <div class="sp-card">
+      <div class="sp-meta"><b id="sp-scene"></b><span class="tiny" id="sp-count"></span></div>
+      <div class="sp-tr" id="sp-tr"></div>
+      <div class="sp-jp" id="sp-jp" lang="ja"></div>
+      <div class="sp-rd" id="sp-rd"></div>
+      <div class="btnrow"><button class="card-btn" id="sp-listen" data-ui="speak_listen"></button><button class="card-btn" id="sp-slow" data-ui="speak_slow"></button></div>
+      <button class="btn-primary" id="sp-rec" data-ui="speak_record" style="width:100%;margin-top:10px;min-height:58px"></button>
+      <div class="sp-res" id="sp-res" hidden></div>
+      <div class="sp-heard" id="sp-heard" lang="ja" hidden></div>
+    </div>
+    <label class="chk"><input type="checkbox" id="sp-hide"> <span data-ui="speak_hide"></span></label>
+    <div class="btnrow"><button class="card-btn" id="sp-prev" data-ui="speak_prev"></button><button class="btn-primary" id="sp-next" data-ui="speak_next"></button></div>
+    <p class="tiny" id="sp-norec" data-ui="speak_no_recognizer" hidden></p>
+  </div>
+</dialog>
+
 <dialog id="dlg-stats">
   <div class="sheet">
     <div class="sheet-head"><h2 data-ui="h_progress"></h2><button class="icon-btn" data-close>✕</button></div>
     <div class="me-card"><b id="sx-goal"></b><div class="goalbar" id="sx-goalbar" style="width:100%;margin-top:8px"><i></i></div><div id="sx-streak" style="margin-top:8px"></div><div class="tiny" id="sx-known" style="margin-top:6px"></div><div id="sx-lesson" style="margin-top:8px;color:var(--blue);font-weight:700;white-space:pre-line" lang="ja"></div></div>
-    <div class="sec"><b>1</b><span data-ui="h_forecast"></span></div>
+    <div class="sec"><b>1</b><span data-ui="h_everyday"></span></div>
+    <p class="tiny" id="sx-ev" style="max-width:none;white-space:pre-line"></p>
+    <div class="ev-btns"><button class="btn-primary" id="sx-ev-vocab" data-ui="practice_vocab"></button><button class="card-btn" id="sx-ev-num" data-ui="practice_numbers"></button>
+      <button class="card-btn" id="sx-ev-ph" data-ui="practice_phrases"></button><button class="card-btn" id="sx-ev-speak" data-ui="practice_speak"></button></div>
+    <div class="sec"><b>2</b><span data-ui="h_forecast"></span></div>
     <p class="tiny" id="sx-fc-text" style="max-width:none"></p>
     <div class="fc" id="sx-fc"></div>
     <div class="fcd" id="sx-fc-days"></div>
-    <div class="sec"><b>2</b><span data-ui="h_calendar"></span></div>
+    <div class="sec"><b>3</b><span data-ui="h_calendar"></span></div>
     <div class="cal" id="sx-cal"></div>
     <p class="tiny" id="sx-cal-text" style="max-width:none;margin-top:8px"></p>
-    <div class="sec"><b>3</b><span data-ui="history_days"></span></div>
+    <div class="sec"><b>4</b><span data-ui="history_days"></span></div>
     <div class="bars" id="sx-bars"></div>
     <div class="days" id="sx-days"></div>
-    <div class="sec"><b>4</b><span data-ui="h_hardest"></span></div>
+    <div class="sec"><b>5</b><span data-ui="h_hardest"></span></div>
     <div class="hard" id="sx-hard" lang="ja"></div>
     <button class="btn-primary" id="sx-hard-btn" style="margin-top:10px" data-ui="hardest_practice"></button>
-    <div class="sec"><b>5</b><span data-ui="h_badges"></span></div>
+    <div class="sec"><b>6</b><span data-ui="h_badges"></span></div>
     <div class="tiny" id="sx-badgecount"></div>
     <div class="badges" id="sx-badges"></div>
     <p class="tiny" id="sx-badgedesc" style="margin-top:12px;min-height:3em"></p>
@@ -493,7 +545,271 @@ select, .text-in { background: var(--card); color: var(--ink); border: 1.5px sol
 
 <script>
 "use strict";
-const CFG = {"url": "https://qjdgejwqfwggcgicdnhq.supabase.co", "key": "sb_publishable_G9gnEkkiM1kSZB7Af3h-6Q_wm57Y90z", "langs": ["de", "en", "es", "fr", "it", "pt"], "words": [["ねこ", "neko"], ["いぬ", "inu"], ["さかな", "sakana"], ["やま", "yama"], ["かわ", "kawa"], ["そら", "sora"], ["あめ", "ame"], ["はな", "hana"], ["みず", "mizu"], ["ひと", "hito"], ["くるま", "kuruma"], ["でんわ", "denwa"], ["ほん", "hon"], ["うみ", "umi"], ["ゆき", "yuki"], ["つき", "tsuki"], ["ほし", "hoshi"], ["たまご", "tamago"], ["さくら", "sakura"], ["ともだち", "tomodachi"], ["かぞく", "kazoku"], ["あさ", "asa"], ["よる", "yoru"], ["なつ", "natsu"], ["ふゆ", "fuyu"], ["はる", "haru"], ["あき", "aki"], ["くち", "kuchi"], ["みみ", "mimi"], ["あたま", "atama"], ["めがね", "megane"], ["かばん", "kaban"], ["ごはん", "gohan"], ["にく", "niku"], ["おかね", "okane"], ["でぐち", "deguchi"], ["いりぐち", "iriguchi"], ["ひだり", "hidari"], ["みぎ", "migi"], ["ちず", "chizu"], ["カメラ", "kamera"], ["テレビ", "terebi"], ["パン", "pan"], ["ホテル", "hoteru"], ["ナイフ", "naifu"], ["ペン", "pen"], ["バス", "basu"], ["アイス", "aisu"], ["ピアノ", "piano"], ["メロン", "meron"], ["トマト", "tomato"], ["バナナ", "banana"], ["ドア", "doa"], ["テニス", "tenisu"], ["ラジオ", "rajio"], ["ネクタイ", "nekutai"], ["ワイン", "wain"], ["ピザ", "piza"], ["パスタ", "pasuta"], ["ビル", "biru"], ["ガム", "gamu"], ["ゴルフ", "gorufu"], ["ボタン", "botan"], ["アニメ", "anime"], ["カナダ", "kanada"], ["ドイツ", "doitsu"], ["イタリア", "itaria"], ["スペイン", "supein"], ["フランス", "furansu"], ["パリ", "pari"], ["ロンドン", "rondon"], ["メモ", "memo"], ["サラダ", "sarada"], ["レモン", "remon"], ["ミルク", "miruku"], ["ベルト", "beruto"], ["マスク", "masuku"], ["トイレ", "toire"], ["ズボン", "zubon"], ["ハム", "hamu"], ["ドラマ", "dorama"], ["マンガ", "manga"], ["アメリカ", "amerika"], ["メキシコ", "mekishiko"], ["ブラジル", "burajiru"], ["ロシア", "roshia"], ["エジプト", "ejiputo"], ["ハワイ", "hawai"], ["トルコ", "toruko"], ["オペラ", "opera"], ["ダンス", "dansu"], ["ヨガ", "yoga"], ["ゴリラ", "gorira"], ["パンダ", "panda"], ["ライオン", "raion"], ["キリン", "kirin"], ["ピンク", "pinku"], ["ドレス", "doresu"], ["テスト", "tesuto"], ["レストラン", "resutoran"], ["ポスト", "posuto"], ["テント", "tento"], ["ハンカチ", "hankachi"], ["ペンギン", "pengin"], ["オムライス", "omuraisu"], ["ベンチ", "benchi"], ["リボン", "ribon"], ["プリン", "purin"], ["がっこう", "gakkou"], ["きって", "kitte"], ["ざっし", "zasshi"], ["きっぷ", "kippu"], ["にっき", "nikki"], ["ちょっと", "chotto"], ["まっすぐ", "massugu"], ["おちゃ", "ocha"], ["しゃしん", "shashin"], ["でんしゃ", "densha"], ["きょう", "kyou"], ["りょこう", "ryokou"], ["びょういん", "byouin"], ["ぎゅうにゅう", "gyuunyuu"], ["じしょ", "jisho"], ["しゅくだい", "shukudai"], ["おとうさん", "otousan"], ["おかあさん", "okaasan"], ["とうきょう", "toukyou"], ["きゃく", "kyaku"], ["コーヒー", "koohii"], ["ケーキ", "keeki"], ["ゲーム", "geemu"], ["スーパー", "suupaa"], ["ノート", "nooto"], ["コンピューター", "konpyuutaa"], ["チーズ", "chiizu"], ["タクシー", "takushii"], ["ビール", "biiru"], ["サッカー", "sakkaa"], ["ベッド", "beddo"], ["カップ", "kappu"], ["チョコレート", "chokoreeto"], ["ジュース", "juusu"], ["シャツ", "shatsu"], ["メニュー", "menyuu"], ["ニュース", "nyuusu"], ["ギター", "gitaa"], ["スキー", "sukii"], ["ボール", "booru"], ["カレー", "karee"], ["ラーメン", "raamen"], ["スカート", "sukaato"], ["カード", "kaado"], ["ボート", "booto"], ["ロボット", "robotto"], ["トラック", "torakku"], ["ラケット", "raketto"], ["ポケット", "poketto"], ["チケット", "chiketto"], ["スプーン", "supuun"], ["セーター", "seetaa"], ["エレベーター", "erebeetaa"], ["ヘルメット", "herumetto"], ["スーツケース", "suutsukeesu"], ["ハンバーガー", "hanbaagaa"], ["アイスクリーム", "aisukuriimu"], ["ゼリー", "zerii"], ["バター", "bataa"], ["ジャム", "jamu"], ["シャワー", "shawaa"], ["チャンス", "chansu"], ["キャンプ", "kyanpu"], ["ジョギング", "jogingu"], ["パジャマ", "pajama"], ["コップ", "koppu"], ["サンドイッチ", "sandoitchi"], ["クッキー", "kukkii"], ["ヨーグルト", "yooguruto"], ["プール", "puuru"]], "kanji": [["一", "いち", "ichi", 1], ["二", "に", "ni", 1], ["三", "さん", "san", 1], ["四", "よん", "yon", 1], ["五", "ご", "go", 1], ["六", "ろく", "roku", 1], ["七", "なな", "nana", 1], ["八", "はち", "hachi", 1], ["九", "きゅう", "kyuu", 1], ["十", "じゅう", "juu", 1], ["百", "ひゃく", "hyaku", 1], ["千", "せん", "sen", 1], ["円", "えん", "en", 1], ["日", "にち", "nichi", 1], ["月", "つき", "tsuki", 1], ["火", "ひ", "hi", 1], ["水", "みず", "mizu", 1], ["木", "もく", "moku", 1], ["金", "きん", "kin", 1], ["土", "つち", "tsuchi", 1], ["山", "やま", "yama", 1], ["川", "かわ", "kawa", 1], ["田", "た", "ta", 1], ["石", "いし", "ishi", 1], ["空", "そら", "sora", 1], ["天", "てん", "ten", 1], ["雨", "あめ", "ame", 1], ["気", "き", "ki", 1], ["夕", "ゆう", "yuu", 1], ["早", "はやい", "hayai", 1], ["年", "とし", "toshi", 1], ["人", "ひと", "hito", 1], ["子", "こ", "ko", 1], ["女", "おんな", "onna", 1], ["男", "おとこ", "otoko", 1], ["王", "おう", "ou", 1], ["玉", "たま", "tama", 1], ["口", "くち", "kuchi", 1], ["目", "め", "me", 1], ["耳", "みみ", "mimi", 1], ["手", "て", "te", 1], ["足", "あし", "ashi", 1], ["力", "ちから", "chikara", 1], ["上", "うえ", "ue", 1], ["下", "した", "shita", 1], ["中", "なか", "naka", 1], ["大", "おおきい", "ookii", 1], ["小", "ちいさい", "chiisai", 1], ["左", "ひだり", "hidari", 1], ["右", "みぎ", "migi", 1], ["先", "さき", "saki", 1], ["生", "いきる", "ikiru", 1], ["正", "ただしい", "tadashii", 1], ["立", "たつ", "tatsu", 1], ["見", "みる", "miru", 1], ["休", "やすむ", "yasumu", 1], ["出", "でる", "deru", 1], ["入", "はいる", "hairu", 1], ["音", "おと", "oto", 1], ["名", "な", "na", 1], ["字", "じ", "ji", 1], ["学", "がく", "gaku", 1], ["校", "こう", "kou", 1], ["文", "ぶん", "bun", 1], ["本", "ほん", "hon", 1], ["林", "はやし", "hayashi", 1], ["森", "もり", "mori", 1], ["竹", "たけ", "take", 1], ["草", "くさ", "kusa", 1], ["花", "はな", "hana", 1], ["貝", "かい", "kai", 1], ["犬", "いぬ", "inu", 1], ["虫", "むし", "mushi", 1], ["糸", "いと", "ito", 1], ["車", "くるま", "kuruma", 1], ["町", "まち", "machi", 1], ["村", "むら", "mura", 1], ["白", "しろ", "shiro", 1], ["青", "あお", "ao", 1], ["赤", "あか", "aka", 1], ["引", "ひく", "hiku", 2], ["羽", "はね", "hane", 2], ["雲", "くも", "kumo", 2], ["園", "えん", "en", 2], ["遠", "とおい", "tooi", 2], ["何", "なに", "nani", 2], ["科", "か", "ka", 2], ["夏", "なつ", "natsu", 2], ["家", "いえ", "ie", 2], ["歌", "うた", "uta", 2], ["画", "が", "ga", 2], ["回", "かい", "kai", 2], ["会", "あう", "au", 2], ["海", "うみ", "umi", 2], ["絵", "え", "e", 2], ["外", "そと", "soto", 2], ["角", "かど", "kado", 2], ["楽", "たのしい", "tanoshii", 2], ["活", "かつ", "katsu", 2], ["間", "あいだ", "aida", 2], ["丸", "まる", "maru", 2], ["岩", "いわ", "iwa", 2], ["顔", "かお", "kao", 2], ["汽", "き", "ki", 2], ["記", "き", "ki", 2], ["帰", "かえる", "kaeru", 2], ["弓", "ゆみ", "yumi", 2], ["牛", "うし", "ushi", 2], ["魚", "さかな", "sakana", 2], ["京", "きょう", "kyou", 2], ["強", "つよい", "tsuyoi", 2], ["教", "おしえる", "oshieru", 2], ["近", "ちかい", "chikai", 2], ["兄", "あに", "ani", 2], ["形", "かたち", "katachi", 2], ["計", "けい", "kei", 2], ["元", "もと", "moto", 2], ["言", "いう", "iu", 2], ["原", "はら", "hara", 2], ["戸", "と", "to", 2], ["古", "ふるい", "furui", 2], ["午", "ご", "go", 2], ["後", "うしろ", "ushiro", 2], ["語", "ご", "go", 2], ["工", "こう", "kou", 2], ["公", "こう", "kou", 2], ["広", "ひろい", "hiroi", 2], ["交", "こう", "kou", 2], ["光", "ひかり", "hikari", 2], ["考", "かんがえる", "kangaeru", 2], ["行", "いく", "iku", 2], ["高", "たかい", "takai", 2], ["黄", "き", "ki", 2], ["合", "ごう", "gou", 2], ["谷", "たに", "tani", 2], ["国", "くに", "kuni", 2], ["黒", "くろ", "kuro", 2], ["今", "いま", "ima", 2], ["才", "さい", "sai", 2], ["細", "ほそい", "hosoi", 2], ["作", "つくる", "tsukuru", 2], ["算", "さん", "san", 2], ["止", "とまる", "tomaru", 2], ["市", "し", "shi", 2], ["矢", "や", "ya", 2], ["姉", "あね", "ane", 2], ["思", "おもう", "omou", 2], ["紙", "かみ", "kami", 2], ["寺", "てら", "tera", 2], ["自", "じ", "ji", 2], ["時", "とき", "toki", 2], ["室", "しつ", "shitsu", 2], ["社", "しゃ", "sha", 2], ["弱", "よわい", "yowai", 2], ["首", "くび", "kubi", 2], ["秋", "あき", "aki", 2], ["週", "しゅう", "shuu", 2], ["春", "はる", "haru", 2], ["書", "かく", "kaku", 2], ["少", "すこし", "sukoshi", 2], ["場", "ば", "ba", 2], ["色", "いろ", "iro", 2], ["食", "たべる", "taberu", 2], ["心", "こころ", "kokoro", 2], ["新", "あたらしい", "atarashii", 2], ["親", "おや", "oya", 2], ["図", "ず", "zu", 2], ["数", "かず", "kazu", 2], ["西", "にし", "nishi", 2], ["声", "こえ", "koe", 2], ["星", "ほし", "hoshi", 2], ["晴", "はれ", "hare", 2], ["切", "きる", "kiru", 2], ["雪", "ゆき", "yuki", 2], ["船", "ふね", "fune", 2], ["線", "せん", "sen", 2], ["前", "まえ", "mae", 2], ["組", "くみ", "kumi", 2], ["走", "はしる", "hashiru", 2], ["多", "おおい", "ooi", 2], ["太", "ふとい", "futoi", 2], ["体", "からだ", "karada", 2], ["台", "だい", "dai", 2], ["地", "ち", "chi", 2], ["池", "いけ", "ike", 2], ["知", "しる", "shiru", 2], ["茶", "ちゃ", "cha", 2], ["昼", "ひる", "hiru", 2], ["長", "ながい", "nagai", 2], ["鳥", "とり", "tori", 2], ["朝", "あさ", "asa", 2], ["直", "なおす", "naosu", 2], ["通", "とおる", "tooru", 2], ["弟", "おとうと", "otouto", 2], ["店", "みせ", "mise", 2], ["点", "てん", "ten", 2], ["電", "でん", "den", 2], ["刀", "かたな", "katana", 2], ["冬", "ふゆ", "fuyu", 2], ["当", "あたる", "ataru", 2], ["東", "ひがし", "higashi", 2], ["答", "こたえ", "kotae", 2], ["頭", "あたま", "atama", 2], ["同", "おなじ", "onaji", 2], ["道", "みち", "michi", 2], ["読", "よむ", "yomu", 2], ["内", "うち", "uchi", 2], ["南", "みなみ", "minami", 2], ["肉", "にく", "niku", 2], ["馬", "うま", "uma", 2], ["売", "うる", "uru", 2], ["買", "かう", "kau", 2], ["麦", "むぎ", "mugi", 2], ["半", "はん", "han", 2], ["番", "ばん", "ban", 2], ["父", "ちち", "chichi", 2], ["風", "かぜ", "kaze", 2], ["分", "ふん", "fun", 2], ["聞", "きく", "kiku", 2], ["米", "こめ", "kome", 2], ["歩", "あるく", "aruku", 2], ["母", "はは", "haha", 2], ["方", "ほう", "hou", 2], ["北", "きた", "kita", 2], ["毎", "まい", "mai", 2], ["妹", "いもうと", "imouto", 2], ["万", "まん", "man", 2], ["明", "あかるい", "akarui", 2], ["鳴", "なく", "naku", 2], ["毛", "け", "ke", 2], ["門", "もん", "mon", 2], ["夜", "よる", "yoru", 2], ["野", "の", "no", 2], ["友", "とも", "tomo", 2], ["用", "よう", "you", 2], ["曜", "よう", "you", 2], ["来", "くる", "kuru", 2], ["里", "さと", "sato", 2], ["理", "り", "ri", 2], ["話", "はなす", "hanasu", 2], ["悪", "わるい", "warui", 3], ["安", "やすい", "yasui", 3], ["暗", "くらい", "kurai", 3], ["医", "い", "i", 3], ["委", "い", "i", 3], ["意", "い", "i", 3], ["育", "そだつ", "sodatsu", 3], ["員", "いん", "in", 3], ["院", "いん", "in", 3], ["飲", "のむ", "nomu", 3], ["運", "はこぶ", "hakobu", 3], ["泳", "およぐ", "oyogu", 3], ["駅", "えき", "eki", 3], ["央", "おう", "ou", 3], ["横", "よこ", "yoko", 3], ["屋", "や", "ya", 3], ["温", "あたたかい", "atatakai", 3], ["化", "か", "ka", 3], ["荷", "に", "ni", 3], ["界", "かい", "kai", 3], ["開", "あける", "akeru", 3], ["階", "かい", "kai", 3], ["寒", "さむい", "samui", 3], ["感", "かん", "kan", 3], ["漢", "かん", "kan", 3], ["館", "かん", "kan", 3], ["岸", "きし", "kishi", 3], ["起", "おきる", "okiru", 3], ["期", "き", "ki", 3], ["客", "きゃく", "kyaku", 3], ["究", "きゅう", "kyuu", 3], ["急", "いそぐ", "isogu", 3], ["級", "きゅう", "kyuu", 3], ["宮", "みや", "miya", 3], ["球", "たま", "tama", 3], ["去", "さる", "saru", 3], ["橋", "はし", "hashi", 3], ["業", "ぎょう", "gyou", 3], ["曲", "きょく", "kyoku", 3], ["局", "きょく", "kyoku", 3], ["銀", "ぎん", "gin", 3], ["区", "く", "ku", 3], ["苦", "くるしい", "kurushii", 3], ["具", "ぐ", "gu", 3], ["君", "きみ", "kimi", 3], ["係", "かかり", "kakari", 3], ["軽", "かるい", "karui", 3], ["血", "ち", "chi", 3], ["決", "きめる", "kimeru", 3], ["研", "けん", "ken", 3], ["県", "けん", "ken", 3], ["庫", "こ", "ko", 3], ["湖", "みずうみ", "mizuumi", 3], ["向", "むく", "muku", 3], ["幸", "しあわせ", "shiawase", 3], ["港", "みなと", "minato", 3], ["号", "ごう", "gou", 3], ["根", "ね", "ne", 3], ["祭", "まつり", "matsuri", 3], ["皿", "さら", "sara", 3], ["仕", "し", "shi", 3], ["死", "しぬ", "shinu", 3], ["使", "つかう", "tsukau", 3], ["始", "はじめる", "hajimeru", 3], ["指", "ゆび", "yubi", 3], ["歯", "は", "ha", 3], ["詩", "し", "shi", 3], ["次", "つぎ", "tsugi", 3], ["事", "こと", "koto", 3], ["持", "もつ", "motsu", 3], ["式", "しき", "shiki", 3], ["実", "み", "mi", 3], ["写", "うつす", "utsusu", 3], ["者", "もの", "mono", 3], ["主", "しゅ", "shu", 3], ["守", "まもる", "mamoru", 3], ["取", "とる", "toru", 3], ["酒", "さけ", "sake", 3], ["受", "うける", "ukeru", 3], ["州", "しゅう", "shuu", 3], ["拾", "ひろう", "hirou", 3], ["終", "おわる", "owaru", 3], ["習", "ならう", "narau", 3], ["集", "あつめる", "atsumeru", 3], ["住", "すむ", "sumu", 3], ["重", "おもい", "omoi", 3], ["宿", "やど", "yado", 3], ["所", "ところ", "tokoro", 3], ["暑", "あつい", "atsui", 3], ["助", "たすける", "tasukeru", 3], ["昭", "しょう", "shou", 3], ["消", "けす", "kesu", 3], ["商", "しょう", "shou", 3], ["章", "しょう", "shou", 3], ["勝", "かつ", "katsu", 3], ["乗", "のる", "noru", 3], ["植", "うえる", "ueru", 3], ["申", "もうす", "mousu", 3], ["身", "み", "mi", 3], ["神", "かみ", "kami", 3], ["真", "しん", "shin", 3], ["深", "ふかい", "fukai", 3], ["進", "すすむ", "susumu", 3], ["世", "せ", "se", 3], ["整", "せい", "sei", 3], ["昔", "むかし", "mukashi", 3], ["全", "ぜん", "zen", 3], ["相", "そう", "sou", 3], ["送", "おくる", "okuru", 3], ["想", "そう", "sou", 3], ["息", "いき", "iki", 3], ["速", "はやい", "hayai", 3], ["族", "ぞく", "zoku", 3], ["他", "た", "ta", 3], ["打", "うつ", "utsu", 3], ["対", "たい", "tai", 3], ["待", "まつ", "matsu", 3], ["代", "だい", "dai", 3], ["第", "だい", "dai", 3], ["題", "だい", "dai", 3], ["炭", "すみ", "sumi", 3], ["短", "みじかい", "mijikai", 3], ["談", "だん", "dan", 3], ["着", "きる", "kiru", 3], ["注", "ちゅう", "chuu", 3], ["柱", "はしら", "hashira", 3], ["丁", "ちょう", "chou", 3], ["帳", "ちょう", "chou", 3], ["調", "しらべる", "shiraberu", 3], ["追", "おう", "ou", 3], ["定", "てい", "tei", 3], ["庭", "にわ", "niwa", 3], ["笛", "ふえ", "fue", 3], ["鉄", "てつ", "tetsu", 3], ["転", "ころぶ", "korobu", 3], ["都", "と", "to", 3], ["度", "ど", "do", 3], ["投", "なげる", "nageru", 3], ["豆", "まめ", "mame", 3], ["島", "しま", "shima", 3], ["湯", "ゆ", "yu", 3], ["登", "のぼる", "noboru", 3], ["等", "とう", "tou", 3], ["動", "うごく", "ugoku", 3], ["童", "どう", "dou", 3], ["農", "のう", "nou", 3], ["波", "なみ", "nami", 3], ["配", "くばる", "kubaru", 3], ["倍", "ばい", "bai", 3], ["箱", "はこ", "hako", 3], ["畑", "はたけ", "hatake", 3], ["発", "はつ", "hatsu", 3], ["反", "はん", "han", 3], ["坂", "さか", "saka", 3], ["板", "いた", "ita", 3], ["皮", "かわ", "kawa", 3], ["悲", "かなしい", "kanashii", 3], ["美", "うつくしい", "utsukushii", 3], ["鼻", "はな", "hana", 3], ["筆", "ふで", "fude", 3], ["氷", "こおり", "koori", 3], ["表", "おもて", "omote", 3], ["秒", "びょう", "byou", 3], ["病", "びょう", "byou", 3], ["品", "しな", "shina", 3], ["負", "まける", "makeru", 3], ["部", "ぶ", "bu", 3], ["服", "ふく", "fuku", 3], ["福", "ふく", "fuku", 3], ["物", "もの", "mono", 3], ["平", "たいら", "taira", 3], ["返", "かえす", "kaesu", 3], ["勉", "べん", "ben", 3], ["放", "はなす", "hanasu", 3], ["味", "あじ", "aji", 3], ["命", "いのち", "inochi", 3], ["面", "めん", "men", 3], ["問", "もん", "mon", 3], ["役", "やく", "yaku", 3], ["薬", "くすり", "kusuri", 3], ["由", "ゆう", "yuu", 3], ["油", "あぶら", "abura", 3], ["有", "ゆう", "yuu", 3], ["遊", "あそぶ", "asobu", 3], ["予", "よ", "yo", 3], ["羊", "ひつじ", "hitsuji", 3], ["洋", "よう", "you", 3], ["葉", "は", "ha", 3], ["陽", "よう", "you", 3], ["様", "さま", "sama", 3], ["落", "おちる", "ochiru", 3], ["流", "ながれる", "nagareru", 3], ["旅", "たび", "tabi", 3], ["両", "りょう", "ryou", 3], ["緑", "みどり", "midori", 3], ["礼", "れい", "rei", 3], ["列", "れつ", "retsu", 3], ["練", "れん", "ren", 3], ["路", "ろ", "ro", 3], ["和", "わ", "wa", 3]], "clash": ["空天", "画絵図", "円丸", "石岩", "言話", "書記", "田原野", "午昼", "日昼", "村里", "市町", "思考", "行歩走", "歌鳴", "数番", "週曜", "元本", "中内", "夕夜", "音声", "国里", "先前", "大太", "家室", "母親", "父親", "時分", "高長", "上高", "明光", "晴天", "力強", "見知", "来入", "身体", "身自", "命生", "住生", "幸福", "者人", "童子", "族家", "勉学習", "研究調", "練習", "転回", "昔古", "暗黒", "軽光", "暑温", "速早急", "返帰", "受取拾", "持取", "発出", "路道", "庭園", "畑田野原", "湯水", "医薬病", "所場", "部分", "倍回度", "世界代", "昭明陽", "陽日", "央中", "向方", "列線", "級組", "宮社神", "真実正", "由理", "意心想思考感", "等同", "平和", "洋海", "事物品", "役用使", "定決", "次後", "問題答", "申言談話", "着来", "球玉丸", "曲歌詩", "都京市", "緑青", "区県州", "主君", "表面", "章文", "号番数第", "息気", "湖池", "集会", "全毎", "去出", "起立", "終止"], "kwords": [["学校", "がっこう", "gakkou"], ["先生", "せんせい", "sensei"], ["大学", "だいがく", "daigaku"], ["学生", "がくせい", "gakusei"], ["小学生", "しょうがくせい", "shougakusei"], ["中学校", "ちゅうがっこう", "chuugakkou"], ["日本", "にほん", "nihon"], ["今日", "きょう", "kyou"], ["明日", "あした", "ashita"], ["毎日", "まいにち", "mainichi"], ["毎朝", "まいあさ", "maiasa"], ["毎年", "まいとし", "maitoshi"], ["今月", "こんげつ", "kongetsu"], ["先月", "せんげつ", "sengetsu"], ["今週", "こんしゅう", "konshuu"], ["先週", "せんしゅう", "senshuu"], ["来週", "らいしゅう", "raishuu"], ["来年", "らいねん", "rainen"], ["月曜日", "げつようび", "getsuyoubi"], ["火曜日", "かようび", "kayoubi"], ["水曜日", "すいようび", "suiyoubi"], ["木曜日", "もくようび", "mokuyoubi"], ["金曜日", "きんようび", "kin'youbi"], ["土曜日", "どようび", "doyoubi"], ["日曜日", "にちようび", "nichiyoubi"], ["午前", "ごぜん", "gozen"], ["午後", "ごご", "gogo"], ["時間", "じかん", "jikan"], ["天気", "てんき", "tenki"], ["元気", "げんき", "genki"], ["電気", "でんき", "denki"], ["電車", "でんしゃ", "densha"], ["電話", "でんわ", "denwa"], ["火山", "かざん", "kazan"], ["人口", "じんこう", "jinkou"], ["入口", "いりぐち", "iriguchi"], ["出口", "でぐち", "deguchi"], ["左右", "さゆう", "sayuu"], ["男子", "だんし", "danshi"], ["女子", "じょし", "joshi"], ["名前", "なまえ", "namae"], ["花火", "はなび", "hanabi"], ["子犬", "こいぬ", "koinu"], ["青空", "あおぞら", "aozora"], ["夕日", "ゆうひ", "yuuhi"], ["足音", "あしおと", "ashioto"], ["森林", "しんりん", "shinrin"], ["本気", "ほんき", "honki"], ["王子", "おうじ", "ouji"], ["文字", "もじ", "moji"], ["音楽", "おんがく", "ongaku"], ["教室", "きょうしつ", "kyoushitsu"], ["外国", "がいこく", "gaikoku"], ["国語", "こくご", "kokugo"], ["会社", "かいしゃ", "kaisha"], ["社会", "しゃかい", "shakai"], ["新聞", "しんぶん", "shinbun"], ["大人", "おとな", "otona"], ["一人", "ひとり", "hitori"], ["二人", "ふたり", "futari"], ["人気", "にんき", "ninki"], ["東京", "とうきょう", "toukyou"], ["北海道", "ほっかいどう", "hokkaidou"], ["正月", "しょうがつ", "shougatsu"], ["生活", "せいかつ", "seikatsu"], ["半分", "はんぶん", "hanbun"], ["自分", "じぶん", "jibun"], ["兄弟", "きょうだい", "kyoudai"], ["姉妹", "しまい", "shimai"], ["牛肉", "ぎゅうにく", "gyuuniku"], ["金魚", "きんぎょ", "kingyo"], ["白鳥", "はくちょう", "hakuchou"], ["風車", "ふうしゃ", "fuusha"], ["地図", "ちず", "chizu"], ["計算", "けいさん", "keisan"], ["算数", "さんすう", "sansuu"], ["体力", "たいりょく", "tairyoku"], ["会話", "かいわ", "kaiwa"], ["夜中", "よなか", "yonaka"], ["前後", "ぜんご", "zengo"], ["外出", "がいしゅつ", "gaishutsu"], ["入学", "にゅうがく", "nyuugaku"], ["弱点", "じゃくてん", "jakuten"], ["強風", "きょうふう", "kyoufuu"], ["元日", "がんじつ", "ganjitsu"], ["交番", "こうばん", "kouban"], ["歩道", "ほどう", "hodou"], ["帰国", "きこく", "kikoku"], ["理科", "りか", "rika"], ["工場", "こうじょう", "koujou"], ["公園", "こうえん", "kouen"], ["図書", "としょ", "tosho"], ["歌手", "かしゅ", "kashu"], ["花見", "はなみ", "hanami"], ["読書", "どくしょ", "dokusho"], ["休日", "きゅうじつ", "kyuujitsu"], ["書道", "しょどう", "shodou"], ["仕事", "しごと", "shigoto"], ["食事", "しょくじ", "shokuji"], ["返事", "へんじ", "henji"], ["大事", "だいじ", "daiji"], ["医者", "いしゃ", "isha"], ["歯医者", "はいしゃ", "haisha"], ["病院", "びょういん", "byouin"], ["病気", "びょうき", "byouki"], ["薬局", "やっきょく", "yakkyoku"], ["旅行", "りょこう", "ryokou"], ["運動", "うんどう", "undou"], ["写真", "しゃしん", "shashin"], ["宿題", "しゅくだい", "shukudai"], ["去年", "きょねん", "kyonen"], ["世界", "せかい", "sekai"], ["勉強", "べんきょう", "benkyou"], ["練習", "れんしゅう", "renshuu"], ["着物", "きもの", "kimono"], ["動物", "どうぶつ", "doubutsu"], ["植物", "しょくぶつ", "shokubutsu"], ["野球", "やきゅう", "yakyuu"], ["銀行", "ぎんこう", "ginkou"], ["漢字", "かんじ", "kanji"], ["図書館", "としょかん", "toshokan"], ["部屋", "へや", "heya"], ["時代", "じだい", "jidai"], ["地球", "ちきゅう", "chikyuu"], ["平和", "へいわ", "heiwa"], ["問題", "もんだい", "mondai"], ["意味", "いみ", "imi"], ["安心", "あんしん", "anshin"], ["有名", "ゆうめい", "yuumei"], ["家族", "かぞく", "kazoku"], ["安全", "あんぜん", "anzen"], ["予定", "よてい", "yotei"], ["発表", "はっぴょう", "happyou"], ["上手", "じょうず", "jouzu"], ["下手", "へた", "heta"], ["道具", "どうぐ", "dougu"], ["温度", "おんど", "ondo"], ["急行", "きゅうこう", "kyuukou"], ["鉄道", "てつどう", "tetsudou"], ["駅員", "えきいん", "ekiin"], ["自転車", "じてんしゃ", "jitensha"], ["洋服", "ようふく", "youfuku"], ["和食", "わしょく", "washoku"], ["屋上", "おくじょう", "okujou"], ["坂道", "さかみち", "sakamichi"], ["島国", "しまぐに", "shimaguni"], ["港町", "みなとまち", "minatomachi"], ["昔話", "むかしばなし", "mukashibanashi"], ["物語", "ものがたり", "monogatari"], ["相談", "そうだん", "soudan"], ["注意", "ちゅうい", "chuui"], ["世話", "せわ", "sewa"], ["終電", "しゅうでん", "shuuden"], ["中央", "ちゅうおう", "chuuou"], ["二階", "にかい", "nikai"], ["勝負", "しょうぶ", "shoubu"], ["反対", "はんたい", "hantai"], ["文章", "ぶんしょう", "bunshou"], ["暗記", "あんき", "anki"]], "sentences": [["わたし＿ がくせいです。", "は", ["を", "に", "へ"]], ["これ＿ ほんです。", "は", ["を", "に", "へ"]], ["わたしの なまえ＿ ハナです。", "は", ["を", "に", "へ"]], ["あした＿ あめです。", "は", ["を", "に", "へ"]], ["パン＿ たべます。", "を", ["に", "へ", "の"]], ["テレビ＿ みます。", "を", ["に", "へ", "の"]], ["おちゃ＿ のみます。", "を", ["に", "へ", "の"]], ["りんご＿ かいます。", "を", ["に", "へ", "の"]], ["あさごはん＿ たべましたか。", "を", ["で", "へ", "の"]], ["がっこう＿ いきます。", "に", ["で", "の", "か"]], ["つくえの うえ＿ ねこが います。", "に", ["で", "を", "へ"]], ["まいにち しちじ＿ おきます。", "に", ["で", "を", "の"]], ["でんしゃ＿ のります。", "に", ["を", "で", "へ"]], ["ともだち＿ てがみを かきます。", "に", ["を", "で", "か"]], ["なつやすみ＿ うみに いきます。", "に", ["を", "へ", "が"]], ["はこの なか＿ なにが ありますか。", "に", ["を", "へ", "と"]], ["にほん＿ いきます。", "へ", ["で", "を", "の"]], ["どこ＿ いきますか。", "へ", ["の", "が", "で"]], ["こうえん＿ あそびます。", "で", ["に", "を", "の"]], ["バス＿ いきます。", "で", ["に", "を", "の"]], ["えんぴつ＿ かきます。", "で", ["に", "へ", "の"]], ["スーパー＿ りんごを かいます。", "で", ["を", "へ", "か"]], ["えき＿ まって います。", "で", ["に", "へ", "の"]], ["わたし＿ ほんです。", "の", ["を", "に", "へ"]], ["これは せんせい＿ かばんです。", "の", ["を", "に", "へ"]], ["これは にほんご＿ ほんです。", "の", ["を", "に", "へ"]], ["それは だれ＿ かさですか。", "の", ["を", "に", "で"]], ["この みせ＿ ラーメンは おいしいです。", "の", ["を", "へ", "に"]], ["ともだち＿ あそびます。", "と", ["を", "の", "へ"]], ["いぬ＿ ねこが います。", "と", ["を", "で", "へ"]], ["ペン＿ ノートが あります。", "と", ["を", "で", "へ"]], ["かぞく＿ ごはんを たべます。", "と", ["を", "へ", "か"]], ["あめ＿ ふって います。", "が", ["を", "に", "の"]], ["へやに ねこ＿ います。", "が", ["を", "で", "へ"]], ["わたしは ねこ＿ すきです。", "が", ["に", "で", "へ"]], ["ぼくは サッカー＿ すきです。", "が", ["に", "で", "へ"]], ["あには ピアノ＿ じょうずです。", "が", ["を", "に", "へ"]], ["ねこが すきです。いぬ＿ すきです。", "も", ["に", "で", "へ"]], ["ねこ＿ いぬも すきです。", "も", ["を", "で", "へ"]], ["これは なんです＿。", "か", ["を", "に", "で"]], ["いま なんじです＿。", "か", ["を", "に", "で"]], ["あした がっこうに いきます＿。", "か", ["を", "で", "へ"]], ["まいあさ コーヒー＿ のみます。", "を", ["に", "へ", "で"]], ["ははに はな＿ あげます。", "を", ["で", "へ", "の"]], ["えきの まえ＿ まちます。", "で", ["を", "へ", "の"]], ["じてんしゃ＿ がっこうへ いきます。", "で", ["を", "へ", "か"]], ["なつやすみに おきなわ＿ いきました。", "へ", ["で", "の", "と"]], ["あさ しちじ＿ うちを でます。", "に", ["を", "で", "の"]], ["わたし＿ にほんごを べんきょうして います。", "は", ["を", "に", "で"]], ["たなかさん＿ がっこうの せんせいです。", "は", ["を", "に", "へ"]], ["おとうと＿ テニスが じょうずです。", "は", ["を", "で", "へ"]], ["ケーキ＿ つくりました。", "を", ["に", "へ", "の"]], ["まど＿ あけて ください。", "を", ["に", "へ", "の"]], ["ラジオ＿ ききます。", "を", ["に", "へ", "の"]], ["しゅくだい＿ わすれました。", "を", ["に", "へ", "で"]], ["ともだち＿ でんわを かけます。", "に", ["を", "で", "か"]], ["いもうと＿ ほんを よんで あげます。", "に", ["を", "で", "か"]], ["あした ともだち＿ あいます。", "に", ["を", "で", "の"]], ["へや＿ はいります。", "に", ["を", "で", "の"]], ["うち＿ かえります。", "へ", ["を", "で", "の"]], ["としょかん＿ ほんを かります。", "で", ["を", "へ", "か"]], ["レストラン＿ ばんごはんを たべます。", "で", ["を", "へ", "か"]], ["はし＿ ごはんを たべます。", "で", ["を", "へ", "か"]], ["これは わたし＿ かさです。", "の", ["を", "に", "へ"]], ["にほん＿ くるまは いいです。", "の", ["を", "に", "へ"]], ["パン＿ たまごを かいました。", "と", ["を", "で", "へ"]], ["せんせい＿ はなしました。", "と", ["を", "で", "へ"]], ["そら＿ あおいです。", "が", ["を", "に", "へ"]], ["おなか＿ すきました。", "が", ["を", "に", "で"]], ["あたま＿ いたいです。", "が", ["を", "に", "へ"]], ["にわに き＿ あります。", "が", ["を", "で", "へ"]], ["わたしは すし＿ たべたいです。", "を", ["に", "へ", "で"]], ["わたし＿ いきます。", "も", ["を", "に", "の"]], ["あね＿ がくせいです。", "も", ["を", "に", "へ"]], ["これは いくらです＿。", "か", ["を", "に", "で"]], ["トイレは どこです＿。", "か", ["を", "に", "へ"]], ["いっしょに たべません＿。", "か", ["を", "に", "で"]], ["まいばん じゅうじ＿ ねます。", "に", ["を", "で", "の"]], ["にちようびに やま＿ のぼります。", "に", ["の", "と", "か"]], ["この バス＿ くうこうへ いきます。", "は", ["を", "に", "の"]], ["ふゆ＿ さむいです。", "は", ["を", "に", "へ"]], ["あめの ひ＿ うちで ほんを よみます。", "は", ["を", "へ", "の"]], ["おかあさん＿ りょうりを つくります。", "が", ["を", "に", "へ"]]]};
+const CFG = {"url": "https://qjdgejwqfwggcgicdnhq.supabase.co", "key": "sb_publishable_G9gnEkkiM1kSZB7Af3h-6Q_wm57Y90z", "langs": ["de", "en", "es", "fr", "it", "pt"], "words": [["ねこ", "neko"], ["いぬ", "inu"], ["さかな", "sakana"], ["やま", "yama"], ["かわ", "kawa"], ["そら", "sora"], ["あめ", "ame"], ["はな", "hana"], ["みず", "mizu"], ["ひと", "hito"], ["くるま", "kuruma"], ["でんわ", "denwa"], ["ほん", "hon"], ["うみ", "umi"], ["ゆき", "yuki"], ["つき", "tsuki"], ["ほし", "hoshi"], ["たまご", "tamago"], ["さくら", "sakura"], ["ともだち", "tomodachi"], ["かぞく", "kazoku"], ["あさ", "asa"], ["よる", "yoru"], ["なつ", "natsu"], ["ふゆ", "fuyu"], ["はる", "haru"], ["あき", "aki"], ["くち", "kuchi"], ["みみ", "mimi"], ["あたま", "atama"], ["めがね", "megane"], ["かばん", "kaban"], ["ごはん", "gohan"], ["にく", "niku"], ["おかね", "okane"], ["でぐち", "deguchi"], ["いりぐち", "iriguchi"], ["ひだり", "hidari"], ["みぎ", "migi"], ["ちず", "chizu"], ["カメラ", "kamera"], ["テレビ", "terebi"], ["パン", "pan"], ["ホテル", "hoteru"], ["ナイフ", "naifu"], ["ペン", "pen"], ["バス", "basu"], ["アイス", "aisu"], ["ピアノ", "piano"], ["メロン", "meron"], ["トマト", "tomato"], ["バナナ", "banana"], ["ドア", "doa"], ["テニス", "tenisu"], ["ラジオ", "rajio"], ["ネクタイ", "nekutai"], ["ワイン", "wain"], ["ピザ", "piza"], ["パスタ", "pasuta"], ["ビル", "biru"], ["ガム", "gamu"], ["ゴルフ", "gorufu"], ["ボタン", "botan"], ["アニメ", "anime"], ["カナダ", "kanada"], ["ドイツ", "doitsu"], ["イタリア", "itaria"], ["スペイン", "supein"], ["フランス", "furansu"], ["パリ", "pari"], ["ロンドン", "rondon"], ["メモ", "memo"], ["サラダ", "sarada"], ["レモン", "remon"], ["ミルク", "miruku"], ["ベルト", "beruto"], ["マスク", "masuku"], ["トイレ", "toire"], ["ズボン", "zubon"], ["ハム", "hamu"], ["ドラマ", "dorama"], ["マンガ", "manga"], ["アメリカ", "amerika"], ["メキシコ", "mekishiko"], ["ブラジル", "burajiru"], ["ロシア", "roshia"], ["エジプト", "ejiputo"], ["ハワイ", "hawai"], ["トルコ", "toruko"], ["オペラ", "opera"], ["ダンス", "dansu"], ["ヨガ", "yoga"], ["ゴリラ", "gorira"], ["パンダ", "panda"], ["ライオン", "raion"], ["キリン", "kirin"], ["ピンク", "pinku"], ["ドレス", "doresu"], ["テスト", "tesuto"], ["レストラン", "resutoran"], ["ポスト", "posuto"], ["テント", "tento"], ["ハンカチ", "hankachi"], ["ペンギン", "pengin"], ["オムライス", "omuraisu"], ["ベンチ", "benchi"], ["リボン", "ribon"], ["プリン", "purin"], ["がっこう", "gakkou"], ["きって", "kitte"], ["ざっし", "zasshi"], ["きっぷ", "kippu"], ["にっき", "nikki"], ["ちょっと", "chotto"], ["まっすぐ", "massugu"], ["おちゃ", "ocha"], ["しゃしん", "shashin"], ["でんしゃ", "densha"], ["きょう", "kyou"], ["りょこう", "ryokou"], ["びょういん", "byouin"], ["ぎゅうにゅう", "gyuunyuu"], ["じしょ", "jisho"], ["しゅくだい", "shukudai"], ["おとうさん", "otousan"], ["おかあさん", "okaasan"], ["とうきょう", "toukyou"], ["きゃく", "kyaku"], ["コーヒー", "koohii"], ["ケーキ", "keeki"], ["ゲーム", "geemu"], ["スーパー", "suupaa"], ["ノート", "nooto"], ["コンピューター", "konpyuutaa"], ["チーズ", "chiizu"], ["タクシー", "takushii"], ["ビール", "biiru"], ["サッカー", "sakkaa"], ["ベッド", "beddo"], ["カップ", "kappu"], ["チョコレート", "chokoreeto"], ["ジュース", "juusu"], ["シャツ", "shatsu"], ["メニュー", "menyuu"], ["ニュース", "nyuusu"], ["ギター", "gitaa"], ["スキー", "sukii"], ["ボール", "booru"], ["カレー", "karee"], ["ラーメン", "raamen"], ["スカート", "sukaato"], ["カード", "kaado"], ["ボート", "booto"], ["ロボット", "robotto"], ["トラック", "torakku"], ["ラケット", "raketto"], ["ポケット", "poketto"], ["チケット", "chiketto"], ["スプーン", "supuun"], ["セーター", "seetaa"], ["エレベーター", "erebeetaa"], ["ヘルメット", "herumetto"], ["スーツケース", "suutsukeesu"], ["ハンバーガー", "hanbaagaa"], ["アイスクリーム", "aisukuriimu"], ["ゼリー", "zerii"], ["バター", "bataa"], ["ジャム", "jamu"], ["シャワー", "shawaa"], ["チャンス", "chansu"], ["キャンプ", "kyanpu"], ["ジョギング", "jogingu"], ["パジャマ", "pajama"], ["コップ", "koppu"], ["サンドイッチ", "sandoitchi"], ["クッキー", "kukkii"], ["ヨーグルト", "yooguruto"], ["プール", "puuru"]], "kanji": [["一", "いち", "ichi", 1], ["二", "に", "ni", 1], ["三", "さん", "san", 1], ["四", "よん", "yon", 1], ["五", "ご", "go", 1], ["六", "ろく", "roku", 1], ["七", "なな", "nana", 1], ["八", "はち", "hachi", 1], ["九", "きゅう", "kyuu", 1], ["十", "じゅう", "juu", 1], ["百", "ひゃく", "hyaku", 1], ["千", "せん", "sen", 1], ["円", "えん", "en", 1], ["日", "にち", "nichi", 1], ["月", "つき", "tsuki", 1], ["火", "ひ", "hi", 1], ["水", "みず", "mizu", 1], ["木", "もく", "moku", 1], ["金", "きん", "kin", 1], ["土", "つち", "tsuchi", 1], ["山", "やま", "yama", 1], ["川", "かわ", "kawa", 1], ["田", "た", "ta", 1], ["石", "いし", "ishi", 1], ["空", "そら", "sora", 1], ["天", "てん", "ten", 1], ["雨", "あめ", "ame", 1], ["気", "き", "ki", 1], ["夕", "ゆう", "yuu", 1], ["早", "はやい", "hayai", 1], ["年", "とし", "toshi", 1], ["人", "ひと", "hito", 1], ["子", "こ", "ko", 1], ["女", "おんな", "onna", 1], ["男", "おとこ", "otoko", 1], ["王", "おう", "ou", 1], ["玉", "たま", "tama", 1], ["口", "くち", "kuchi", 1], ["目", "め", "me", 1], ["耳", "みみ", "mimi", 1], ["手", "て", "te", 1], ["足", "あし", "ashi", 1], ["力", "ちから", "chikara", 1], ["上", "うえ", "ue", 1], ["下", "した", "shita", 1], ["中", "なか", "naka", 1], ["大", "おおきい", "ookii", 1], ["小", "ちいさい", "chiisai", 1], ["左", "ひだり", "hidari", 1], ["右", "みぎ", "migi", 1], ["先", "さき", "saki", 1], ["生", "いきる", "ikiru", 1], ["正", "ただしい", "tadashii", 1], ["立", "たつ", "tatsu", 1], ["見", "みる", "miru", 1], ["休", "やすむ", "yasumu", 1], ["出", "でる", "deru", 1], ["入", "はいる", "hairu", 1], ["音", "おと", "oto", 1], ["名", "な", "na", 1], ["字", "じ", "ji", 1], ["学", "がく", "gaku", 1], ["校", "こう", "kou", 1], ["文", "ぶん", "bun", 1], ["本", "ほん", "hon", 1], ["林", "はやし", "hayashi", 1], ["森", "もり", "mori", 1], ["竹", "たけ", "take", 1], ["草", "くさ", "kusa", 1], ["花", "はな", "hana", 1], ["貝", "かい", "kai", 1], ["犬", "いぬ", "inu", 1], ["虫", "むし", "mushi", 1], ["糸", "いと", "ito", 1], ["車", "くるま", "kuruma", 1], ["町", "まち", "machi", 1], ["村", "むら", "mura", 1], ["白", "しろ", "shiro", 1], ["青", "あお", "ao", 1], ["赤", "あか", "aka", 1], ["引", "ひく", "hiku", 2], ["羽", "はね", "hane", 2], ["雲", "くも", "kumo", 2], ["園", "えん", "en", 2], ["遠", "とおい", "tooi", 2], ["何", "なに", "nani", 2], ["科", "か", "ka", 2], ["夏", "なつ", "natsu", 2], ["家", "いえ", "ie", 2], ["歌", "うた", "uta", 2], ["画", "が", "ga", 2], ["回", "かい", "kai", 2], ["会", "あう", "au", 2], ["海", "うみ", "umi", 2], ["絵", "え", "e", 2], ["外", "そと", "soto", 2], ["角", "かど", "kado", 2], ["楽", "たのしい", "tanoshii", 2], ["活", "かつ", "katsu", 2], ["間", "あいだ", "aida", 2], ["丸", "まる", "maru", 2], ["岩", "いわ", "iwa", 2], ["顔", "かお", "kao", 2], ["汽", "き", "ki", 2], ["記", "き", "ki", 2], ["帰", "かえる", "kaeru", 2], ["弓", "ゆみ", "yumi", 2], ["牛", "うし", "ushi", 2], ["魚", "さかな", "sakana", 2], ["京", "きょう", "kyou", 2], ["強", "つよい", "tsuyoi", 2], ["教", "おしえる", "oshieru", 2], ["近", "ちかい", "chikai", 2], ["兄", "あに", "ani", 2], ["形", "かたち", "katachi", 2], ["計", "けい", "kei", 2], ["元", "もと", "moto", 2], ["言", "いう", "iu", 2], ["原", "はら", "hara", 2], ["戸", "と", "to", 2], ["古", "ふるい", "furui", 2], ["午", "ご", "go", 2], ["後", "うしろ", "ushiro", 2], ["語", "ご", "go", 2], ["工", "こう", "kou", 2], ["公", "こう", "kou", 2], ["広", "ひろい", "hiroi", 2], ["交", "こう", "kou", 2], ["光", "ひかり", "hikari", 2], ["考", "かんがえる", "kangaeru", 2], ["行", "いく", "iku", 2], ["高", "たかい", "takai", 2], ["黄", "き", "ki", 2], ["合", "ごう", "gou", 2], ["谷", "たに", "tani", 2], ["国", "くに", "kuni", 2], ["黒", "くろ", "kuro", 2], ["今", "いま", "ima", 2], ["才", "さい", "sai", 2], ["細", "ほそい", "hosoi", 2], ["作", "つくる", "tsukuru", 2], ["算", "さん", "san", 2], ["止", "とまる", "tomaru", 2], ["市", "し", "shi", 2], ["矢", "や", "ya", 2], ["姉", "あね", "ane", 2], ["思", "おもう", "omou", 2], ["紙", "かみ", "kami", 2], ["寺", "てら", "tera", 2], ["自", "じ", "ji", 2], ["時", "とき", "toki", 2], ["室", "しつ", "shitsu", 2], ["社", "しゃ", "sha", 2], ["弱", "よわい", "yowai", 2], ["首", "くび", "kubi", 2], ["秋", "あき", "aki", 2], ["週", "しゅう", "shuu", 2], ["春", "はる", "haru", 2], ["書", "かく", "kaku", 2], ["少", "すこし", "sukoshi", 2], ["場", "ば", "ba", 2], ["色", "いろ", "iro", 2], ["食", "たべる", "taberu", 2], ["心", "こころ", "kokoro", 2], ["新", "あたらしい", "atarashii", 2], ["親", "おや", "oya", 2], ["図", "ず", "zu", 2], ["数", "かず", "kazu", 2], ["西", "にし", "nishi", 2], ["声", "こえ", "koe", 2], ["星", "ほし", "hoshi", 2], ["晴", "はれ", "hare", 2], ["切", "きる", "kiru", 2], ["雪", "ゆき", "yuki", 2], ["船", "ふね", "fune", 2], ["線", "せん", "sen", 2], ["前", "まえ", "mae", 2], ["組", "くみ", "kumi", 2], ["走", "はしる", "hashiru", 2], ["多", "おおい", "ooi", 2], ["太", "ふとい", "futoi", 2], ["体", "からだ", "karada", 2], ["台", "だい", "dai", 2], ["地", "ち", "chi", 2], ["池", "いけ", "ike", 2], ["知", "しる", "shiru", 2], ["茶", "ちゃ", "cha", 2], ["昼", "ひる", "hiru", 2], ["長", "ながい", "nagai", 2], ["鳥", "とり", "tori", 2], ["朝", "あさ", "asa", 2], ["直", "なおす", "naosu", 2], ["通", "とおる", "tooru", 2], ["弟", "おとうと", "otouto", 2], ["店", "みせ", "mise", 2], ["点", "てん", "ten", 2], ["電", "でん", "den", 2], ["刀", "かたな", "katana", 2], ["冬", "ふゆ", "fuyu", 2], ["当", "あたる", "ataru", 2], ["東", "ひがし", "higashi", 2], ["答", "こたえ", "kotae", 2], ["頭", "あたま", "atama", 2], ["同", "おなじ", "onaji", 2], ["道", "みち", "michi", 2], ["読", "よむ", "yomu", 2], ["内", "うち", "uchi", 2], ["南", "みなみ", "minami", 2], ["肉", "にく", "niku", 2], ["馬", "うま", "uma", 2], ["売", "うる", "uru", 2], ["買", "かう", "kau", 2], ["麦", "むぎ", "mugi", 2], ["半", "はん", "han", 2], ["番", "ばん", "ban", 2], ["父", "ちち", "chichi", 2], ["風", "かぜ", "kaze", 2], ["分", "ふん", "fun", 2], ["聞", "きく", "kiku", 2], ["米", "こめ", "kome", 2], ["歩", "あるく", "aruku", 2], ["母", "はは", "haha", 2], ["方", "ほう", "hou", 2], ["北", "きた", "kita", 2], ["毎", "まい", "mai", 2], ["妹", "いもうと", "imouto", 2], ["万", "まん", "man", 2], ["明", "あかるい", "akarui", 2], ["鳴", "なく", "naku", 2], ["毛", "け", "ke", 2], ["門", "もん", "mon", 2], ["夜", "よる", "yoru", 2], ["野", "の", "no", 2], ["友", "とも", "tomo", 2], ["用", "よう", "you", 2], ["曜", "よう", "you", 2], ["来", "くる", "kuru", 2], ["里", "さと", "sato", 2], ["理", "り", "ri", 2], ["話", "はなす", "hanasu", 2], ["悪", "わるい", "warui", 3], ["安", "やすい", "yasui", 3], ["暗", "くらい", "kurai", 3], ["医", "い", "i", 3], ["委", "い", "i", 3], ["意", "い", "i", 3], ["育", "そだつ", "sodatsu", 3], ["員", "いん", "in", 3], ["院", "いん", "in", 3], ["飲", "のむ", "nomu", 3], ["運", "はこぶ", "hakobu", 3], ["泳", "およぐ", "oyogu", 3], ["駅", "えき", "eki", 3], ["央", "おう", "ou", 3], ["横", "よこ", "yoko", 3], ["屋", "や", "ya", 3], ["温", "あたたかい", "atatakai", 3], ["化", "か", "ka", 3], ["荷", "に", "ni", 3], ["界", "かい", "kai", 3], ["開", "あける", "akeru", 3], ["階", "かい", "kai", 3], ["寒", "さむい", "samui", 3], ["感", "かん", "kan", 3], ["漢", "かん", "kan", 3], ["館", "かん", "kan", 3], ["岸", "きし", "kishi", 3], ["起", "おきる", "okiru", 3], ["期", "き", "ki", 3], ["客", "きゃく", "kyaku", 3], ["究", "きゅう", "kyuu", 3], ["急", "いそぐ", "isogu", 3], ["級", "きゅう", "kyuu", 3], ["宮", "みや", "miya", 3], ["球", "たま", "tama", 3], ["去", "さる", "saru", 3], ["橋", "はし", "hashi", 3], ["業", "ぎょう", "gyou", 3], ["曲", "きょく", "kyoku", 3], ["局", "きょく", "kyoku", 3], ["銀", "ぎん", "gin", 3], ["区", "く", "ku", 3], ["苦", "くるしい", "kurushii", 3], ["具", "ぐ", "gu", 3], ["君", "きみ", "kimi", 3], ["係", "かかり", "kakari", 3], ["軽", "かるい", "karui", 3], ["血", "ち", "chi", 3], ["決", "きめる", "kimeru", 3], ["研", "けん", "ken", 3], ["県", "けん", "ken", 3], ["庫", "こ", "ko", 3], ["湖", "みずうみ", "mizuumi", 3], ["向", "むく", "muku", 3], ["幸", "しあわせ", "shiawase", 3], ["港", "みなと", "minato", 3], ["号", "ごう", "gou", 3], ["根", "ね", "ne", 3], ["祭", "まつり", "matsuri", 3], ["皿", "さら", "sara", 3], ["仕", "し", "shi", 3], ["死", "しぬ", "shinu", 3], ["使", "つかう", "tsukau", 3], ["始", "はじめる", "hajimeru", 3], ["指", "ゆび", "yubi", 3], ["歯", "は", "ha", 3], ["詩", "し", "shi", 3], ["次", "つぎ", "tsugi", 3], ["事", "こと", "koto", 3], ["持", "もつ", "motsu", 3], ["式", "しき", "shiki", 3], ["実", "み", "mi", 3], ["写", "うつす", "utsusu", 3], ["者", "もの", "mono", 3], ["主", "しゅ", "shu", 3], ["守", "まもる", "mamoru", 3], ["取", "とる", "toru", 3], ["酒", "さけ", "sake", 3], ["受", "うける", "ukeru", 3], ["州", "しゅう", "shuu", 3], ["拾", "ひろう", "hirou", 3], ["終", "おわる", "owaru", 3], ["習", "ならう", "narau", 3], ["集", "あつめる", "atsumeru", 3], ["住", "すむ", "sumu", 3], ["重", "おもい", "omoi", 3], ["宿", "やど", "yado", 3], ["所", "ところ", "tokoro", 3], ["暑", "あつい", "atsui", 3], ["助", "たすける", "tasukeru", 3], ["昭", "しょう", "shou", 3], ["消", "けす", "kesu", 3], ["商", "しょう", "shou", 3], ["章", "しょう", "shou", 3], ["勝", "かつ", "katsu", 3], ["乗", "のる", "noru", 3], ["植", "うえる", "ueru", 3], ["申", "もうす", "mousu", 3], ["身", "み", "mi", 3], ["神", "かみ", "kami", 3], ["真", "しん", "shin", 3], ["深", "ふかい", "fukai", 3], ["進", "すすむ", "susumu", 3], ["世", "せ", "se", 3], ["整", "せい", "sei", 3], ["昔", "むかし", "mukashi", 3], ["全", "ぜん", "zen", 3], ["相", "そう", "sou", 3], ["送", "おくる", "okuru", 3], ["想", "そう", "sou", 3], ["息", "いき", "iki", 3], ["速", "はやい", "hayai", 3], ["族", "ぞく", "zoku", 3], ["他", "た", "ta", 3], ["打", "うつ", "utsu", 3], ["対", "たい", "tai", 3], ["待", "まつ", "matsu", 3], ["代", "だい", "dai", 3], ["第", "だい", "dai", 3], ["題", "だい", "dai", 3], ["炭", "すみ", "sumi", 3], ["短", "みじかい", "mijikai", 3], ["談", "だん", "dan", 3], ["着", "きる", "kiru", 3], ["注", "ちゅう", "chuu", 3], ["柱", "はしら", "hashira", 3], ["丁", "ちょう", "chou", 3], ["帳", "ちょう", "chou", 3], ["調", "しらべる", "shiraberu", 3], ["追", "おう", "ou", 3], ["定", "てい", "tei", 3], ["庭", "にわ", "niwa", 3], ["笛", "ふえ", "fue", 3], ["鉄", "てつ", "tetsu", 3], ["転", "ころぶ", "korobu", 3], ["都", "と", "to", 3], ["度", "ど", "do", 3], ["投", "なげる", "nageru", 3], ["豆", "まめ", "mame", 3], ["島", "しま", "shima", 3], ["湯", "ゆ", "yu", 3], ["登", "のぼる", "noboru", 3], ["等", "とう", "tou", 3], ["動", "うごく", "ugoku", 3], ["童", "どう", "dou", 3], ["農", "のう", "nou", 3], ["波", "なみ", "nami", 3], ["配", "くばる", "kubaru", 3], ["倍", "ばい", "bai", 3], ["箱", "はこ", "hako", 3], ["畑", "はたけ", "hatake", 3], ["発", "はつ", "hatsu", 3], ["反", "はん", "han", 3], ["坂", "さか", "saka", 3], ["板", "いた", "ita", 3], ["皮", "かわ", "kawa", 3], ["悲", "かなしい", "kanashii", 3], ["美", "うつくしい", "utsukushii", 3], ["鼻", "はな", "hana", 3], ["筆", "ふで", "fude", 3], ["氷", "こおり", "koori", 3], ["表", "おもて", "omote", 3], ["秒", "びょう", "byou", 3], ["病", "びょう", "byou", 3], ["品", "しな", "shina", 3], ["負", "まける", "makeru", 3], ["部", "ぶ", "bu", 3], ["服", "ふく", "fuku", 3], ["福", "ふく", "fuku", 3], ["物", "もの", "mono", 3], ["平", "たいら", "taira", 3], ["返", "かえす", "kaesu", 3], ["勉", "べん", "ben", 3], ["放", "はなす", "hanasu", 3], ["味", "あじ", "aji", 3], ["命", "いのち", "inochi", 3], ["面", "めん", "men", 3], ["問", "もん", "mon", 3], ["役", "やく", "yaku", 3], ["薬", "くすり", "kusuri", 3], ["由", "ゆう", "yuu", 3], ["油", "あぶら", "abura", 3], ["有", "ゆう", "yuu", 3], ["遊", "あそぶ", "asobu", 3], ["予", "よ", "yo", 3], ["羊", "ひつじ", "hitsuji", 3], ["洋", "よう", "you", 3], ["葉", "は", "ha", 3], ["陽", "よう", "you", 3], ["様", "さま", "sama", 3], ["落", "おちる", "ochiru", 3], ["流", "ながれる", "nagareru", 3], ["旅", "たび", "tabi", 3], ["両", "りょう", "ryou", 3], ["緑", "みどり", "midori", 3], ["礼", "れい", "rei", 3], ["列", "れつ", "retsu", 3], ["練", "れん", "ren", 3], ["路", "ろ", "ro", 3], ["和", "わ", "wa", 3]], "clash": ["空天", "画絵図", "円丸", "石岩", "言話", "書記", "田原野", "午昼", "日昼", "村里", "市町", "思考", "行歩走", "歌鳴", "数番", "週曜", "元本", "中内", "夕夜", "音声", "国里", "先前", "大太", "家室", "母親", "父親", "時分", "高長", "上高", "明光", "晴天", "力強", "見知", "来入", "身体", "身自", "命生", "住生", "幸福", "者人", "童子", "族家", "勉学習", "研究調", "練習", "転回", "昔古", "暗黒", "軽光", "暑温", "速早急", "返帰", "受取拾", "持取", "発出", "路道", "庭園", "畑田野原", "湯水", "医薬病", "所場", "部分", "倍回度", "世界代", "昭明陽", "陽日", "央中", "向方", "列線", "級組", "宮社神", "真実正", "由理", "意心想思考感", "等同", "平和", "洋海", "事物品", "役用使", "定決", "次後", "問題答", "申言談話", "着来", "球玉丸", "曲歌詩", "都京市", "緑青", "区県州", "主君", "表面", "章文", "号番数第", "息気", "湖池", "集会", "全毎", "去出", "起立", "終止"], "kwords": [["学校", "がっこう", "gakkou"], ["先生", "せんせい", "sensei"], ["大学", "だいがく", "daigaku"], ["学生", "がくせい", "gakusei"], ["小学生", "しょうがくせい", "shougakusei"], ["中学校", "ちゅうがっこう", "chuugakkou"], ["日本", "にほん", "nihon"], ["今日", "きょう", "kyou"], ["明日", "あした", "ashita"], ["毎日", "まいにち", "mainichi"], ["毎朝", "まいあさ", "maiasa"], ["毎年", "まいとし", "maitoshi"], ["今月", "こんげつ", "kongetsu"], ["先月", "せんげつ", "sengetsu"], ["今週", "こんしゅう", "konshuu"], ["先週", "せんしゅう", "senshuu"], ["来週", "らいしゅう", "raishuu"], ["来年", "らいねん", "rainen"], ["月曜日", "げつようび", "getsuyoubi"], ["火曜日", "かようび", "kayoubi"], ["水曜日", "すいようび", "suiyoubi"], ["木曜日", "もくようび", "mokuyoubi"], ["金曜日", "きんようび", "kin'youbi"], ["土曜日", "どようび", "doyoubi"], ["日曜日", "にちようび", "nichiyoubi"], ["午前", "ごぜん", "gozen"], ["午後", "ごご", "gogo"], ["時間", "じかん", "jikan"], ["天気", "てんき", "tenki"], ["元気", "げんき", "genki"], ["電気", "でんき", "denki"], ["電車", "でんしゃ", "densha"], ["電話", "でんわ", "denwa"], ["火山", "かざん", "kazan"], ["人口", "じんこう", "jinkou"], ["入口", "いりぐち", "iriguchi"], ["出口", "でぐち", "deguchi"], ["左右", "さゆう", "sayuu"], ["男子", "だんし", "danshi"], ["女子", "じょし", "joshi"], ["名前", "なまえ", "namae"], ["花火", "はなび", "hanabi"], ["子犬", "こいぬ", "koinu"], ["青空", "あおぞら", "aozora"], ["夕日", "ゆうひ", "yuuhi"], ["足音", "あしおと", "ashioto"], ["森林", "しんりん", "shinrin"], ["本気", "ほんき", "honki"], ["王子", "おうじ", "ouji"], ["文字", "もじ", "moji"], ["音楽", "おんがく", "ongaku"], ["教室", "きょうしつ", "kyoushitsu"], ["外国", "がいこく", "gaikoku"], ["国語", "こくご", "kokugo"], ["会社", "かいしゃ", "kaisha"], ["社会", "しゃかい", "shakai"], ["新聞", "しんぶん", "shinbun"], ["大人", "おとな", "otona"], ["一人", "ひとり", "hitori"], ["二人", "ふたり", "futari"], ["人気", "にんき", "ninki"], ["東京", "とうきょう", "toukyou"], ["北海道", "ほっかいどう", "hokkaidou"], ["正月", "しょうがつ", "shougatsu"], ["生活", "せいかつ", "seikatsu"], ["半分", "はんぶん", "hanbun"], ["自分", "じぶん", "jibun"], ["兄弟", "きょうだい", "kyoudai"], ["姉妹", "しまい", "shimai"], ["牛肉", "ぎゅうにく", "gyuuniku"], ["金魚", "きんぎょ", "kingyo"], ["白鳥", "はくちょう", "hakuchou"], ["風車", "ふうしゃ", "fuusha"], ["地図", "ちず", "chizu"], ["計算", "けいさん", "keisan"], ["算数", "さんすう", "sansuu"], ["体力", "たいりょく", "tairyoku"], ["会話", "かいわ", "kaiwa"], ["夜中", "よなか", "yonaka"], ["前後", "ぜんご", "zengo"], ["外出", "がいしゅつ", "gaishutsu"], ["入学", "にゅうがく", "nyuugaku"], ["弱点", "じゃくてん", "jakuten"], ["強風", "きょうふう", "kyoufuu"], ["元日", "がんじつ", "ganjitsu"], ["交番", "こうばん", "kouban"], ["歩道", "ほどう", "hodou"], ["帰国", "きこく", "kikoku"], ["理科", "りか", "rika"], ["工場", "こうじょう", "koujou"], ["公園", "こうえん", "kouen"], ["図書", "としょ", "tosho"], ["歌手", "かしゅ", "kashu"], ["花見", "はなみ", "hanami"], ["読書", "どくしょ", "dokusho"], ["休日", "きゅうじつ", "kyuujitsu"], ["書道", "しょどう", "shodou"], ["仕事", "しごと", "shigoto"], ["食事", "しょくじ", "shokuji"], ["返事", "へんじ", "henji"], ["大事", "だいじ", "daiji"], ["医者", "いしゃ", "isha"], ["歯医者", "はいしゃ", "haisha"], ["病院", "びょういん", "byouin"], ["病気", "びょうき", "byouki"], ["薬局", "やっきょく", "yakkyoku"], ["旅行", "りょこう", "ryokou"], ["運動", "うんどう", "undou"], ["写真", "しゃしん", "shashin"], ["宿題", "しゅくだい", "shukudai"], ["去年", "きょねん", "kyonen"], ["世界", "せかい", "sekai"], ["勉強", "べんきょう", "benkyou"], ["練習", "れんしゅう", "renshuu"], ["着物", "きもの", "kimono"], ["動物", "どうぶつ", "doubutsu"], ["植物", "しょくぶつ", "shokubutsu"], ["野球", "やきゅう", "yakyuu"], ["銀行", "ぎんこう", "ginkou"], ["漢字", "かんじ", "kanji"], ["図書館", "としょかん", "toshokan"], ["部屋", "へや", "heya"], ["時代", "じだい", "jidai"], ["地球", "ちきゅう", "chikyuu"], ["平和", "へいわ", "heiwa"], ["問題", "もんだい", "mondai"], ["意味", "いみ", "imi"], ["安心", "あんしん", "anshin"], ["有名", "ゆうめい", "yuumei"], ["家族", "かぞく", "kazoku"], ["安全", "あんぜん", "anzen"], ["予定", "よてい", "yotei"], ["発表", "はっぴょう", "happyou"], ["上手", "じょうず", "jouzu"], ["下手", "へた", "heta"], ["道具", "どうぐ", "dougu"], ["温度", "おんど", "ondo"], ["急行", "きゅうこう", "kyuukou"], ["鉄道", "てつどう", "tetsudou"], ["駅員", "えきいん", "ekiin"], ["自転車", "じてんしゃ", "jitensha"], ["洋服", "ようふく", "youfuku"], ["和食", "わしょく", "washoku"], ["屋上", "おくじょう", "okujou"], ["坂道", "さかみち", "sakamichi"], ["島国", "しまぐに", "shimaguni"], ["港町", "みなとまち", "minatomachi"], ["昔話", "むかしばなし", "mukashibanashi"], ["物語", "ものがたり", "monogatari"], ["相談", "そうだん", "soudan"], ["注意", "ちゅうい", "chuui"], ["世話", "せわ", "sewa"], ["終電", "しゅうでん", "shuuden"], ["中央", "ちゅうおう", "chuuou"], ["二階", "にかい", "nikai"], ["勝負", "しょうぶ", "shoubu"], ["反対", "はんたい", "hantai"], ["文章", "ぶんしょう", "bunshou"], ["暗記", "あんき", "anki"]], "sentences": [["わたし＿ がくせいです。", "は", ["を", "に", "へ"]], ["これ＿ ほんです。", "は", ["を", "に", "へ"]], ["わたしの なまえ＿ ハナです。", "は", ["を", "に", "へ"]], ["あした＿ あめです。", "は", ["を", "に", "へ"]], ["パン＿ たべます。", "を", ["に", "へ", "の"]], ["テレビ＿ みます。", "を", ["に", "へ", "の"]], ["おちゃ＿ のみます。", "を", ["に", "へ", "の"]], ["りんご＿ かいます。", "を", ["に", "へ", "の"]], ["あさごはん＿ たべましたか。", "を", ["で", "へ", "の"]], ["がっこう＿ いきます。", "に", ["で", "の", "か"]], ["つくえの うえ＿ ねこが います。", "に", ["で", "を", "へ"]], ["まいにち しちじ＿ おきます。", "に", ["で", "を", "の"]], ["でんしゃ＿ のります。", "に", ["を", "で", "へ"]], ["ともだち＿ てがみを かきます。", "に", ["を", "で", "か"]], ["なつやすみ＿ うみに いきます。", "に", ["を", "へ", "が"]], ["はこの なか＿ なにが ありますか。", "に", ["を", "へ", "と"]], ["にほん＿ いきます。", "へ", ["で", "を", "の"]], ["どこ＿ いきますか。", "へ", ["の", "が", "で"]], ["こうえん＿ あそびます。", "で", ["に", "を", "の"]], ["バス＿ いきます。", "で", ["に", "を", "の"]], ["えんぴつ＿ かきます。", "で", ["に", "へ", "の"]], ["スーパー＿ りんごを かいます。", "で", ["を", "へ", "か"]], ["えき＿ まって います。", "で", ["に", "へ", "の"]], ["わたし＿ ほんです。", "の", ["を", "に", "へ"]], ["これは せんせい＿ かばんです。", "の", ["を", "に", "へ"]], ["これは にほんご＿ ほんです。", "の", ["を", "に", "へ"]], ["それは だれ＿ かさですか。", "の", ["を", "に", "で"]], ["この みせ＿ ラーメンは おいしいです。", "の", ["を", "へ", "に"]], ["ともだち＿ あそびます。", "と", ["を", "の", "へ"]], ["いぬ＿ ねこが います。", "と", ["を", "で", "へ"]], ["ペン＿ ノートが あります。", "と", ["を", "で", "へ"]], ["かぞく＿ ごはんを たべます。", "と", ["を", "へ", "か"]], ["あめ＿ ふって います。", "が", ["を", "に", "の"]], ["へやに ねこ＿ います。", "が", ["を", "で", "へ"]], ["わたしは ねこ＿ すきです。", "が", ["に", "で", "へ"]], ["ぼくは サッカー＿ すきです。", "が", ["に", "で", "へ"]], ["あには ピアノ＿ じょうずです。", "が", ["を", "に", "へ"]], ["ねこが すきです。いぬ＿ すきです。", "も", ["に", "で", "へ"]], ["ねこ＿ いぬも すきです。", "も", ["を", "で", "へ"]], ["これは なんです＿。", "か", ["を", "に", "で"]], ["いま なんじです＿。", "か", ["を", "に", "で"]], ["あした がっこうに いきます＿。", "か", ["を", "で", "へ"]], ["まいあさ コーヒー＿ のみます。", "を", ["に", "へ", "で"]], ["ははに はな＿ あげます。", "を", ["で", "へ", "の"]], ["えきの まえ＿ まちます。", "で", ["を", "へ", "の"]], ["じてんしゃ＿ がっこうへ いきます。", "で", ["を", "へ", "か"]], ["なつやすみに おきなわ＿ いきました。", "へ", ["で", "の", "と"]], ["あさ しちじ＿ うちを でます。", "に", ["を", "で", "の"]], ["わたし＿ にほんごを べんきょうして います。", "は", ["を", "に", "で"]], ["たなかさん＿ がっこうの せんせいです。", "は", ["を", "に", "へ"]], ["おとうと＿ テニスが じょうずです。", "は", ["を", "で", "へ"]], ["ケーキ＿ つくりました。", "を", ["に", "へ", "の"]], ["まど＿ あけて ください。", "を", ["に", "へ", "の"]], ["ラジオ＿ ききます。", "を", ["に", "へ", "の"]], ["しゅくだい＿ わすれました。", "を", ["に", "へ", "で"]], ["ともだち＿ でんわを かけます。", "に", ["を", "で", "か"]], ["いもうと＿ ほんを よんで あげます。", "に", ["を", "で", "か"]], ["あした ともだち＿ あいます。", "に", ["を", "で", "の"]], ["へや＿ はいります。", "に", ["を", "で", "の"]], ["うち＿ かえります。", "へ", ["を", "で", "の"]], ["としょかん＿ ほんを かります。", "で", ["を", "へ", "か"]], ["レストラン＿ ばんごはんを たべます。", "で", ["を", "へ", "か"]], ["はし＿ ごはんを たべます。", "で", ["を", "へ", "か"]], ["これは わたし＿ かさです。", "の", ["を", "に", "へ"]], ["にほん＿ くるまは いいです。", "の", ["を", "に", "へ"]], ["パン＿ たまごを かいました。", "と", ["を", "で", "へ"]], ["せんせい＿ はなしました。", "と", ["を", "で", "へ"]], ["そら＿ あおいです。", "が", ["を", "に", "へ"]], ["おなか＿ すきました。", "が", ["を", "に", "で"]], ["あたま＿ いたいです。", "が", ["を", "に", "へ"]], ["にわに き＿ あります。", "が", ["を", "で", "へ"]], ["わたしは すし＿ たべたいです。", "を", ["に", "へ", "で"]], ["わたし＿ いきます。", "も", ["を", "に", "の"]], ["あね＿ がくせいです。", "も", ["を", "に", "へ"]], ["これは いくらです＿。", "か", ["を", "に", "で"]], ["トイレは どこです＿。", "か", ["を", "に", "へ"]], ["いっしょに たべません＿。", "か", ["を", "に", "で"]], ["まいばん じゅうじ＿ ねます。", "に", ["を", "で", "の"]], ["にちようびに やま＿ のぼります。", "に", ["の", "と", "か"]], ["この バス＿ くうこうへ いきます。", "は", ["を", "に", "の"]], ["ふゆ＿ さむいです。", "は", ["を", "に", "へ"]], ["あめの ひ＿ うちで ほんを よみます。", "は", ["を", "へ", "の"]], ["おかあさん＿ りょうりを つくります。", "が", ["を", "に", "へ"]]], "vocab": [["私", "わたし", "people", "watashi"], ["あなた", "あなた", "people", "anata"], ["彼", "かれ", "people", "kare"], ["彼女", "かのじょ", "people", "kanojo"], ["男の人", "おとこのひと", "people", "otokonohito"], ["女の人", "おんなのひと", "people", "onnanohito"], ["子ども", "こども", "people", "kodomo"], ["父", "ちち", "people", "chichi"], ["母", "はは", "people", "haha"], ["兄", "あに", "people", "ani"], ["姉", "あね", "people", "ane"], ["弟", "おとうと", "people", "otouto"], ["妹", "いもうと", "people", "imouto"], ["両親", "りょうしん", "people", "ryoushin"], ["みんな", "みんな", "people", "minna"], ["何", "なに", "ask", "nani"], ["誰", "だれ", "ask", "dare"], ["いつ", "いつ", "ask", "itsu"], ["どこ", "どこ", "ask", "doko"], ["どれ", "どれ", "ask", "dore"], ["どう", "どう", "ask", "dou"], ["どうして", "どうして", "ask", "doushite"], ["どんな", "どんな", "ask", "donna"], ["いくつ", "いくつ", "ask", "ikutsu"], ["いくら", "いくら", "ask", "ikura"], ["はい", "はい", "ask", "hai"], ["いいえ", "いいえ", "ask", "iie"], ["とても", "とても", "ask", "totemo"], ["少し", "すこし", "ask", "sukoshi"], ["たくさん", "たくさん", "ask", "takusan"], ["全然", "ぜんぜん", "ask", "zenzen"], ["一緒に", "いっしょに", "ask", "isshoni"], ["一人で", "ひとりで", "ask", "hitoride"], ["また", "また", "ask", "mata"], ["でも", "でも", "ask", "demo"], ["そして", "そして", "ask", "soshite"], ["食べ物", "たべもの", "food", "tabemono"], ["飲み物", "のみもの", "food", "nomimono"], ["野菜", "やさい", "food", "yasai"], ["果物", "くだもの", "food", "kudamono"], ["米", "こめ", "food", "kome"], ["朝ご飯", "あさごはん", "food", "asagohan"], ["昼ご飯", "ひるごはん", "food", "hirugohan"], ["晩ご飯", "ばんごはん", "food", "bangohan"], ["お弁当", "おべんとう", "food", "obentou"], ["料理", "りょうり", "food", "ryouri"], ["砂糖", "さとう", "food", "satou"], ["塩", "しお", "food", "shio"], ["りんご", "りんご", "food", "ringo"], ["みかん", "みかん", "food", "mikan"], ["お菓子", "おかし", "food", "okashi"], ["お酒", "おさけ", "food", "osake"], ["箸", "はし", "food", "hashi"], ["お湯", "おゆ", "food", "oyu"], ["食べる", "たべる", "verbs", "taberu"], ["飲む", "のむ", "verbs", "nomu"], ["見る", "みる", "verbs", "miru"], ["聞く", "きく", "verbs", "kiku"], ["話す", "はなす", "verbs", "hanasu"], ["読む", "よむ", "verbs", "yomu"], ["書く", "かく", "verbs", "kaku"], ["起きる", "おきる", "verbs", "okiru"], ["寝る", "ねる", "verbs", "neru"], ["働く", "はたらく", "verbs", "hataraku"], ["休む", "やすむ", "verbs", "yasumu"], ["遊ぶ", "あそぶ", "verbs", "asobu"], ["待つ", "まつ", "verbs", "matsu"], ["会う", "あう", "verbs", "au"], ["作る", "つくる", "verbs", "tsukuru"], ["使う", "つかう", "verbs", "tsukau"], ["開ける", "あける", "verbs", "akeru"], ["閉める", "しめる", "verbs", "shimeru"], ["入る", "はいる", "verbs", "hairu"], ["出る", "でる", "verbs", "deru"], ["分かる", "わかる", "verbs", "wakaru"], ["洗う", "あらう", "verbs", "arau"], ["泳ぐ", "およぐ", "verbs", "oyogu"], ["歌う", "うたう", "verbs", "utau"], ["教える", "おしえる", "verbs", "oshieru"], ["習う", "ならう", "verbs", "narau"], ["住む", "すむ", "verbs", "sumu"], ["始まる", "はじまる", "verbs", "hajimaru"], ["終わる", "おわる", "verbs", "owaru"], ["言う", "いう", "verbs", "iu"], ["思う", "おもう", "verbs", "omou"], ["する", "する", "verbs", "suru"], ["持つ", "もつ", "verbs", "motsu"], ["立つ", "たつ", "verbs", "tatsu"], ["座る", "すわる", "verbs", "suwaru"], ["着る", "きる", "verbs", "kiru"], ["帰る", "かえる", "verbs", "kaeru"], ["行く", "いく", "verbs", "iku"], ["来る", "くる", "verbs", "kuru"], ["今", "いま", "time", "ima"], ["昨日", "きのう", "time", "kinou"], ["今朝", "けさ", "time", "kesa"], ["今晩", "こんばん", "time", "konban"], ["毎晩", "まいばん", "time", "maiban"], ["昼", "ひる", "time", "hiru"], ["夕方", "ゆうがた", "time", "yuugata"], ["週末", "しゅうまつ", "time", "shuumatsu"], ["来月", "らいげつ", "time", "raigetsu"], ["今年", "ことし", "time", "kotoshi"], ["時々", "ときどき", "time", "tokidoki"], ["いつも", "いつも", "time", "itsumo"], ["よく", "よく", "time", "yoku"], ["もう", "もう", "time", "mou"], ["まだ", "まだ", "time", "mada"], ["すぐ", "すぐ", "time", "sugu"], ["後で", "あとで", "time", "atode"], ["前に", "まえに", "time", "maeni"], ["家", "いえ", "places", "ie"], ["店", "みせ", "places", "mise"], ["駅", "えき", "places", "eki"], ["空港", "くうこう", "places", "kuukou"], ["道", "みち", "places", "michi"], ["郵便局", "ゆうびんきょく", "places", "yuubinkyoku"], ["町", "まち", "places", "machi"], ["国", "くに", "places", "kuni"], ["台所", "だいどころ", "places", "daidokoro"], ["庭", "にわ", "places", "niwa"], ["お手洗い", "おてあらい", "places", "otearai"], ["近く", "ちかく", "places", "chikaku"], ["前", "まえ", "places", "mae"], ["後ろ", "うしろ", "places", "ushiro"], ["上", "うえ", "places", "ue"], ["下", "した", "places", "shita"], ["中", "なか", "places", "naka"], ["外", "そと", "places", "soto"], ["隣", "となり", "places", "tonari"], ["ここ", "ここ", "places", "koko"], ["そこ", "そこ", "places", "soko"], ["あそこ", "あそこ", "places", "asoko"], ["大きい", "おおきい", "adj", "ookii"], ["小さい", "ちいさい", "adj", "chiisai"], ["新しい", "あたらしい", "adj", "atarashii"], ["古い", "ふるい", "adj", "furui"], ["長い", "ながい", "adj", "nagai"], ["短い", "みじかい", "adj", "mijikai"], ["暑い", "あつい", "adj", "atsui"], ["寒い", "さむい", "adj", "samui"], ["暖かい", "あたたかい", "adj", "atatakai"], ["涼しい", "すずしい", "adj", "suzushii"], ["冷たい", "つめたい", "adj", "tsumetai"], ["楽しい", "たのしい", "adj", "tanoshii"], ["面白い", "おもしろい", "adj", "omoshiroi"], ["つまらない", "つまらない", "adj", "tsumaranai"], ["難しい", "むずかしい", "adj", "muzukashii"], ["易しい", "やさしい", "adj", "yasashii"], ["忙しい", "いそがしい", "adj", "isogashii"], ["静か", "しずか", "adj", "shizuka"], ["賑やか", "にぎやか", "adj", "nigiyaka"], ["好き", "すき", "adj", "suki"], ["嫌い", "きらい", "adj", "kirai"], ["美味しい", "おいしい", "adj", "oishii"], ["早い", "はやい", "adj", "hayai"], ["遅い", "おそい", "adj", "osoi"], ["近い", "ちかい", "adj", "chikai"], ["遠い", "とおい", "adj", "tooi"], ["多い", "おおい", "adj", "ooi"], ["少ない", "すくない", "adj", "sukunai"], ["明るい", "あかるい", "adj", "akarui"], ["暗い", "くらい", "adj", "kurai"], ["広い", "ひろい", "adj", "hiroi"], ["狭い", "せまい", "adj", "semai"], ["痛い", "いたい", "adj", "itai"], ["便利", "べんり", "adj", "benri"], ["きれい", "きれい", "adj", "kirei"], ["大切", "たいせつ", "adj", "taisetsu"], ["大丈夫", "だいじょうぶ", "adj", "daijoubu"], ["地下鉄", "ちかてつ", "travel", "chikatetsu"], ["新幹線", "しんかんせん", "travel", "shinkansen"], ["飛行機", "ひこうき", "travel", "hikouki"], ["船", "ふね", "travel", "fune"], ["信号", "しんごう", "travel", "shingou"], ["角", "かど", "travel", "kado"], ["橋", "はし", "travel", "hashi"], ["乗る", "のる", "travel", "noru"], ["降りる", "おりる", "travel", "oriru"], ["歩く", "あるく", "travel", "aruku"], ["走る", "はしる", "travel", "hashiru"], ["買う", "かう", "shop", "kau"], ["売る", "うる", "shop", "uru"], ["高い", "たかい", "shop", "takai"], ["安い", "やすい", "shop", "yasui"], ["財布", "さいふ", "shop", "saifu"], ["服", "ふく", "shop", "fuku"], ["靴", "くつ", "shop", "kutsu"], ["帽子", "ぼうし", "shop", "boushi"], ["傘", "かさ", "shop", "kasa"], ["時計", "とけい", "shop", "tokei"], ["全部", "ぜんぶ", "shop", "zenbu"], ["色", "いろ", "shop", "iro"], ["赤い", "あかい", "shop", "akai"], ["青い", "あおい", "shop", "aoi"], ["白い", "しろい", "shop", "shiroi"], ["黒い", "くろい", "shop", "kuroi"], ["黄色い", "きいろい", "shop", "kiiroi"], ["お釣り", "おつり", "shop", "otsuri"], ["体", "からだ", "body", "karada"], ["顔", "かお", "body", "kao"], ["目", "め", "body", "me"], ["鼻", "はな", "body", "hana"], ["歯", "は", "body", "ha"], ["手", "て", "body", "te"], ["足", "あし", "body", "ashi"], ["お腹", "おなか", "body", "onaka"], ["声", "こえ", "body", "koe"], ["風邪", "かぜ", "body", "kaze"], ["熱", "ねつ", "body", "netsu"], ["薬", "くすり", "body", "kusuri"], ["風", "かぜ", "nature", "kaze"], ["雲", "くも", "nature", "kumo"], ["晴れ", "はれ", "nature", "hare"], ["曇り", "くもり", "nature", "kumori"], ["木", "き", "nature", "ki"], ["鳥", "とり", "nature", "tori"], ["森", "もり", "nature", "mori"], ["池", "いけ", "nature", "ike"], ["石", "いし", "nature", "ishi"], ["会社員", "かいしゃいん", "school", "kaishain"], ["授業", "じゅぎょう", "school", "jugyou"], ["試験", "しけん", "school", "shiken"], ["鉛筆", "えんぴつ", "school", "enpitsu"], ["机", "つくえ", "school", "tsukue"], ["椅子", "いす", "school", "isu"], ["紙", "かみ", "school", "kami"], ["言葉", "ことば", "school", "kotoba"], ["質問", "しつもん", "school", "shitsumon"], ["答え", "こたえ", "school", "kotae"], ["休み", "やすみ", "school", "yasumi"], ["窓", "まど", "school", "mado"], ["会議", "かいぎ", "school", "kaigi"]], "phrases": [["おはようございます", "おはよう ございます", "greet", "ohayou gozaimasu"], ["こんにちは", "こんにちは", "greet", "konnichiwa"], ["こんばんは", "こんばんは", "greet", "konbanwa"], ["おやすみなさい", "おやすみ なさい", "greet", "oyasumi nasai"], ["ありがとうございます", "ありがとう ございます", "greet", "arigatou gozaimasu"], ["どういたしまして", "どう いたしまして", "greet", "dou itashimashite"], ["すみません", "すみません", "greet", "sumimasen"], ["ごめんなさい", "ごめん なさい", "greet", "gomen nasai"], ["さようなら", "さようなら", "greet", "sayounara"], ["またね", "また ね", "greet", "mata ne"], ["いただきます", "いただきます", "greet", "itadakimasu"], ["ごちそうさまでした", "ごちそうさま でした", "greet", "gochisousama deshita"], ["はじめまして", "はじめまして", "intro", "hajimemashite"], ["私はアンナです", "わたし は アンナ です", "intro", "watashi wa anna desu"], ["ドイツから来ました", "ドイツ から きました", "intro", "doitsu kara kimashita"], ["よろしくお願いします", "よろしく おねがい します", "intro", "yoroshiku onegai shimasu"], ["お名前は何ですか", "おなまえ は なん です か", "intro", "onamae wa nan desu ka"], ["お仕事は何ですか", "おしごと は なん です か", "intro", "oshigoto wa nan desu ka"], ["学生です", "がくせい です", "intro", "gakusei desu"], ["趣味は音楽です", "しゅみ は おんがく です", "intro", "shumi wa ongaku desu"], ["東京に住んでいます", "とうきょう に すんで います", "intro", "toukyou ni sunde imasu"], ["日本語が少し話せます", "にほんご が すこし はなせます", "intro", "nihongo ga sukoshi hanasemasu"], ["これはいくらですか", "これ は いくら です か", "shop", "kore wa ikura desu ka"], ["これをください", "これ を ください", "shop", "kore o kudasai"], ["見ているだけです", "みて いる だけ です", "shop", "mite iru dake desu"], ["カードで払えますか", "カード で はらえます か", "shop", "kaado de haraemasu ka"], ["袋はいりません", "ふくろ は いりません", "shop", "fukuro wa irimasen"], ["もう少し安いのはありますか", "もう すこし やすい の は あります か", "shop", "mou sukoshi yasui no wa arimasu ka"], ["試着してもいいですか", "しちゃく して も いい です か", "shop", "shichaku shite mo ii desu ka"], ["他の色はありますか", "ほか の いろ は あります か", "shop", "hoka no iro wa arimasu ka"], ["レシートをください", "レシート を ください", "shop", "reshiito o kudasai"], ["全部でいくらですか", "ぜんぶ で いくら です か", "shop", "zenbu de ikura desu ka"], ["二人です", "ふたり です", "food", "futari desu"], ["メニューをください", "メニュー を ください", "food", "menyuu o kudasai"], ["おすすめは何ですか", "おすすめ は なん です か", "food", "osusume wa nan desu ka"], ["これにします", "これ に します", "food", "kore ni shimasu"], ["水をください", "みず を ください", "food", "mizu o kudasai"], ["お会計をお願いします", "おかいけい を おねがい します", "food", "okaikei o onegai shimasu"], ["とてもおいしいです", "とても おいしい です", "food", "totemo oishii desu"], ["肉は食べられません", "にく は たべられません", "food", "niku wa taberaremasen"], ["辛くしないでください", "からく しないで ください", "food", "karaku shinaide kudasai"], ["もう一つお願いします", "もう ひとつ おねがい します", "food", "mou hitotsu onegai shimasu"], ["駅はどこですか", "えき は どこ です か", "station", "eki wa doko desu ka"], ["東京までいくらですか", "とうきょう まで いくら です か", "station", "toukyou made ikura desu ka"], ["この電車は京都に行きますか", "この でんしゃ は きょうと に いきます か", "station", "kono densha wa kyouto ni ikimasu ka"], ["次の電車は何時ですか", "つぎ の でんしゃ は なんじ です か", "station", "tsugi no densha wa nanji desu ka"], ["何番線ですか", "なんばんせん です か", "station", "nanbansen desu ka"], ["切符を一枚ください", "きっぷ を いちまい ください", "station", "kippu o ichimai kudasai"], ["乗り換えはどこですか", "のりかえ は どこ です か", "station", "norikae wa doko desu ka"], ["次は何駅ですか", "つぎ は なにえき です か", "station", "tsugi wa nanieki desu ka"], ["ここで降ります", "ここ で おります", "station", "koko de orimasu"], ["空港までお願いします", "くうこう まで おねがい します", "station", "kuukou made onegai shimasu"], ["この席は空いていますか", "この せき は あいて います か", "station", "kono seki wa aite imasu ka"], ["トイレはどこですか", "トイレ は どこ です か", "way", "toire wa doko desu ka"], ["道に迷いました", "みち に まよいました", "way", "michi ni mayoimashita"], ["この近くにコンビニはありますか", "この ちかく に コンビニ は あります か", "way", "kono chikaku ni konbini wa arimasu ka"], ["まっすぐ行ってください", "まっすぐ いって ください", "way", "massugu itte kudasai"], ["右に曲がってください", "みぎ に まがって ください", "way", "migi ni magatte kudasai"], ["左に曲がってください", "ひだり に まがって ください", "way", "hidari ni magatte kudasai"], ["歩いて何分ですか", "あるいて なんぷん です か", "way", "aruite nanpun desu ka"], ["地図で教えてください", "ちず で おしえて ください", "way", "chizu de oshiete kudasai"], ["遠いですか", "とおい です か", "way", "tooi desu ka"], ["駅の前です", "えき の まえ です", "way", "eki no mae desu"], ["助けて", "たすけて", "help", "tasukete"], ["救急車を呼んでください", "きゅうきゅうしゃ を よんで ください", "help", "kyuukyuusha o yonde kudasai"], ["警察を呼んでください", "けいさつ を よんで ください", "help", "keisatsu o yonde kudasai"], ["気分が悪いです", "きぶん が わるい です", "help", "kibun ga warui desu"], ["お腹が痛いです", "おなか が いたい です", "help", "onaka ga itai desu"], ["財布をなくしました", "さいふ を なくしました", "help", "saifu o nakushimashita"], ["病院はどこですか", "びょういん は どこ です か", "help", "byouin wa doko desu ka"], ["英語を話せる人はいますか", "えいご を はなせる ひと は います か", "help", "eigo o hanaseru hito wa imasu ka"], ["大丈夫です", "だいじょうぶ です", "help", "daijoubu desu"], ["アレルギーがあります", "アレルギー が あります", "help", "arerugii ga arimasu"], ["分かりません", "わかりません", "talk", "wakarimasen"], ["もう一度お願いします", "もう いちど おねがい します", "talk", "mou ichido onegai shimasu"], ["ゆっくり話してください", "ゆっくり はなして ください", "talk", "yukkuri hanashite kudasai"], ["書いてください", "かいて ください", "talk", "kaite kudasai"], ["日本語で何と言いますか", "にほんご で なん と いいます か", "talk", "nihongo de nan to iimasu ka"], ["どういう意味ですか", "どういう いみ です か", "talk", "douiu imi desu ka"], ["ちょっと待ってください", "ちょっと まって ください", "talk", "chotto matte kudasai"], ["はい、そうです", "はい、 そう です", "talk", "hai, sou desu"], ["いいえ、違います", "いいえ、 ちがいます", "talk", "iie, chigaimasu"], ["大丈夫ですか", "だいじょうぶ です か", "talk", "daijoubu desu ka"], ["写真を撮ってもいいですか", "しゃしん を とって も いい です か", "talk", "shashin o totte mo ii desu ka"]]};
+// ------------------------------------------------------------------ Zahlen im Alltag (wie Numbers.java)
+const NUM = (() => {
+  const RULES = ["num_small", "num_hyaku", "num_hyaku_x", "price", "hour", "hour_x", "half", "minute",
+    "c_tsu", "c_nin", "month", "month_x", "day_x", "day", "date", "num_sen", "num_sen_x", "num_man",
+    "c_hon", "c_mai", "c_hiki", "c_kai", "c_kai2", "c_satsu", "c_dai", "c_ko", "c_sai"];
+  const READ = 0, MEANING = 1, LISTEN = 2;
+  const D = ["", "いち", "に", "さん", "よん", "ご", "ろく", "なな", "はち", "きゅう"];
+  const KD = ["", "一", "二", "三", "四", "五", "六", "七", "八", "九"];
+  function under(n, naive) {
+    const th = Math.floor(n / 1000), h = Math.floor(n / 100) % 10, t = Math.floor(n / 10) % 10, o = n % 10;
+    let s = "";
+    if (th > 0) s += naive ? D[th] + "せん" : th === 1 ? "せん" : th === 3 ? "さんぜん" : th === 8 ? "はっせん" : D[th] + "せん";
+    if (h > 0) s += naive ? D[h] + "ひゃく" : h === 1 ? "ひゃく" : h === 3 ? "さんびゃく" : h === 6 ? "ろっぴゃく" : h === 8 ? "はっぴゃく" : D[h] + "ひゃく";
+    if (t > 0) s += t === 1 ? "じゅう" : D[t] + "じゅう";
+    if (o > 0) s += D[o];
+    return s;
+  }
+  function readN(n, naive) {
+    if (n === 0) return "ぜろ";
+    const man = Math.floor(n / 10000), rest = n % 10000;
+    return (man > 0 ? under(man, naive) + "まん" : "") + under(rest, naive);
+  }
+  const read = n => readN(n, false), naive = n => readN(n, true);
+  function kanjiUnder(n, keepOne) {
+    const th = Math.floor(n / 1000), h = Math.floor(n / 100) % 10, t = Math.floor(n / 10) % 10, o = n % 10;
+    let s = "";
+    if (th > 0) s += (th === 1 ? "" : KD[th]) + "千";
+    if (h > 0) s += (h === 1 ? "" : KD[h]) + "百";
+    if (t > 0) s += (t === 1 ? "" : KD[t]) + "十";
+    if (o > 0) s += KD[o];
+    if (keepOne && n === 1) return "一";
+    return s;
+  }
+  function kanji(n) {
+    if (n === 0) return "〇";
+    const man = Math.floor(n / 10000), rest = n % 10000;
+    return (man > 0 ? kanjiUnder(man, true) + "万" : "") + kanjiUnder(rest, false);
+  }
+  function digits(n) {
+    const s = String(n); let o = "";
+    for (let i = 0; i < s.length; i++) { if (i > 0 && (s.length - i) % 3 === 0) o += ","; o += s[i]; }
+    return o;
+  }
+  const HOUR = ["", "いちじ", "にじ", "さんじ", "よじ", "ごじ", "ろくじ", "しちじ", "はちじ", "くじ", "じゅうじ", "じゅういちじ", "じゅうにじ"];
+  const MIN1 = ["", "いっぷん", "にふん", "さんぷん", "よんぷん", "ごふん", "ろっぷん", "ななふん", "はっぷん", "きゅうふん"];
+  const MIN1_WRONG = ["じゅうふん", "いちふん", "にぷん", "さんふん", "よんふん", "ごぷん", "ろくふん", "ななぷん", "はちぷん", "きゅうぷん"];
+  const MONTH = ["", "いちがつ", "にがつ", "さんがつ", "しがつ", "ごがつ", "ろくがつ", "しちがつ", "はちがつ", "くがつ", "じゅうがつ", "じゅういちがつ", "じゅうにがつ"];
+  const DAY = ["", "ついたち", "ふつか", "みっか", "よっか", "いつか", "むいか", "なのか", "ようか", "ここのか", "とおか",
+    "じゅういちにち", "じゅうににち", "じゅうさんにち", "じゅうよっか", "じゅうごにち", "じゅうろくにち", "じゅうしちにち", "じゅうはちにち",
+    "じゅうくにち", "はつか", "にじゅういちにち", "にじゅうににち", "にじゅうさんにち", "にじゅうよっか", "にじゅうごにち",
+    "にじゅうろくにち", "にじゅうしちにち", "にじゅうはちにち", "にじゅうくにち", "さんじゅうにち", "さんじゅういちにち"];
+  function minutes(m) {
+    const t = Math.floor(m / 10), o = m % 10;
+    const tens = t === 0 ? "" : t === 1 ? "じゅう" : D[t] + "じゅう";
+    if (o === 0) return (t === 1 ? "" : D[t]) + "じゅっぷん";
+    return tens + MIN1[o];
+  }
+  function minutesWrong(m) {
+    const t = Math.floor(m / 10), o = m % 10;
+    if (o === 0) return (t === 1 ? "" : D[t]) + MIN1_WRONG[0];
+    return (t === 0 ? "" : t === 1 ? "じゅう" : D[t] + "じゅう") + MIN1_WRONG[o];
+  }
+  const COUNTERS = {
+    c_tsu: ["つ", "ひとつ", "ふたつ", "みっつ", "よっつ", "いつつ", "むっつ", "ななつ", "やっつ", "ここのつ", "とお"],
+    c_nin: ["人", "ひとり", "ふたり", "さんにん", "よにん", "ごにん", "ろくにん", "ななにん", "はちにん", "きゅうにん", "じゅうにん"],
+    c_hon: ["本", "いっぽん", "にほん", "さんぼん", "よんほん", "ごほん", "ろっぽん", "ななほん", "はっぽん", "きゅうほん", "じゅっぽん"],
+    c_mai: ["枚", "いちまい", "にまい", "さんまい", "よんまい", "ごまい", "ろくまい", "ななまい", "はちまい", "きゅうまい", "じゅうまい"],
+    c_hiki: ["匹", "いっぴき", "にひき", "さんびき", "よんひき", "ごひき", "ろっぴき", "ななひき", "はっぴき", "きゅうひき", "じゅっぴき"],
+    c_kai: ["回", "いっかい", "にかい", "さんかい", "よんかい", "ごかい", "ろっかい", "ななかい", "はっかい", "きゅうかい", "じゅっかい"],
+    c_kai2: ["階", "いっかい", "にかい", "さんがい", "よんかい", "ごかい", "ろっかい", "ななかい", "はっかい", "きゅうかい", "じゅっかい"],
+    c_satsu: ["冊", "いっさつ", "にさつ", "さんさつ", "よんさつ", "ごさつ", "ろくさつ", "ななさつ", "はっさつ", "きゅうさつ", "じゅっさつ"],
+    c_dai: ["台", "いちだい", "にだい", "さんだい", "よんだい", "ごだい", "ろくだい", "ななだい", "はちだい", "きゅうだい", "じゅうだい"],
+    c_ko: ["個", "いっこ", "にこ", "さんこ", "よんこ", "ごこ", "ろっこ", "ななこ", "はっこ", "きゅうこ", "じゅっこ"],
+    c_sai: ["歳", "いっさい", "にさい", "さんさい", "よんさい", "ごさい", "ろくさい", "ななさい", "はっさい", "きゅうさい", "じゅっさい"]
+  };
+  // c[0] = Zeichen, c[n] = Lesung für n (in Java steht die Regel davor: dort c[n + 1])
+  const SUFFIX = { c_hon: ["ほん", "ぼん", "ぽん"], c_hiki: ["ひき", "びき", "ぴき"], c_kai: ["かい", "がい"], c_kai2: ["かい", "がい"],
+    c_satsu: ["さつ"], c_ko: ["こ"], c_sai: ["さい"], c_mai: ["まい"], c_dai: ["だい"] };
+  const PLAIN = ["", "いち", "に", "さん", "よん", "ご", "ろく", "なな", "はち", "きゅう", "じゅう"];
+  const GEM = ["", "いっ", "", "", "", "", "ろっ", "", "はっ", "", "じゅっ"];
+  const ALSO_OK = ["しちにん", "はちふん", "じっぽん", "じっぷん", "じっかい", "じっさい", "じっぴき", "じっさつ", "じっこ", "ななじ", "さんかい"];
+  const isTime = r => r === "hour" || r === "hour_x" || r === "half" || r === "minute";
+  const isDate = r => r === "month" || r === "month_x" || r === "day_x" || r === "day" || r === "date";
+  const isNumber = r => r.startsWith("num_") || r === "price";
+  const V = (n, a, b) => ({ n, a, b });
+  function pick(r, rnd) {
+    const ni = k => Math.floor(rnd() * k), nb = () => rnd() < 0.5, one = arr => arr[ni(arr.length)];
+    switch (r) {
+      case "num_small": return V(11 + ni(89), 0, 0);
+      case "num_hyaku": return V(one([1, 2, 4, 5, 7, 9]) * 100 + (nb() ? 0 : ni(100)), 0, 0);
+      case "num_hyaku_x": return V(one([3, 6, 8]) * 100 + (nb() ? 0 : ni(10) * 10), 0, 0);
+      case "num_sen": return V(one([1, 2, 4, 5, 6, 7, 9]) * 1000 + ni(10) * 100, 0, 0);
+      case "num_sen_x": return V((nb() ? 3 : 8) * 1000 + ni(10) * 100, 0, 0);
+      case "num_man": return V((1 + ni(9)) * 10000 + ni(10) * 1000, 0, 0);
+      case "price": return V(one([100, 120, 150, 180, 200, 250, 300, 350, 380, 400, 450, 500, 550, 600, 680, 700, 800, 850, 900,
+        980, 1000, 1200, 1500, 1800, 2000, 2500, 3000, 3500, 4800, 5000, 6000, 8000, 9800, 12000, 15000, 30000]), 0, 0);
+      case "hour": return V(0, one([1, 2, 3, 5, 6, 8, 10, 11, 12]), 0);
+      case "hour_x": return V(0, one([4, 7, 9]), 0);
+      case "half": return V(0, 1 + ni(12), 30);
+      case "minute": return V(0, 1 + ni(12), one([1, 3, 4, 5, 6, 8, 10, 15, 20, 25, 40, 45, 50, 2, 7, 9, 11, 16, 18]));
+      case "month": return V(0, one([1, 2, 3, 5, 6, 8, 10, 11, 12]), 0);
+      case "month_x": return V(0, one([4, 7, 9]), 0);
+      case "day_x": return V(0, 0, one([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 14, 20, 24]));
+      case "day": return V(0, 0, one([11, 12, 13, 15, 16, 17, 18, 19, 21, 22, 23, 25, 26, 27, 28, 29, 30, 31]));
+      case "date": return V(0, 1 + ni(12), 1 + ni(28));
+      default: {
+        const max = r === "c_tsu" ? 9 : 10;
+        const irr = r === "c_nin" ? [1, 2, 4, 7] : r === "c_tsu" ? [1, 2, 3, 4, 5, 6, 7, 8, 9] : [1, 3, 6, 8, 10];
+        return V(ni(10) < 7 ? one(irr) : 1 + ni(max), 0, 0);
+      }
+    }
+  }
+  function display(r, v, kanjiNum) {
+    if (isNumber(r)) { const num = kanjiNum ? kanji(v.n) : digits(v.n); return r === "price" ? num + "円" : num; }
+    switch (r) {
+      case "hour": case "hour_x": return v.a + "時";
+      case "half": return v.a + "時半";
+      case "minute": return v.a + "時" + v.b + "分";
+      case "month": case "month_x": return v.a + "月";
+      case "day_x": case "day": return v.b + "日";
+      case "date": return v.a + "月" + v.b + "日";
+      default: return v.n + COUNTERS[r][0];
+    }
+  }
+  function reading(r, v) {
+    if (isNumber(r)) return read(v.n) + (r === "price" ? "えん" : "");
+    switch (r) {
+      case "hour": case "hour_x": return HOUR[v.a];
+      case "half": return HOUR[v.a] + " はん";
+      case "minute": return HOUR[v.a] + " " + minutes(v.b);
+      case "month": case "month_x": return MONTH[v.a];
+      case "day_x": case "day": return DAY[v.b];
+      case "date": return MONTH[v.a] + " " + DAY[v.b];
+      default: return COUNTERS[r][v.n];
+    }
+  }
+  function voicing(s) {
+    for (const [a, b] of [["びゃく", "ひゃく"], ["ぴゃく", "びゃく"], ["ぜん", "せん"], ["ひゃく", "びゃく"], ["せん", "ぜん"]]) {
+      const i = s.indexOf(a); if (i > 0) return s.slice(0, i) + b + s.slice(i + a.length);
+    }
+    return s;
+  }
+  function swapDigits(n) {
+    const s = String(n); if (s.length < 2) return n;
+    if (s[1] === "0") return n;
+    return Number(s[1] + s[0] + s.slice(2));
+  }
+  function wrongReadings(r, v) {
+    const ok = reading(r, v), out = new Set();
+    if (isNumber(r)) {
+      const suffix = r === "price" ? "えん" : "";
+      out.add(naive(v.n) + suffix); out.add(voicing(read(v.n)) + suffix);
+      for (const x of [swapDigits(v.n), v.n + 10, v.n + 100, v.n * 10, v.n - 100, v.n + 1000]) if (x >= 10 && x < 100000000) out.add(read(x) + suffix);
+    } else if (isTime(r)) {
+      let hour = HOUR[v.a];
+      if (v.a === 4) hour = "よんじ"; else if (v.a === 9) hour = "きゅうじ";
+      if (r === "minute") {
+        out.add(HOUR[v.a] + " " + minutesWrong(v.b));
+        if (hour !== HOUR[v.a]) out.add(hour + " " + minutes(v.b));
+        out.add(HOUR[v.a] + " " + minutes(v.b === 59 ? 58 : v.b + 1));
+        out.add(HOUR[v.a % 12 + 1] + " " + minutes(v.b));
+      } else {
+        const tail = r === "half" ? " はん" : "";
+        if (hour !== HOUR[v.a]) out.add(hour + tail);
+        out.add(HOUR[v.a % 12 + 1] + tail); out.add(HOUR[v.a === 1 ? 12 : v.a - 1] + tail); out.add(HOUR[(v.a + 2) % 12 + 1] + tail);
+      }
+    } else if (isDate(r)) {
+      if (r === "month" || r === "month_x" || r === "date") {
+        const m = v.a === 4 ? "よんがつ" : v.a === 7 ? "なながつ" : v.a === 9 ? "きゅうがつ" : null;
+        const day = r === "date" ? " " + DAY[v.b] : "";
+        if (m) out.add(m + day);
+        if (r === "date") { out.add(MONTH[v.a] + " " + read(v.b) + "にち"); if (v.b <= 12 && v.a <= 31) out.add(MONTH[v.b] + " " + DAY[v.a]); }
+        out.add(MONTH[v.a % 12 + 1] + day); out.add(MONTH[v.a === 1 ? 12 : v.a - 1] + day); out.add(MONTH[(v.a + 2) % 12 + 1] + day);
+      }
+      if (r === "day_x" || r === "day") {
+        if (r === "day_x") out.add(read(v.b) + "にち");
+        out.add(DAY[v.b === 31 ? 30 : v.b + 1]); out.add(DAY[v.b === 1 ? 2 : v.b - 1]); out.add(DAY[v.b + 2 > 31 ? v.b - 2 : v.b + 2]);
+      }
+    } else {
+      const n = v.n, c = COUNTERS[r], suf = SUFFIX[r];
+      if (r === "c_tsu") out.add(PLAIN[n] + "つ");
+      else if (r === "c_nin") {
+        if (n === 1) { out.add("いちにん"); out.add("ひとにん"); }
+        if (n === 2) { out.add("ににん"); out.add("ふたにん"); }
+        if (n === 4) out.add("よんにん");
+      } else if (suf) {
+        const prefixes = GEM[n] === "" || n === 8 ? [ok.startsWith(GEM[n]) && n === 8 ? GEM[n] : PLAIN[n]] : [PLAIN[n], GEM[n]];
+        for (let pass = 0; pass < 2; pass++) for (const pre of prefixes) for (const s of suf) {
+          if ((pass === 0) === ok.startsWith(pre)) out.add(pre + s);
+        }
+      }
+      const max = r === "c_tsu" ? 9 : 10;
+      out.add(c[(n % max) + 1]); out.add(c[n === 1 ? 2 : n - 1]);
+      for (let k = 1; k <= max; k++) out.add(c[k]);
+    }
+    out.delete(ok); for (const a of ALSO_OK) out.delete(a);
+    return [...out].filter(s => s && !s.startsWith(" "));
+  }
+  function nearValues(r, v) {
+    const out = [];
+    if (isNumber(r)) {
+      for (const x of [swapDigits(v.n), v.n + 100, v.n * 10, Math.floor(v.n / 10) >= 100 ? Math.floor(v.n / 10) : v.n + 1000, v.n + 10]) if (x !== v.n && x > 0) out.push(V(x, 0, 0));
+    } else if (isTime(r)) {
+      const m = r === "half" ? 30 : r === "minute" ? v.b : 0;
+      out.push(V(0, v.a % 12 + 1, m), V(0, v.a, m === 30 ? 0 : (m + 15) % 60), V(0, v.a === 1 ? 12 : v.a - 1, m), V(0, (v.a + 2) % 12 + 1, m));
+    } else {
+      if (v.b <= 12 && v.a !== v.b && v.a >= 1) out.push(V(0, v.b, v.a));
+      out.push(V(0, v.a % 12 + 1, v.b), V(0, v.a, v.b % 28 + 1), V(0, v.a === 1 ? 12 : v.a - 1, v.b));
+    }
+    return out;
+  }
+  function question(r, rnd, listen, kanjiNum) {
+    const v = pick(r, rnd), kn = kanjiNum && isNumber(r) && Math.floor(rnd() * 3) === 0;
+    const q = { rule: r, display: display(r, v, kn), reading: reading(r, v), valueType: isTime(r) ? 1 : isDate(r) ? 2 : 0, options: [], values: [], correct: 0 };
+    const roll = Math.floor(rnd() * 10);
+    q.kind = r === "date" || (isTime(r) && roll < 3) ? MEANING : listen && (isNumber(r) || isTime(r) || r === "date") && roll >= 7 ? LISTEN : READ;
+    const labels = [], vals = [];
+    if (q.kind === READ) {
+      labels.push(q.reading);
+      for (const w of wrongReadings(r, v)) { if (labels.length >= 4) break; if (!labels.includes(w)) labels.push(w); }
+    } else {
+      labels.push(q.kind === LISTEN ? q.display : ""); vals.push([v.a, v.b]);
+      for (const x of nearValues(r, v)) {
+        if (labels.length >= 4) break;
+        const d = display(r, x, kn);
+        if (q.kind === LISTEN && (labels.includes(d) || reading(r, x) === q.reading)) continue;
+        if (q.kind === MEANING && vals.some(e => e[0] === x.a && e[1] === x.b)) continue;
+        labels.push(q.kind === LISTEN ? d : ""); vals.push([x.a, x.b]);
+      }
+    }
+    const idx = labels.map((_, i) => i);
+    for (let i = idx.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [idx[i], idx[j]] = [idx[j], idx[i]]; }
+    for (const i of idx) { if (i === 0) q.correct = q.options.length; q.options.push(labels[i]); if (q.kind === MEANING) q.values.push(vals[i]); }
+    return q;
+  }
+  const EXAMPLES = { num_small: [47, 0, 0], num_hyaku: [250, 0, 0], num_hyaku_x: [600, 0, 0], num_sen: [2000, 0, 0], num_sen_x: [3000, 0, 0],
+    num_man: [15000, 0, 0], price: [1500, 0, 0], hour: [0, 3, 0], hour_x: [0, 4, 0], half: [0, 7, 30], minute: [0, 10, 15], month: [0, 5, 0],
+    month_x: [0, 9, 0], day_x: [0, 0, 1], day: [0, 0, 15], date: [0, 4, 10], c_nin: [2, 0, 0], c_tsu: [3, 0, 0] };
+  function example(r) {
+    const e = EXAMPLES[r] || [3, 0, 0], v = V(e[0], e[1], e[2]);
+    return { rule: r, display: display(r, v, false), reading: reading(r, v), kind: READ, valueType: isTime(r) ? 1 : isDate(r) ? 2 : 0, values: [[v.a, v.b]] };
+  }
+  return { RULES, READ, MEANING, LISTEN, read, naive, kanji, digits, minutes, reading, display, wrongReadings, nearValues, question, example, V, ALSO_OK };
+})();
+
+// ------------------------------------------------------------------ Nachsprechen vergleichen (wie SpeakMatch.java)
+const speakNorm = s => [...s].filter(c => !/\s/.test(c) && !"。、？！?!.,・「」『』〜~…".includes(c))
+  .map(c => c >= "ァ" && c <= "ヶ" ? String.fromCharCode(c.charCodeAt(0) - 0x60) : c).join("");
+function speakCompare(t, h) {
+  const n = t.length, m = h.length, d = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--) d[i][j] = t[i] === h[j] ? d[i + 1][j + 1] + 1 : Math.max(d[i + 1][j], d[i][j + 1]);
+  const hit = new Array(n).fill(false); let i = 0, j = 0;
+  while (i < n && j < m) { if (t[i] === h[j]) { hit[i] = true; i++; j++; } else if (d[i + 1][j] >= d[i][j + 1]) i++; else j++; }
+  return { target: t, hit, ratio: Math.max(n, m) === 0 ? 0 : d[0][0] / Math.max(n, m) };
+}
+function speakBest(text, reading, heard) {
+  let best = null; const forms = [speakNorm(text), speakNorm(reading)];
+  for (const h of heard) { const nh = speakNorm(h); for (const f of forms) { const r = speakCompare(f, nh); r.heard = h; if (!best || r.ratio > best.ratio) best = r; } }
+  if (!best) best = { target: forms[0], hit: new Array(forms[0].length).fill(false), ratio: 0, heard: "" };
+  best.verdict = best.ratio >= 0.85 ? 2 : best.ratio >= 0.5 ? 1 : 0;
+  return best;
+}
+if (typeof module !== "undefined") module.exports = { NUM, speakBest, speakNorm };
+
 
 // ------------------------------------------------------------------ Speicher
 const store = {
@@ -502,7 +818,8 @@ const store = {
 };
 const $ = id => document.getElementById(id);
 const SET = Object.assign({ hira: true, kata: true, daku: false, yoon: false, kanji: false, kanji2: false, kanji3: false, gradual: true, lessons: true,
-  kanamode: false, typing: true, words: true, sentences: true, listen: true, dictation: true, speak: false, per: 5, goal: 20 }, store.get("kp_settings", {}));
+  kanamode: false, typing: true, words: true, sentences: true, listen: true, dictation: true, speak: false, per: 5, goal: 20,
+  vocab: true, numbers: true, phrases: true }, store.get("kp_settings", {}));
 
 // ------------------------------------------------------------------ Zeichen (wie Kana.java)
 const HIRA = 0, KATA = 1, KANJI = 2, BASE = 0, DAKU = 1, YOON = 2, KANJI_G = 3, KANJI_G2 = 4, KANJI_G3 = 5;
@@ -781,13 +1098,13 @@ function pickLang() {
 }
 
 // ------------------------------------------------------------------ Lernstand (wie Learner.java)
-const Q_READ = 0, Q_REVERSE = 1, Q_TYPE = 2, Q_WORD = 4, Q_LISTEN = 5, Q_KWORD = 6, Q_DICT = 7, Q_SENT = 8;
+const Q_READ = 0, Q_REVERSE = 1, Q_TYPE = 2, Q_WORD = 4, Q_LISTEN = 5, Q_KWORD = 6, Q_DICT = 7, Q_SENT = 8, Q_CARD = 9;
 const MAX_LEVEL = 9, MAX_LEARNING = 4, WORD_LEVEL = 4, LESSON_LEVEL = 3;
 const MIN = 60000, HOUR = 60 * MIN, DAY = 24 * HOUR;
 const INTERVAL = [0, MIN, 5 * MIN, 20 * MIN, HOUR, 4 * HOUR, 12 * HOUR, DAY, 3 * DAY, 7 * DAY];
 const BADGES = ["hira_all", "kata_all", "daku_all", "yoon_all", "kanji_20", "kanji_all", "streak_7", "streak_30", "streak_100", "goal_7", "words_10", "words_100", "listen_50", "draw_50", "points_1000", "points_10000",
-  "kanji2_all", "kwords_25", "dict_25", "sentences_25", "duel_5", "kanji3_all"];
-const BADGE_ICONS = ["あ", "ア", "が", "きゃ", "山", "森", "🔥", "🔥", "🔥", "🎯", "語", "語", "🔊", "✎", "★", "★", "雲", "学", "👂", "は", "⚔", "旅"];
+  "kanji2_all", "kwords_25", "dict_25", "sentences_25", "duel_5", "kanji3_all", "vocab_100", "numbers_all", "phrases_30"];
+const BADGE_ICONS = ["あ", "ア", "が", "きゃ", "山", "森", "🔥", "🔥", "🔥", "🎯", "語", "語", "🔊", "✎", "★", "★", "雲", "学", "👂", "は", "⚔", "旅", "単", "円", "話"];
 const COUNTERS = ["tp", "wr", "lo", "dk", "gd", "kw", "dt", "se", "du"];
 // FSRS-5 (gleiche Werte wie Learner.java)
 const W = [0.40255, 1.18385, 3.173, 15.69105, 7.1949, 0.5345, 1.4604, 0.0046, 1.54575, 0.1192, 1.01925, 1.9395, 0.11, 0.29605, 2.2698, 0.2315, 2.9898, 0.51655, 0.6621];
@@ -808,7 +1125,8 @@ function fsrsNext(S, D, g, t) {
   }
   return [Math.max(0.01, Math.min(36500, ns)), nd];
 }
-let S = Object.assign({ items: {}, wk: "", wp: 0, tp: 0, st: 0, bs: 0, la: "", day: "", dc: 0, dw: 0, wr: 0, lo: 0, dk: 0, gd: 0, kw: 0, dt: 0, se: 0, du: 0, h: {}, ach: {} }, store.get("kp_state", {}));
+let S = Object.assign({ items: {}, wk: "", wp: 0, tp: 0, st: 0, bs: 0, la: "", day: "", dc: 0, dw: 0, wr: 0, lo: 0, dk: 0, gd: 0, kw: 0, dt: 0, se: 0, du: 0, h: {}, ach: {}, cards: {} }, store.get("kp_state", {}));
+if (!S.cards) S.cards = {};
 let version = 0, goalJust = false, newBadges = [], lessonStarted = null;
 const st = it => S.items[it.kana] || (S.items[it.kana] = { l: 0, d: 0, s: 0, c: 0, w: 0, x: 0, t: 0, i: false, ls: 0, dr: 0, cf: {} });
 const save = () => { version++; store.set("kp_state", S); };
@@ -956,6 +1274,9 @@ function badgeProgress(id) {
     case "dict_25": return [S.dt || 0, 25];
     case "sentences_25": return [S.se || 0, 25];
     case "duel_5": return [S.du || 0, 5];
+    case "vocab_100": return [cardsKnown("v:"), 100];
+    case "numbers_all": return [cardsKnown("n:"), NUM.RULES.length];
+    case "phrases_30": return [cardsKnown("p:"), 30];
     default: return [S.tp, 10000];
   }
 }
@@ -1029,12 +1350,164 @@ function recordExtra(kind, ok, ms, hinted, fastMs) {
   countDay(ok, pts); checkBadges(true); save(); return pts;
 }
 
+// ------------------------------------------------------------------ Alltagsjapanisch: Lernkarten (wie Learner.java und Decks.java)
+const CARD_KNOWN = 2, DECK_VOCAB = 0, DECK_NUM = 1, DECK_PHRASE = 2, DECK_MAX_NEW = [10, 3, 5], HIRA_NEEDED = 40;
+const C_INTRO = 0, C_CHOICE = 1, C_LISTEN = 2, C_RECALL = 3;
+const isHan = c => /\p{Script=Han}/u.test(c);
+const VOCAB = (CFG.vocab || []).map(([word, reading, theme, romaji]) => ({ word, reading, theme, romaji, id: "v:" + word, chars: kanaChars(reading), kanji: [...word].filter(isHan) }));
+const PHRASES = (CFG.phrases || []).map(([text, reading, scene, romaji]) => ({ text, reading, scene, romaji, id: "p:" + text, chars: kanaChars(reading.replace(/ /g, "")), hasKanji: text !== reading.replace(/ /g, "") }));
+const HOMOPHONES = new Set(VOCAB.filter((v, i) => VOCAB.findIndex(o => o.reading === v.reading) !== i).map(v => v.reading));
+const CARD_BY = {}; VOCAB.forEach(v => { CARD_BY[v.id] = v; }); PHRASES.forEach(p => { CARD_BY[p.id] = p; });
+const vMeaning = v => sect("vo", v.word) || "", pTrans = p => sect("ph", p.text) || "";
+const deckOf = id => id.startsWith("v:") ? DECK_VOCAB : id.startsWith("n:") ? DECK_NUM : DECK_PHRASE;
+const cardSt = id => S.cards[id] || (S.cards[id] = { l: 0, d: 0, s: 0, c: 0, w: 0, x: 0, i: false, ls: 0, f: 0 });
+const isNewCard = id => { const s = S.cards[id]; return !s || (!s.i && !s.s); };
+const cardsKnown = prefix => Object.entries(S.cards).filter(([k, s]) => k.startsWith(prefix) && s.l >= CARD_KNOWN).length;
+const knownBase = (script, level) => ALL.filter(it => it.group === BASE && it.script === script && lvl(it) >= level).length;
+const basicsReady = () => knownBase(HIRA, LESSON_LEVEL) >= HIRA_NEEDED;
+function deckIds(deck) {
+  if (deck === DECK_VOCAB) return SET.vocab ? VOCAB.filter(v => v.chars.every(c => lvl(c) >= LESSON_LEVEL)).map(v => v.id) : [];
+  if (!basicsReady()) return [];
+  if (deck === DECK_NUM) return SET.numbers ? NUM.RULES.map(r => "n:" + r) : [];
+  return SET.phrases ? PHRASES.filter(p => p.chars.filter(c => c.script === KATA).every(c => lvl(c) >= LESSON_LEVEL)).map(p => p.id) : [];
+}
+function introCard(id) { const s = cardSt(id), now = Date.now(); s.i = true; if (!s.f) s.f = now; s.ls = now; s.d = now; save(); }
+function pickCard(ids, maxNew, avoid, practice) {
+  const now = Date.now(), today = dayKey(now); let due = null, soon = null, fresh = null, dueAt = Infinity, soonAt = Infinity, newToday = 0;
+  for (const id of ids) {
+    const s = S.cards[id], started = !!s && (s.i || s.s > 0);
+    if (started && s.f && dayKey(s.f) === today) newToday++;
+    if (id === avoid) continue;
+    if (!started) { if (!fresh) fresh = id; }
+    else if (s.d <= now) { if (s.d < dueAt) { due = id; dueAt = s.d; } }
+    else if (s.d < soonAt) { soon = id; soonAt = s.d; }
+  }
+  if (due) return due;
+  if (fresh && newToday < maxNew) return fresh;
+  return practice ? soon : null;
+}
+function cardStats(ids) {
+  const now = Date.now(), out = [0, 0, 0];
+  for (const id of ids) { const s = S.cards[id]; if (!s || (!s.i && !s.s)) continue; out[2]++; if (s.l >= CARD_KNOWN) out[0]++; if (s.d <= now) out[1]++; }
+  return out;
+}
+function recordCard(id, ok, hinted, fast, base) {
+  const s = cardSt(id), now = Date.now(), prevLast = s.ls || 0, wasSeen = s.s > 0;
+  s.s++; s.ls = now; s.i = true; if (!s.f) s.f = now;
+  if (ok) { s.c++; s.l = hinted ? Math.max(1, s.l) : Math.min(MAX_LEVEL, s.l + 1); }
+  else { s.w++; if (s.l >= CARD_KNOWN) s.x = (s.x || 0) + 1; s.l = 0; }
+  const grade = !ok ? 1 : hinted ? 2 : fast ? 4 : 3;
+  const nd = fsrsNext(s.fs || 0, s.fd > 0 ? s.fd : initD(3), grade, wasSeen && prevLast > 0 ? (now - prevLast) / DAY : 0);
+  if (!(ok && wasSeen && s.fs > 0 && now < s.d)) s.fs = Math.round(nd[0] * 1000) / 1000;
+  s.fd = Math.round(nd[1] * 1000) / 1000;
+  const jit = v => v * (0.9 + 0.2 * Math.random());
+  if (!ok) s.d = now + 60000;
+  else if (s.l < CARD_KNOWN) s.d = now + jit(10 * MIN);
+  else s.d = now + jit(Math.max(20 * HOUR, Math.min(365 * DAY, intervalDays(s.fs) * DAY)));
+  rollDay();
+  let pts = 0;
+  if (ok) { pts = hinted ? 3 : fast ? Math.floor(base * 3 / 2) : base; award(pts); }
+  countDay(ok, pts); checkBadges(true); save();
+  return pts;
+}
+const needsReading = v => v.kanji.some(k => !BY[k] || lvl(BY[k]) < WORD_LEVEL);
+const withRomaji = (kana, romaji) => SET.kanamode ? kana : kana + "  ·  " + romaji;
+function shuffleInto(c, labels) { const idx = shuffle(labels.map((_, i) => i)); c.options = idx.map(i => labels[i]); c.correct = idx.indexOf(0); }
+function formatValue(type, v) {
+  if (type === 1) return v[0] + ":" + String(v[1]).padStart(2, "0");
+  return new Date(2001, Math.max(0, v[0] - 1), Math.max(1, v[1])).toLocaleDateString(lang, { month: "long", day: "numeric" });
+}
+function buildCard(id) {
+  const s = S.cards[id], fresh = isNewCard(id), learning = !s || s.l < CARD_KNOWN, listen = canListen();
+  const c = { id, deck: deckOf(id), kind: C_CHOICE, badge: "", prompt: "", big: "", sub: "", bigJa: true, optJa: false, options: [], correct: -1,
+    speak: "", success: "", title: "", main: "", tip: "", hint: "", revealBig: "", revealSub: "", points: 15, fastMs: 3500 };
+  if (c.deck === DECK_VOCAB) {
+    const v = CARD_BY[id]; if (!v) return null;
+    const m = vMeaning(v), rl = v.kanji.length ? withRomaji(v.reading, v.romaji) : (SET.kanamode ? "" : v.romaji);
+    c.speak = v.reading;
+    c.success = v.word + (v.kanji.length ? "（" + v.reading + "）" : "") + (SET.kanamode ? "" : " = " + v.romaji) + "  ·  " + m;
+    if (fresh) { Object.assign(c, { kind: C_INTRO, badge: ui("badge_new_word"), prompt: sect("vt", v.theme) || "", big: v.word, title: ui("intro_word"), main: rl || v.reading, tip: ui("label_meaning") + m }); return c; }
+    c.badge = ui("badge_vocab");
+    const roll = Math.floor(Math.random() * 100); let type = learning ? 0 : roll < 40 ? 0 : roll < 75 ? 1 : 2;
+    if (type === 2 && (!listen || HOMOPHONES.has(v.reading))) type = Math.random() < 0.5 ? 0 : 1;
+    const others = [], pool2 = shuffle(VOCAB.slice());
+    for (let pass = 0; pass < 2; pass++) for (const o of pool2) {
+      if (others.length >= 3) break;
+      if (o === v || others.includes(o) || (pass === 0 && o.theme !== v.theme)) continue;
+      const om = vMeaning(o); if (!om || om === m || others.some(e => vMeaning(e) === om)) continue;
+      others.push(o);
+    }
+    const label = o => needsReading(o) ? o.word + "\n" + o.reading : o.word;
+    if (type === 1) { Object.assign(c, { prompt: ui("prompt_vocab_reverse"), big: m, bigJa: false, optJa: true }); shuffleInto(c, [label(v), ...others.map(label)]); }
+    else {
+      c.kind = type === 2 ? C_LISTEN : C_CHOICE;
+      c.prompt = ui(type === 2 ? "prompt_vocab_listen" : "prompt_word_meaning");
+      if (type === 0) { c.big = v.word; c.sub = needsReading(v) ? v.reading : ""; } else c.fastMs = 4500;
+      shuffleInto(c, [m, ...others.map(vMeaning)]);
+    }
+    c.main = v.word + (v.kanji.length ? "  =  " + v.reading : "");
+    c.tip = (SET.kanamode ? "" : v.romaji + "\n") + ui("label_meaning") + m;
+    return c;
+  }
+  if (c.deck === DECK_NUM) {
+    const rule = id.slice(2), tip = sect("nt", rule) || "", counter = rule.startsWith("c_") ? ui("label_counter", sect("nc", rule) || "") : "";
+    c.points = 20; c.fastMs = 4000;
+    if (fresh) {
+      const ex = NUM.example(rule);
+      Object.assign(c, { kind: C_INTRO, badge: ui("badge_new_rule"), prompt: counter, big: ex.display, speak: ex.reading, title: ui("intro_rule"),
+        main: withRomaji(ex.reading, fromKana(ex.reading, false)), tip });
+      return c;
+    }
+    const qq = NUM.question(rule, Math.random, listen, SET.kanji), romaji = fromKana(qq.reading, false);
+    Object.assign(c, { badge: ui("badge_numbers"), speak: qq.reading, hint: tip, success: qq.display + " = " + qq.reading + (SET.kanamode ? "" : " (" + romaji + ")") });
+    if (qq.kind === NUM.READ) Object.assign(c, { prompt: ui("prompt_read"), big: qq.display, sub: counter, optJa: true, options: qq.options.map(o => SET.kanamode ? o : o + "\n" + fromKana(o, false)) });
+    else if (qq.kind === NUM.MEANING) Object.assign(c, { prompt: ui("prompt_num_meaning"), big: qq.display, options: qq.values.map(v => formatValue(qq.valueType, v)) });
+    else Object.assign(c, { kind: C_LISTEN, prompt: ui("prompt_num_listen"), sub: counter, optJa: true, options: qq.options.slice(), fastMs: 5000 });
+    c.correct = qq.correct;
+    c.main = qq.display + "  =  " + qq.reading;
+    c.tip = (SET.kanamode ? "" : romaji + "\n\n") + tip;
+    return c;
+  }
+  const p = CARD_BY[id]; if (!p) return null;
+  const tr = pTrans(p), rl = (p.hasKanji ? p.reading : "") + (SET.kanamode ? "" : (p.hasKanji ? "\n" : "") + p.romaji);
+  Object.assign(c, { speak: p.text, success: p.text + "  ·  " + tr, points: 10, fastMs: 0 });
+  if (fresh) { Object.assign(c, { kind: C_INTRO, badge: ui("badge_new_phrase"), prompt: sect("ps", p.scene) || "", big: p.text, sub: rl, title: ui("intro_phrase"), main: "", tip: tr }); return c; }
+  c.badge = ui("badge_phrase");
+  if (!learning && listen && Math.random() < 0.3) {
+    Object.assign(c, { kind: C_LISTEN, prompt: ui("prompt_phrase_listen"), points: 20, fastMs: 6000 });
+    const labels = [tr], ps = shuffle(PHRASES.slice());
+    for (let pass = 0; pass < 2; pass++) for (const o of ps) {
+      if (labels.length >= 4) break;
+      if (o === p || (pass === 0 && o.scene !== p.scene)) continue;
+      const ot = pTrans(o); if (ot && !labels.includes(ot)) labels.push(ot);
+    }
+    shuffleInto(c, labels); c.main = p.text; c.tip = rl + "\n\n" + tr;
+    return c;
+  }
+  Object.assign(c, { kind: C_RECALL, prompt: ui("prompt_phrase_recall"), big: tr, bigJa: false, sub: sect("ps", p.scene) || "", revealBig: p.text, revealSub: rl });
+  return c;
+}
+function everydaySummary() {
+  const lines = [];
+  if (SET.vocab) { const ids = deckIds(DECK_VOCAB), a = cardStats(VOCAB.map(v => v.id)), r = cardStats(ids); lines.push(ui("everyday_vocab", a[0], r[1], ids.length, VOCAB.length)); }
+  const ready = basicsReady();
+  if (SET.numbers && ready) { const n = cardStats(deckIds(DECK_NUM)); lines.push(ui("everyday_numbers", n[0], NUM.RULES.length, n[1])); }
+  if (SET.phrases && ready) { const a = cardStats(PHRASES.map(p => p.id)), r = cardStats(deckIds(DECK_PHRASE)); lines.push(ui("everyday_phrases", a[0], PHRASES.length, r[1])); }
+  if ((SET.numbers || SET.phrases) && !ready) lines.push(ui("everyday_locked", HIRA_NEEDED, knownBase(HIRA, LESSON_LEVEL)));
+  if (!SET.vocab && !SET.numbers && !SET.phrases) lines.push(ui("everyday_off"));
+  return lines.join("\n");
+}
+
 // ------------------------------------------------------------------ Abgleich (gleiche Regeln wie Learner.merge)
 function merge(local, remote, base) {
   if (!remote || !remote.items) return local;
   base = base || {};
   const out = JSON.parse(JSON.stringify(remote));
   for (const [k, l] of Object.entries(local.items || {})) { const r = out.items[k]; if (!r || (l.ls || 0) >= (r.ls || 0)) out.items[k] = l; }
+  if (local.cards) {
+    out.cards = out.cards || {};
+    for (const [k, l] of Object.entries(local.cards)) { const r = out.cards[k]; if (!r || (l.ls || 0) >= (r.ls || 0)) out.cards[k] = l; }
+  }
   for (const c of COUNTERS) out[c] = (remote[c] || 0) + Math.max(0, (local[c] || 0) - (base[c] || 0));
   const wk = currentWeek(), d = dayKey(Date.now());
   const wv = (o, k) => o.wk === wk ? (o[k] || 0) : 0, dv = (o, k) => o.day === d ? (o[k] || 0) : 0;
@@ -1087,11 +1560,11 @@ function hasJaVoice() {
   const v = speechSynthesis.getVoices();
   return v.length === 0 || v.some(x => /^ja/i.test(x.lang));
 }
-function speak(text) {
+function speak(text, rate) {
   if (!("speechSynthesis" in window)) { toast(ui("speak_none")); return; }
   const voices = speechSynthesis.getVoices(), v = voices.find(x => /^ja/i.test(x.lang));
   if (!v && voices.length) { toast(ui("speak_none")); return; }
-  const u = new SpeechSynthesisUtterance(text); u.lang = "ja-JP"; u.rate = 0.85; if (v) u.voice = v;
+  const u = new SpeechSynthesisUtterance(text); u.lang = "ja-JP"; u.rate = rate || 0.85; if (v) u.voice = v;
   speechSynthesis.cancel(); speechSynthesis.speak(u);
 }
 let toastTimer;
@@ -1139,21 +1612,34 @@ async function showStrokes(it) {
 }
 
 // ------------------------------------------------------------------ Quiz
-const R = { need: 5, streak: 0, answered: 0, points: 0, retry: [], gaps: [], focus: null, total: 0, duel: null };
+const R = { need: 5, streak: 0, answered: 0, points: 0, retry: [], gaps: [], focus: null, total: 0, duel: null, deck: -1, intros: 0 };
+let card = null, lastCardId = null, recallShown = false, advTimer = 0;
 let cur = null, word = null, lastWord = null, kw = null, lastKw = null, sent = null, lastSent = null, dict = null;
 let q = Q_READ, phase = "ask", hint = 0, isNew = false, isRetry = false, shownAt = 0;
 let opts = [], wopts = [], xopts = [], xcorrect = -1;
 
 function startRound(focus) {
-  Object.assign(R, { need: Number(SET.per) || 5, streak: 0, answered: 0, points: 0, retry: [], gaps: [], focus: focus && focus.length ? focus : null, total: focus && focus.length ? 10 : 0, duel: null });
-  newBadges = []; goalJust = false;
+  Object.assign(R, { need: Number(SET.per) || 5, streak: 0, answered: 0, points: 0, retry: [], gaps: [], focus: focus && focus.length ? focus : null, total: focus && focus.length ? 10 : 0, duel: null, deck: -1, intros: 0 });
+  newBadges = []; goalJust = false; clearTimeout(advTimer);
   cur = null; $("quiz").hidden = false; $("done").hidden = true; $("notice").hidden = true;
   $("quit").hidden = !R.focus; $("brand").textContent = R.focus ? ui("practice_brand") : "かな";
   next();
 }
+/** Nur Karten eines Stapels üben (Wörter, Zahlen, Sätze). */
+function startDeck(deck) {
+  if (!deckIds(deck).length) { toast(ui("practice_none")); return false; }
+  Object.assign(R, { need: 1, streak: 0, answered: 0, points: 0, retry: [], gaps: [], focus: null, total: 10, duel: null, deck, intros: 0 });
+  newBadges = []; goalJust = false; clearTimeout(advTimer);
+  cur = null; $("quiz").hidden = false; $("done").hidden = true; $("notice").hidden = true;
+  $("quit").hidden = false; $("brand").textContent = ui("practice_brand");
+  document.querySelectorAll("dialog[open]").forEach(d => d.close());
+  next();
+  return true;
+}
 function startDuel(code, seed, kind, showCode, live) {
   if (R.duel && R.duel.live) clearInterval(R.duel.live.timer);
-  Object.assign(R, { need: 10, streak: 0, answered: 0, points: 0, retry: [], gaps: [], focus: null, total: 0,
+  clearTimeout(advTimer);
+  Object.assign(R, { need: 10, streak: 0, answered: 0, points: 0, retry: [], gaps: [], focus: null, total: 0, deck: -1, intros: 0,
     duel: { code, qs: duelQuestions(seed, kind), idx: 0, correct: 0, ms: 0, showCode, live: live || null } });
   cur = null; $("quiz").hidden = false; $("done").hidden = true; $("notice").hidden = true;
   $("quit").hidden = false; $("brand").textContent = "かな";
@@ -1242,12 +1728,51 @@ function awaitLiveResult(d) {
 const canListen = () => SET.listen && hasJaVoice();
 function tryExtra() {
   let r = Math.random();
+  // Alltagsjapanisch: fällige Karten öfter, sonst ab und zu eine neue
+  const base = [0.08, 0.05, 0.05], due = [0.2, 0.1, 0.1];
+  for (let deck = 0; deck < 3; deck++) {
+    const ids = deckIds(deck); if (!ids.length) continue;
+    if ((r -= cardStats(ids)[1] > 0 ? due[deck] : base[deck]) < 0) return startCard(deck, false);
+  }
   const pW = SET.words ? 0.12 : 0, pK = SET.kanji ? 0.08 : 0, pS = SET.sentences ? 0.07 : 0, pD = SET.dictation && SET.words && hasJaVoice() ? 0.06 : 0;
   if ((r -= pW) < 0) { const w = pickWord(lastWord); if (!w) return false; startWord(w); return true; }
   if ((r -= pK) < 0) { const w = pickKword(lastKw); if (!w) return false; startKword(w); return true; }
   if ((r -= pS) < 0) { const x = pickSentence(lastSent); if (!x) return false; startSentence(x); return true; }
   if ((r -= pD) < 0) { const w = pickWord(lastWord); if (!w) return false; startDictation(w); return true; }
   return false;
+}
+function startCard(deck, practice) {
+  const ids = deckIds(deck); if (!ids.length) return false;
+  const id = pickCard(ids, DECK_MAX_NEW[deck] * (practice ? 2 : 1), lastCardId, practice); if (!id) return false;
+  if (isNewCard(id) && !practice && R.intros >= 1) return false;
+  const c = buildCard(id); if (!c) return false;
+  card = c; lastCardId = id; recallShown = false; xopts = c.options; xcorrect = c.correct;
+  cur = BY["あ"]; q = Q_CARD; isNew = false; isRetry = false; hint = 0;
+  if (c.kind === C_INTRO) {
+    R.intros++; introCard(id); phase = "explain";
+    setExplain(c.title, c.main, "", c.tip, "", null);
+    render(true); anim($("explain"), "slide"); showNotices();
+    setTimeout(() => speak(c.speak), 250);
+    return true;
+  }
+  render(true); shownAt = performance.now(); showNotices();
+  if (c.kind === C_LISTEN) setTimeout(() => speak(c.speak), 200);
+  return true;
+}
+function recallShow() {
+  if (phase !== "ask" || !card || card.kind !== C_RECALL) return;
+  recallShown = true; render(false); anim($("big"), "pulse"); speak(card.speak);
+}
+function recallRate(knew) {
+  if (phase !== "ask" || !card || !recallShown) return;
+  phase = "wait";
+  const pts = recordCard(card.id, knew, false, false, card.points);
+  R.answered++; if (knew) { R.streak++; R.points += pts; }
+  const noticed = showNotices();
+  $("feedback").style.color = knew ? "" : "var(--blue)";
+  $("feedback").textContent = knew ? ui("correct") + "  ·  +" + pts : ui("recall_later");
+  $("progress").textContent = progressText();
+  advTimer = setTimeout(() => { $("feedback").style.color = ""; advance(); }, 700 + (noticed ? 900 : 0));
 }
 function beginExtra(type, hintItem) {
   cur = hintItem; q = type; isNew = false; isRetry = false; hint = 0;
@@ -1286,7 +1811,8 @@ function startDictation(w) {
   setTimeout(() => speak(w.kana), 250);
 }
 function next() {
-  phase = "ask"; hint = 0; isRetry = false; word = null; kw = null; sent = null; dict = null; xcorrect = -1;
+  phase = "ask"; hint = 0; isRetry = false; word = null; kw = null; sent = null; dict = null; xcorrect = -1; card = null;
+  if (R.deck >= 0) { if (!startCard(R.deck, true)) { toast(ui("practice_none")); startRound(); } return; }
   if (R.duel) {
     const d = R.duel; if (d.idx >= d.qs.length) { finishDuel(false); return; }
     const dq = d.qs[d.idx]; cur = dq.target; q = Q_READ; isNew = false; opts = dq.opts.slice();
@@ -1329,7 +1855,7 @@ function buildWordOptions() {
 }
 function progressText() {
   if (R.duel) return ui("duel_progress", Math.min(R.duel.idx + 1, 10), 10);
-  if (R.focus) return R.answered + " / " + R.total;
+  if (R.focus || R.deck >= 0) return R.answered + " / " + R.total;
   let s = "";
   if (R.need > 1) s = Array.from({ length: R.need }, (_, i) => i < R.streak ? "●" : "○").join(" ");
   if (R.retry.length) s += (s ? "   " : "") + ui("retry_count", R.retry.length);
@@ -1343,16 +1869,31 @@ function optLabel(o) {
   return SET.kanamode && !R.duel ? kanaAnswer(o) : o.romaji;
 }
 function render(fresh) {
-  const explain = phase === "explain", it = cur, textOpts = q === Q_WORD || q === Q_KWORD || q === Q_SENT;
+  const explain = phase === "explain", it = cur, cardQ = q === Q_CARD && !!card, recall = cardQ && card.kind === C_RECALL;
+  const textOpts = q === Q_WORD || q === Q_KWORD || q === Q_SENT || cardQ;
   const kanji = isKanji(it) && !textOpts && q !== Q_DICT, typeQ = q === Q_TYPE || q === Q_DICT;
   const counter = kanji ? null : counterpart(it), kanaPrompt = SET.kanamode && !R.duel && !!counter;
   $("progress").textContent = progressText();
-  const badge = R.duel ? ui(R.duel.live ? "badge_live" : "badge_duel") : isRetry ? ui("badge_retry") : isNew ? ui("badge_new") : q === Q_WORD ? ui("badge_word") : q === Q_LISTEN ? ui("badge_listen")
+  const badge = cardQ ? card.badge : R.duel ? ui(R.duel.live ? "badge_live" : "badge_duel") : isRetry ? ui("badge_retry") : isNew ? ui("badge_new") : q === Q_WORD ? ui("badge_word") : q === Q_LISTEN ? ui("badge_listen")
     : q === Q_KWORD ? ui("badge_kanji_word") : q === Q_SENT ? ui("badge_sentence") : q === Q_DICT ? ui("badge_dictation") : "";
   $("badge").textContent = badge; $("badge").classList.toggle("on", !!badge);
   const big = $("big"), compact = typeQ || hint > 0 || explain;
-  big.classList.remove("latin", "tap", "sentence"); big.onclick = null;
-  if (q === Q_WORD) {
+  big.classList.remove("latin", "tap", "sentence"); big.onclick = null; big.style.removeProperty("font-size");
+  if (cardQ) {
+    const shown = recall && recallShown;
+    if (card.kind === C_LISTEN) {
+      $("prompt").textContent = card.prompt; big.textContent = "🔊"; big.classList.add("tap");
+      big.onclick = () => speak(card.speak); big.style.fontSize = (compact ? 64 : 96) + "px";
+    } else {
+      const t = shown ? card.revealBig : card.big, ja = shown || card.bigJa, n = [...t].length;
+      $("prompt").textContent = shown ? card.big : card.prompt; big.textContent = t;
+      if (!ja) big.classList.add("latin");
+      let size = ja ? (n <= 2 ? 100 : n === 3 ? 84 : n === 4 ? 70 : n <= 6 ? 54 : Math.max(24, Math.floor(320 / n))) : (n <= 12 ? 34 : n <= 24 ? 28 : 22);
+      if (explain) size = Math.min(size, 48);
+      big.style.setProperty("font-size", size + "px", "important");
+      if (shown) { big.classList.add("tap"); big.onclick = () => speak(card.speak); }
+    }
+  } else if (q === Q_WORD) {
     $("prompt").textContent = ui(SET.kanamode ? "prompt_word_meaning" : "prompt_word"); big.textContent = word.kana;
     const n = word.kana.length, size = n <= 2 ? 110 : n === 3 ? 88 : n === 4 ? 70 : n <= 6 ? 54 : 44;
     big.style.fontSize = (compact ? size * 0.75 : size) + "px";
@@ -1373,14 +1914,15 @@ function render(fresh) {
     $("prompt").textContent = ui(q === Q_TYPE ? "prompt_type" : kanji ? "prompt_kanji_read" : kanaPrompt ? "prompt_kana_match" : "prompt_read"); big.textContent = it.kana;
     const two = it.kana.length > 1; big.style.fontSize = (compact ? (two ? 80 : 104) : (two ? 110 : 150)) + "px";
   }
-  $("script").textContent = textOpts || q === Q_DICT ? "" : scriptName(it).toUpperCase();
+  $("script").classList.toggle("cardsub", cardQ);
+  $("script").textContent = cardQ ? (recall && recallShown ? card.revealSub : card.sub) : textOpts || q === Q_DICT ? "" : scriptName(it).toUpperCase();
   if (fresh) $("feedback").textContent = "";
-  const maxHint = R.duel ? 0 : (q === Q_WORD || q === Q_LISTEN || isExtra()) ? 1 : 2, canHint = !explain && phase === "ask" && hint < maxHint;
+  const maxHint = maxHintFor(), canHint = !explain && phase === "ask" && hint < maxHint;
   const hb = $("hint-btn"); hb.hidden = explain; hb.classList.toggle("hidden", !canHint);
   hb.textContent = ui(hint === 0 ? "hint_mnemonic" : "hint_more");
   const hv = $("hint");
   if (hint > 0 && !explain) {
-    hv.textContent = q === Q_KWORD ? kw.kanji.map(k => k.kana + "  ·  " + kMeaning(k.kana)).join("\n")
+    hv.textContent = cardQ ? card.hint : q === Q_KWORD ? kw.kanji.map(k => k.kana + "  ·  " + kMeaning(k.kana)).join("\n")
       : q === Q_SENT ? sentTrans(sent)
       : q === Q_DICT ? ui("dictation_length", dict.kana.length) + "  ·  " + dict.kana[0] + " …"
       : q === Q_WORD ? it.kana + "   " + hintText(it, 1, false)
@@ -1389,17 +1931,20 @@ function render(fresh) {
     hv.hidden = false;
   } else hv.hidden = true;
   const ob = $("options");
-  ob.hidden = explain || typeQ;
+  ob.hidden = explain || typeQ || recall;
+  $("recall").hidden = explain || !recall;
+  $("rc-show").hidden = recallShown; $("rc-rate").hidden = !recallShown;
   if (!ob.hidden && fresh) {
     ob.innerHTML = "";
     const labels = xcorrect >= 0 ? xopts.map(t => q === Q_KWORD && !SET.kanamode ? t + "\n" + fromKana(t, false) : t) : q === Q_WORD ? wopts.map(o => o.t) : opts.map(optLabel);
     const longest = Math.max(...labels.map(t => t.length));
-    const kanaOpt = q === Q_REVERSE || q === Q_LISTEN || q === Q_KWORD || (SET.kanamode && !R.duel && q === Q_READ && !kanji);
+    const kanaOpt = q === Q_REVERSE || q === Q_LISTEN || q === Q_KWORD || (cardQ && card.optJa) || (SET.kanamode && !R.duel && q === Q_READ && !kanji);
     labels.forEach((t, i) => {
       const b = document.createElement("button"); b.className = "opt rise" + (kanaOpt ? " kana" : "") + (q === Q_SENT ? " particle" : "");
       b.style.animationDelay = (80 + i * 50) + "ms";
       b.textContent = t; if (kanaOpt || q === Q_SENT) b.lang = "ja";
-      if (q === Q_KWORD) b.style.fontSize = (SET.kanamode ? 24 : 18) + "px";
+      if (cardQ) b.style.fontSize = (t.includes("\n") ? 17 : card.optJa ? (t.length > 8 ? 20 : 26) : (longest > 14 ? 14 : 17)) + "px";
+      else if (q === Q_KWORD) b.style.fontSize = (SET.kanamode ? 24 : 18) + "px";
       else if (kanaOpt) b.style.fontSize = (t.length > 1 ? 30 : 36) + "px";
       else if (q === Q_WORD && SET.kanamode) b.style.fontSize = (longest > 14 ? 14 : 17) + "px";
       else if (q === Q_WORD) b.style.fontSize = (longest > 7 ? 20 : 24) + "px";
@@ -1412,7 +1957,7 @@ function render(fresh) {
   $("type-choice").hidden = q === Q_DICT;
   $("explain").hidden = !explain;
   $("quiz").classList.toggle("explaining", explain);
-  $("dontknow").style.visibility = explain ? "hidden" : "visible";
+  $("dontknow").style.visibility = explain || recall ? "hidden" : "visible";
   if (fresh) anim(big, "pop");
 }
 function onOption(i, btn) {
@@ -1429,7 +1974,7 @@ function onType() {
   const ok = matches(cur, t); answer(ok, ok ? cur : findByRomaji(cur.script, canon(t)), t, -1, null);
   $("type-in").blur();
 }
-const willFinish = () => R.duel ? R.duel.idx >= R.duel.qs.length : R.focus ? R.answered >= R.total && !R.retry.length : (!R.retry.length && R.streak >= R.need);
+const willFinish = () => R.duel ? R.duel.idx >= R.duel.qs.length : R.focus || R.deck >= 0 ? R.answered >= R.total && !R.retry.length : (!R.retry.length && R.streak >= R.need);
 let pendingNotice = [];
 function showNotices() {
   const n = pendingNotice.splice(0);
@@ -1468,7 +2013,10 @@ async function finishDuel(aborted) {
 function answer(ok, chosen, typed, idx, btn) {
   const ms = performance.now() - shownAt; phase = "wait";
   let pts, retryItem = cur, wordChosen = null, rule = R_NONE;
-  if (isExtra()) {
+  if (q === Q_CARD) {
+    pts = recordCard(card.id, ok, hint > 0, card.fastMs > 0 && ms < card.fastMs && hint === 0, card.points);
+    retryItem = null; wordChosen = typed;
+  } else if (isExtra()) {
     const fast = q === Q_SENT ? 4000 : q === Q_DICT ? 3000 * Math.max(2, dict.units.length) : 3500;
     pts = recordExtra(q === Q_KWORD ? "kw" : q === Q_DICT ? "dt" : "se", ok, ms, hint > 0, fast);
     retryItem = null; wordChosen = typed;
@@ -1485,34 +2033,36 @@ function answer(ok, chosen, typed, idx, btn) {
     R.streak++; R.points += pts;
     if (btn) { btn.classList.add("good"); anim(btn, "pulse"); }
     anim($("big"), "pulse");
-    if ((SET.speak || isExtra()) && q !== Q_LISTEN && q !== Q_DICT) speak(speechText());
+    if ((SET.speak || isExtra() || (card && card.kind !== C_LISTEN)) && q !== Q_LISTEN && q !== Q_DICT) speak(speechText());
     let t = ui("correct") + "  ·  " + successText();
     if (hint === 0 && ms < 20000) t += "  ·  " + (ms / 1000).toFixed(1).replace(".", lang === "en" ? "." : ",") + " s";
     $("feedback").textContent = t + "  ·  +" + pts;
     $("progress").textContent = progressText();
-    let delay = (word || isExtra() || isKanji(cur)) ? 1300 : 700;
+    let delay = card ? 1500 : (word || isExtra() || isKanji(cur)) ? 1300 : 700;
     if (q === Q_SENT) delay = 2200;
     if (noticed) delay += 900;
-    if (willFinish()) delay = Math.min(delay, word || isExtra() ? 900 : 450);
-    setTimeout(advance, delay);
+    if (willFinish()) delay = Math.min(delay, word || isExtra() || card ? 900 : 450);
+    advTimer = setTimeout(advance, delay);
   } else {
     R.streak = 0;
     if (retryItem) {
       const k = R.retry.indexOf(retryItem), gap = pool().length > 3 ? 1 : 0;
       if (k >= 0) R.gaps[k] = gap; else { R.retry.push(retryItem); R.gaps.push(gap); }
     }
-    if (isExtra() || (q === Q_WORD && xcorrect >= 0)) explainExtra(wordChosen);
+    if (isExtra() || q === Q_CARD || (q === Q_WORD && xcorrect >= 0)) explainExtra(wordChosen);
     else if (q === Q_WORD) explainWord(retryItem, chosen, wordChosen, rule); else explainChar(chosen, typed);
     phase = "explain"; render(false);
     anim($("big"), "shake"); anim($("explain"), "slide");
     if (navigator.vibrate) navigator.vibrate(60);
-    if (SET.speak || q === Q_LISTEN || isExtra()) speak(speechText());
+    if (SET.speak || q === Q_LISTEN || isExtra() || card) speak(speechText());
   }
 }
 function speechText() {
+  if (card) return card.speak;
   return sent ? sentFull(sent).replace(/ /g, "") : kw ? kw.reading : dict ? dict.kana : word ? word.kana : spokenOf(cur);
 }
 function successText() {
+  if (card) return card.success;
   if (kw) return `${kw.text} = ${SET.kanamode ? kw.reading : kw.reading + " (" + kw.romaji + ")"}  ·  ${kwMeaning(kw.text)}`;
   if (sent) return sentTrans(sent);
   if (dict) return `${dict.kana}${SET.kanamode ? "" : " = " + dict.romaji}  ·  ${meaning(dict.kana)}`;
@@ -1520,7 +2070,7 @@ function successText() {
   return `${cur.kana} = ${ansOf(cur)}` + (isKanji(cur) ? "  ·  " + kMeaning(cur.kana) : "");
 }
 function setExplain(title, main, chosen, tipT, mn, strokesFor) {
-  $("ex-title").textContent = title; $("ex-main").textContent = main; $("ex-main").classList.toggle("long", main.length > 12);
+  $("ex-title").textContent = title; $("ex-main").textContent = main; $("ex-main").hidden = !main; $("ex-main").classList.toggle("long", main.length > 12);
   $("ex-chosen").textContent = chosen; $("ex-chosen").hidden = !chosen;
   $("ex-tip").textContent = tipT; $("ex-tip").hidden = !tipT; $("ex-mn").textContent = mn; $("ex-mn").hidden = !mn;
   showStrokes(strokesFor);
@@ -1555,7 +2105,9 @@ function explainWord(missed, alt, chosenLabel, rule) {
 }
 function explainExtra(chosen) {
   const dk = !chosen || !String(chosen).trim(); let main = "", ch = "", t = "";
-  if (kw) {
+  if (card) {
+    main = card.main; ch = dk ? "" : ui("explain_your_choice", String(chosen).replace(/\n/g, " · ")); t = card.tip;
+  } else if (kw) {
     main = `${kw.text}  =  ${kw.reading}`; ch = dk ? "" : ui("explain_your_reading", chosen);
     t = (SET.kanamode ? "" : kw.romaji + "\n") + ui("label_meaning") + kwMeaning(kw.text) + "\n\n" + kw.kanji.map(k => `${k.kana} = ${k.reading}`).join("  ·  ");
   } else if (sent) {
@@ -1593,7 +2145,7 @@ function finishRound() {
   setGoalBar($("done-goalbar")); $("done-code").hidden = true; $("done-share").hidden = true;
   const p = pool(), known = p.filter(it => lvl(it) >= 4).length, sd = streakDays();
   $("done-stats").textContent = ui("summary_known", known, p.length) + (sd > 0 ? "\n🔥 " + ui("streak_days", sd) : "");
-  $("progress").textContent = ""; $("quit").hidden = true; $("brand").textContent = "かな"; R.focus = null;
+  $("progress").textContent = ""; $("quit").hidden = true; $("brand").textContent = "かな"; R.focus = null; R.deck = -1;
   submit().then(() => sync(false));
 }
 function shareText(text) {
@@ -2002,10 +2554,9 @@ $("st-push-hour").addEventListener("change", async e => { PUSH.hour = Number(e.t
 function dueForecast(n) {
   const out = new Array(n).fill(0), ends = [];
   for (let i = 1; i <= n; i++) { const t = new Date(); t.setHours(0, 0, 0, 0); t.setDate(t.getDate() + i); ends.push(t.getTime()); }
-  for (const it of pool()) {
-    const s = S.items[it.kana]; if (!s || !s.s) continue;
-    for (let i = 0; i < n; i++) if ((s.d || 0) < ends[i]) { out[i]++; break; }
-  }
+  const list = pool().map(it => S.items[it.kana]).filter(s => s && s.s);
+  for (const [k, s] of Object.entries(S.cards)) if (s.s && (k.startsWith("v:") ? SET.vocab : k.startsWith("n:") ? SET.numbers : SET.phrases)) list.push(s);
+  for (const s of list) for (let i = 0; i < n; i++) if ((s.d || 0) < ends[i]) { out[i]++; break; }
   return out;
 }
 function openStats() {
@@ -2041,6 +2592,7 @@ function openStats() {
   $("sx-hard").style.color = hard.length ? "" : "var(--muted)";
   $("sx-hard-btn").hidden = !hard.length;
   $("sx-hard-btn").onclick = () => { $("dlg-stats").close(); startRound(hardest(10)); };
+  $("sx-ev").textContent = everydaySummary();
   $("sx-badgecount").textContent = ui("badges_count", Object.keys(S.ach).length, BADGES.length);
   $("sx-badges").innerHTML = "";
   BADGES.forEach((id, i) => {
@@ -2053,6 +2605,71 @@ function openStats() {
   $("sx-badgedesc").textContent = "";
   $("dlg-stats").showModal();
 }
+
+// ------------------------------------------------------------------ Sprechen üben (wie SpeakActivity.java)
+const SP = { i: store.get("kp_speak_i", 0), hide: false, shown: false, rec: null };
+const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+function openSpeak() {
+  if (SP.i >= PHRASES.length) SP.i = 0;
+  const bar = $("sp-scenes"); bar.innerHTML = "";
+  [...new Set(PHRASES.map(p => p.scene))].forEach(sc => {
+    const b = document.createElement("button"); b.className = "card-btn"; b.dataset.scene = sc; b.textContent = sect("ps", sc) || sc;
+    b.onclick = () => { SP.i = PHRASES.findIndex(p => p.scene === sc); SP.shown = false; showSpeak(); };
+    bar.appendChild(b);
+  });
+  $("sp-rec").disabled = !Recognition; $("sp-rec").style.opacity = Recognition ? "" : ".5"; $("sp-norec").hidden = !!Recognition;
+  $("sp-hide").checked = SP.hide;
+  showSpeak();
+  document.querySelectorAll("dialog[open]").forEach(d => d.close());
+  $("dlg-speak").showModal();
+}
+function showSpeak() {
+  const p = PHRASES[SP.i]; if (!p) return;
+  store.set("kp_speak_i", SP.i);
+  const covered = SP.hide && !SP.shown;
+  $("sp-scene").textContent = (sect("ps", p.scene) || "").toUpperCase();
+  $("sp-count").textContent = ui("speak_count", SP.i + 1, PHRASES.length);
+  $("sp-tr").textContent = pTrans(p);
+  $("sp-jp").textContent = covered ? "？" : p.text; $("sp-jp").style.color = covered ? "var(--muted)" : "";
+  const rd = (p.hasKanji ? p.reading : "") + (SET.kanamode ? "" : (p.hasKanji ? "\n" : "") + p.romaji);
+  $("sp-rd").textContent = covered ? ui("speak_tap") : rd; $("sp-rd").hidden = !$("sp-rd").textContent;
+  $("sp-res").hidden = true; $("sp-heard").hidden = true;
+  document.querySelectorAll("#sp-scenes button").forEach(b => b.classList.toggle("on", b.dataset.scene === p.scene));
+}
+function speakResult(heard) {
+  const p = PHRASES[SP.i], res = $("sp-res"), hv = $("sp-heard");
+  res.hidden = false;
+  if (!heard.length) { res.style.color = "var(--muted)"; res.textContent = ui("speak_nothing"); return; }
+  const r = speakBest(p.text, p.reading, heard);
+  res.style.color = r.verdict === 2 ? "var(--green)" : r.verdict === 1 ? "var(--blue)" : "var(--red)";
+  res.textContent = ui("speak_heard", r.heard) + "\n" + ui(r.verdict === 2 ? "speak_match" : r.verdict === 1 ? "speak_close" : "speak_off");
+  hv.hidden = r.verdict === 2; hv.innerHTML = "";
+  [...r.target].forEach((ch, k) => { const sp = document.createElement("span"); sp.textContent = ch; if (!r.hit[k]) sp.className = "miss"; hv.appendChild(sp); });
+  if (SP.hide && !SP.shown) { SP.shown = true; const keep = [res.textContent, res.style.color, hv.innerHTML, hv.hidden]; showSpeak(); res.hidden = false; [res.textContent, res.style.color, hv.innerHTML, hv.hidden] = keep; }
+}
+function speakRecord() {
+  if (!Recognition) { toast(ui("speak_no_recognizer")); return; }
+  try { if (SP.rec) SP.rec.abort(); } catch (e) {}
+  const rec = new Recognition(); SP.rec = rec;
+  rec.lang = "ja-JP"; rec.maxAlternatives = 5; rec.interimResults = false;
+  let got = false;
+  $("sp-rec").classList.add("on"); $("sp-rec").textContent = "🎤 …";
+  rec.onresult = e => { got = true; const alts = []; const res = e.results[0]; for (let k = 0; k < res.length; k++) alts.push(res[k].transcript); speakResult(alts); };
+  rec.onerror = () => { if (!got) speakResult([]); };
+  rec.onend = () => { $("sp-rec").classList.remove("on"); $("sp-rec").textContent = ui("speak_record"); };
+  try { rec.start(); } catch (e) { toast(ui("speak_no_recognizer")); }
+}
+$("sx-ev-vocab").onclick = () => startDeck(DECK_VOCAB);
+$("sx-ev-num").onclick = () => startDeck(DECK_NUM);
+$("sx-ev-ph").onclick = () => startDeck(DECK_PHRASE);
+$("sx-ev-speak").onclick = openSpeak;
+$("sp-listen").onclick = () => speak(PHRASES[SP.i].text);
+$("sp-slow").onclick = () => speak(PHRASES[SP.i].text, 0.55);
+$("sp-jp").onclick = () => { if (SP.hide && !SP.shown) { SP.shown = true; showSpeak(); } speak(PHRASES[SP.i].text); };
+$("sp-rec").onclick = speakRecord;
+$("sp-hide").onchange = e => { SP.hide = e.target.checked; SP.shown = false; showSpeak(); };
+$("sp-prev").onclick = () => { SP.i = (SP.i - 1 + PHRASES.length) % PHRASES.length; SP.shown = false; showSpeak(); };
+$("sp-next").onclick = () => { SP.i = (SP.i + 1) % PHRASES.length; SP.shown = false; showSpeak(); };
 
 // ------------------------------------------------------------------ Einstellungen und Design
 function applyTheme() {
@@ -2070,6 +2687,7 @@ function openSettings() {
   $("st-per").value = String(SET.per); $("st-lang").value = lang;
   const g = $("st-goal"); g.innerHTML = [0, 10, 20, 30, 50, 100].map((v, i) => `<option value="${v}">${arr("goal_labels")[i] || v}</option>`).join(""); g.value = String(SET.goal);
   const h = $("st-push-hour"); h.innerHTML = Array.from({ length: 24 }, (_, i) => `<option value="${i}">${String(i).padStart(2, "0")}:00</option>`).join(""); h.value = String(PUSH.hour);
+  $("st-everyday").textContent = ui("everyday_info", HIRA_NEEDED);
   $("st-push").checked = !!PUSH.on && pushSupported() && Notification.permission === "granted";
   pushNote();
   applyTheme();
@@ -2105,11 +2723,16 @@ function applyStatic() {
   $("dontknow").textContent = ui("dont_know"); $("type-ok").textContent = ui("check"); $("type-choice").textContent = ui("show_choices");
   $("type-in").placeholder = ui("type_hint"); $("ex-continue").textContent = ui("continue_"); $("again").textContent = ui("again");
   $("done-board").textContent = ui("leaderboard"); $("done-home").textContent = ui("home_hint"); $("quit").textContent = ui("finish");
+  $("rc-show").textContent = ui("recall_show"); $("rc-again").textContent = ui("recall_again"); $("rc-knew").textContent = ui("recall_knew");
   document.title = ui("web_title");
 }
-$("hint-btn").onclick = () => { const mx = R.duel ? 0 : (q === Q_WORD || q === Q_LISTEN || isExtra()) ? 1 : 2; if (phase === "ask" && hint < mx) { hint++; render(false); } };
+function maxHintFor() { return R.duel ? 0 : q === Q_CARD ? (card && card.hint ? 1 : 0) : (q === Q_WORD || q === Q_LISTEN || isExtra()) ? 1 : 2; }
+$("hint-btn").onclick = () => { if (phase === "ask" && hint < maxHintFor()) { hint++; render(false); } };
+$("rc-show").onclick = recallShow;
+$("rc-again").onclick = () => recallRate(false);
+$("rc-knew").onclick = () => recallRate(true);
 $("dontknow").onclick = () => { if (phase !== "ask") return; if (R.duel) answerDuel(false, null); else answer(false, null, null, -1, null); };
-$("quit").onclick = () => { if (R.duel) finishDuel(true); else { R.focus = null; startRound(); } };
+$("quit").onclick = () => { if (R.duel) finishDuel(true); else { R.focus = null; R.deck = -1; startRound(); } };
 $("type-ok").onclick = onType;
 $("type-in").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); onType(); } });
 $("type-in").addEventListener("input", e => { const t = e.target.value.trim(); $("type-preview").textContent = t && (q === Q_DICT || (SET.kanamode && q === Q_TYPE)) ? toHiragana(t) : ""; });
