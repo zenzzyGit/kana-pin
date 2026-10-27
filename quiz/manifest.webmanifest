@@ -1,6 +1,6 @@
 {
- "name": "Kana PIN",
- "short_name": "Kana PIN",
+ "name": "KagiScreen",
+ "short_name": "KagiScreen",
  "start_url": "./",
  "scope": "./",
  "display": "standalone",
