@@ -283,6 +283,28 @@ select, .text-in { background: var(--card); color: var(--ink); border: 1.5px sol
 .pl-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .pl-opts button { min-height: 72px; font-size: 26px; }
 .lg-head { font-family: var(--hand); font-size: 22px; margin-top: 8px; }
+.path li.open { color: var(--red); font-weight: 700; cursor: pointer; }
+.path li.done { cursor: pointer; }
+.path .mk { display: inline-block; width: 1.5em; font-family: system-ui, sans-serif; font-size: 1.05em; }
+.path .sub { font-weight: 700; color: var(--muted); font-size: 14px; margin: 12px 0 2px; list-style: none; }
+.ex-q { display: flex; flex-direction: column; min-height: 62vh; }
+.ex-q .grow { flex: 1; }
+.ex-big { font-family: var(--hand); font-weight: 600; text-align: center; line-height: 1.2; margin: 6px 0; overflow-wrap: anywhere; }
+.ex-big.latin { font-family: var(--body); font-weight: 700; }
+.ex-sub { text-align: center; color: var(--blue); white-space: pre-line; }
+.ex-prompt { text-align: center; color: var(--muted); }
+.ex-sec { text-align: center; color: var(--red); font-size: 12px; letter-spacing: .15em; margin-top: 8px; }
+.ex-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ex-opts button { min-height: 76px; white-space: pre-line; font-size: 18px; padding: 6px; }
+.ex-opts button.ja { font-family: var(--hand); font-weight: 600; font-size: 24px; }
+.ex-stamp { display: block; width: max-content; margin: 18px auto 10px; padding: 4px 26px; border: 4px solid var(--red); color: var(--red); border-radius: 16px;
+  font-family: var(--hand); font-weight: 600; font-size: 54px; transform: rotate(-8deg); }
+.ex-stamp.fail { border-color: var(--blue); color: var(--blue); font-size: 40px; }
+.ex-res { text-align: center; font-weight: 700; white-space: pre-line; }
+.ex-mis { margin-top: 8px; background: var(--card); border: 1.5px solid var(--ink); border-radius: 10px; padding: 8px 14px; }
+.ex-mis .q { font-family: var(--hand); font-size: 20px; }
+.ex-mis .ok { color: var(--green); }
+.ex-mis .no { color: var(--red); }
 .rowx .rk.up { color: var(--green); }
 .rowx .rk.down { color: var(--red); }
 .opt.particle { font-family: var(--hand); font-weight: 600; font-size: 34px; }
@@ -465,6 +487,13 @@ select, .text-in { background: var(--card); color: var(--ink); border: 1.5px sol
   </div>
 </dialog>
 
+<dialog id="dlg-exam">
+  <div class="sheet">
+    <div class="sheet-head"><h2 id="ex-title2"></h2><button class="icon-btn" id="ex-close">✕</button></div>
+    <div id="ex-body"></div>
+  </div>
+</dialog>
+
 <dialog id="dlg-place">
   <div class="sheet">
     <div class="sheet-head"><h2 data-ui="place_title"></h2><button class="icon-btn" data-close>✕</button></div>
@@ -497,7 +526,7 @@ select, .text-in { background: var(--card); color: var(--ink); border: 1.5px sol
   <div class="sheet">
     <div class="sheet-head"><h2 data-ui="h_progress"></h2><button class="icon-btn" data-close>✕</button></div>
     <div class="me-card"><b id="sx-goal"></b><div class="goalbar" id="sx-goalbar" style="width:100%;margin-top:8px"><i></i></div><div id="sx-streak" style="margin-top:8px"></div><div class="tiny" id="sx-known" style="margin-top:6px"></div><div id="sx-lesson" style="margin-top:8px;color:var(--blue);font-weight:700;white-space:pre-line" lang="ja"></div></div>
-    <div class="sec"><b>1</b><span data-ui="path_title"></span></div>
+    <div class="sec"><b>1</b><span data-ui="path_goal"></span></div>
     <b id="sx-path-pct" style="color:var(--blue)"></b>
     <div class="goalbar" id="sx-path-bar" style="width:100%;margin-top:6px"><i></i></div>
     <ul class="path" id="sx-path"></ul>
@@ -1256,8 +1285,8 @@ const MAX_LEVEL = 9, MAX_LEARNING = 4, WORD_LEVEL = 4, LESSON_LEVEL = 3;
 const MIN = 60000, HOUR = 60 * MIN, DAY = 24 * HOUR;
 const INTERVAL = [0, MIN, 5 * MIN, 20 * MIN, HOUR, 4 * HOUR, 12 * HOUR, DAY, 3 * DAY, 7 * DAY];
 const BADGES = ["hira_all", "kata_all", "daku_all", "yoon_all", "kanji_20", "kanji_all", "streak_7", "streak_30", "streak_100", "goal_7", "words_10", "words_100", "listen_50", "draw_50", "points_1000", "points_10000",
-  "kanji2_all", "kwords_25", "dict_25", "sentences_25", "duel_5", "kanji3_all", "vocab_100", "numbers_all", "phrases_30", "grammar_all", "reading_all"];
-const BADGE_ICONS = ["あ", "ア", "が", "きゃ", "山", "森", "🔥", "🔥", "🔥", "🎯", "語", "語", "🔊", "✎", "★", "★", "雲", "学", "👂", "は", "⚔", "旅", "単", "円", "話", "文", "読"];
+  "kanji2_all", "kwords_25", "dict_25", "sentences_25", "duel_5", "kanji3_all", "vocab_100", "numbers_all", "phrases_30", "grammar_all", "reading_all", "exam_first", "exam_n5"];
+const BADGE_ICONS = ["あ", "ア", "が", "きゃ", "山", "森", "🔥", "🔥", "🔥", "🎯", "語", "語", "🔊", "✎", "★", "★", "雲", "学", "👂", "は", "⚔", "旅", "単", "円", "話", "文", "読", "合", "五"];
 const COUNTERS = ["tp", "wr", "lo", "dk", "gd", "kw", "dt", "se", "du"];
 // FSRS-5 (gleiche Werte wie Learner.java)
 const W = [0.40255, 1.18385, 3.173, 15.69105, 7.1949, 0.5345, 1.4604, 0.0046, 1.54575, 0.1192, 1.01925, 1.9395, 0.11, 0.29605, 2.2698, 0.2315, 2.9898, 0.51655, 0.6621];
@@ -1278,7 +1307,8 @@ function fsrsNext(S, D, g, t) {
   }
   return [Math.max(0.01, Math.min(36500, ns)), nd];
 }
-let S = Object.assign({ items: {}, wk: "", wp: 0, tp: 0, st: 0, bs: 0, la: "", day: "", dc: 0, dw: 0, wr: 0, lo: 0, dk: 0, gd: 0, kw: 0, dt: 0, se: 0, du: 0, h: {}, ach: {}, cards: {}, xs: {} }, store.get("kp_state", {}));
+let S = Object.assign({ items: {}, wk: "", wp: 0, tp: 0, st: 0, bs: 0, la: "", day: "", dc: 0, dw: 0, wr: 0, lo: 0, dk: 0, gd: 0, kw: 0, dt: 0, se: 0, du: 0, h: {}, ach: {}, cards: {}, xs: {}, ex: {} }, store.get("kp_state", {}));
+if (!S.ex) S.ex = {};
 if (!S.cards) S.cards = {};
 if (!S.xs) S.xs = {};
 let version = 0, goalJust = false, newBadges = [], lessonStarted = null;
@@ -1435,6 +1465,8 @@ function badgeProgress(id) {
     case "phrases_30": return [cardsKnown("p:"), 30];
     case "grammar_all": return [cardsKnown("g:"), GRAM.RULES.length];
     case "reading_all": return [cardsKnown("t:"), READING.length];
+    case "exam_first": return [Object.values(S.ex || {}).filter(e => e[1] > 0).length, 1];
+    case "exam_n5": return [examPassed("n5") ? 1 : 0, 1];
     default: return [S.tp, 10000];
   }
 }
@@ -1744,6 +1776,13 @@ function merge(local, remote, base) {
   if (local.cards) {
     out.cards = out.cards || {};
     for (const [k, l] of Object.entries(local.cards)) { const r = out.cards[k]; if (!r || (l.ls || 0) >= (r.ls || 0)) out.cards[k] = l; }
+  }
+  if (local.ex) {
+    out.ex = out.ex || {};
+    for (const [k, l] of Object.entries(local.ex)) {
+      const r = out.ex[k];
+      out.ex[k] = r ? [Math.max(l[0] || 0, r[0] || 0), !l[1] ? (r[1] || 0) : !r[1] ? l[1] : Math.min(l[1], r[1])] : l;
+    }
   }
   if (local.xs) {
     out.xs = out.xs || {};
@@ -3077,8 +3116,10 @@ function readRecord(x, res) {
   try { rec.start(); } catch (e) { toast(ui("speak_no_recognizer")); }
 }
 
-// ------------------------------------------------------------------ Lernpfad (wie Path.java)
-const PATH_STAGES = ["hira", "kata", "daku", "words", "numbers", "phrases", "grammar", "kanji", "reading", "vocab"];
+// ------------------------------------------------------------------ Lernpfad (wie Path.java): Hauptziel Kana lesen, danach Aufbau
+const PATH_CORE = ["hira", "kata", "daku", "kana"], PATH_EXTRA = ["words", "numbers", "phrases", "grammar", "kanji", "reading", "vocab", "n5"];
+const PATH_STAGES = [...PATH_CORE, ...PATH_EXTRA];
+const hasMaterial = st => st !== "kana" && st !== "n5";
 function pathProgress(st) {
   switch (st) {
     case "hira": return badgeProgress("hira_all");
@@ -3090,44 +3131,292 @@ function pathProgress(st) {
     case "grammar": return badgeProgress("grammar_all");
     case "kanji": return badgeProgress("kanji_all");
     case "reading": return badgeProgress("reading_all");
-    default: return [badgeProgress("vocab_100")[0], VOCAB.length];
+    case "vocab": return [badgeProgress("vocab_100")[0], VOCAB.length];
+    default: return [examPassed(st) ? 1 : 0, 1];
   }
 }
 const pathFraction = st => { const [a, b] = pathProgress(st); return b <= 0 ? 1 : Math.min(1, a / b); };
-const pathCurrent = () => { const i = PATH_STAGES.findIndex(st => pathFraction(st) < 1); return i < 0 ? PATH_STAGES.length : i; };
-const pathPercent = () => Math.floor(100 * PATH_STAGES.reduce((a, st) => a + pathFraction(st), 0) / PATH_STAGES.length);
+const materialDone = st => !hasMaterial(st) || pathFraction(st) >= 1;
+const stageComplete = st => examPassed(st);  // Prüfung bestanden = Etappe geschafft
+function examOpen(st) {
+  if (st === "kana") return ["hira", "kata", "daku"].every(materialDone);
+  if (st === "n5") return examPassed("kana") && materialDone("words") && materialDone("grammar");
+  return materialDone(st);
+}
+const pathCurrent = () => { const i = PATH_STAGES.findIndex(st => !stageComplete(st)); return i < 0 ? PATH_STAGES.length : i; };
+const stageValue = st => examPassed(st) ? 1 : hasMaterial(st) ? 0.8 * pathFraction(st) : 0;
+const pathPercent = list => Math.floor(100 * list.reduce((a, st) => a + stageValue(st), 0) / list.length);
 function pathAutoUnlock() {
   const out = [];
   if (!SET.pathauto) return out;
   if (pathFraction("hira") >= 1 && !SET.kata) { SET.kata = true; out.push("Katakana"); }
   if (SET.kata && pathFraction("kata") >= 1 && !(SET.daku && SET.yoon)) { SET.daku = true; SET.yoon = true; out.push("Dakuten · Yōon"); }
-  if (SET.daku && SET.yoon && pathFraction("daku") >= 1 && !SET.kanji) { SET.kanji = true; out.push(ui("kanji_setting")); }
   if (out.length) { store.set("kp_settings", SET); toast(ui("path_unlocked", out.join(", "))); }
   return out;
 }
 function pathAction(st) {
+  if (examOpen(st) && !examPassed(st)) { openExam(st); return; }
   if (st === "words" || st === "vocab") startDeck(DECK_VOCAB);
   else if (st === "numbers") startDeck(DECK_NUM);
   else if (st === "phrases") startDeck(DECK_PHRASE);
   else if (st === "grammar") startDeck(DECK_GRAMMAR);
   else if (st === "reading") openRead();
-  else { document.querySelectorAll("dialog[open]").forEach(d => d.close()); startRound(); }
+  else { if (st === "kanji" && !SET.kanji) { SET.kanji = true; store.set("kp_settings", SET); } document.querySelectorAll("dialog[open]").forEach(d => d.close()); startRound(); }
 }
+const stageName = st => ui("path_" + st);
 function renderPath() {
-  const cur = pathCurrent(), pct = pathPercent();
-  $("sx-path-pct").textContent = ui("path_percent", pct);
-  $("sx-path-bar").querySelector("i").style.width = pct + "%";
-  $("sx-path").innerHTML = "";
+  const cur = pathCurrent(), core = pathPercent(PATH_CORE), extra = pathPercent(PATH_EXTRA);
+  $("sx-path-pct").textContent = ui("path_core_pct", core);
+  $("sx-path-bar").querySelector("i").style.width = core + "%";
+  const ul = $("sx-path"); ul.innerHTML = "";
   PATH_STAGES.forEach((st, i) => {
-    const [a, b] = pathProgress(st), done = i < cur || pathFraction(st) >= 1;
-    const li = document.createElement("li"); li.className = done ? "done" : i === cur ? "cur" : "";
-    li.textContent = (done ? "✓" : i === cur ? "▶" : "○") + "  " + ui("path_" + st) + (i === cur ? "   " + Math.min(a, b) + " / " + b : "");
-    $("sx-path").appendChild(li);
+    if (i === PATH_CORE.length) { const h = document.createElement("li"); h.className = "sub"; h.textContent = ui("path_extra", extra); ul.appendChild(h); }
+    const [a, b] = pathProgress(st), done = stageComplete(st), open = !done && examOpen(st);
+    const li = document.createElement("li"); li.className = done ? "done" : open ? "open" : i === cur ? "cur" : "";
+    const mk = document.createElement("span"); mk.className = "mk"; mk.textContent = done ? "✓" : open ? "●" : i === cur ? "▶" : "○";
+    li.append(mk, stageName(st) + (done ? "   " + ui("path_passed") : open ? "   " + ui("path_exam_open") : i === cur && hasMaterial(st) ? "   " + Math.min(a, b) + " / " + b : ""));
+    if (done || open) li.onclick = () => openExam(st);
+    ul.appendChild(li);
   });
   const btn = $("sx-path-btn"); btn.hidden = cur >= PATH_STAGES.length;
-  if (cur < PATH_STAGES.length) { btn.textContent = ui("path_next", ui("path_" + PATH_STAGES[cur])); btn.onclick = () => pathAction(PATH_STAGES[cur]); }
+  if (cur < PATH_STAGES.length) {
+    const st = PATH_STAGES[cur];
+    btn.textContent = examOpen(st) ? ui("path_exam", stageName(st)) : ui("path_next", stageName(st));
+    btn.onclick = () => pathAction(st);
+  }
   $("sx-place").hidden = !(cur === 0 && pathProgress("hira")[0] < 10);
 }
+
+// ------------------------------------------------------------------ Abschlussprüfungen (wie Exam.java)
+const examPassed = id => !!(S.ex && S.ex[id] && S.ex[id][1] > 0);
+const examBest = id => S.ex && S.ex[id] ? S.ex[id][0] : -1;
+const examPass = id => id === "n5" ? 70 : 80;
+const examSize = id => ({ numbers: 15, phrases: 15, reading: 12, vocab: 30, kana: 30, n5: 40 })[id] || 20;
+const otherScript = t => [...t].map(c => c >= "ぁ" && c <= "ゖ" ? String.fromCharCode(c.charCodeAt(0) + 0x60) : c >= "ァ" && c <= "ヶ" ? String.fromCharCode(c.charCodeAt(0) - 0x60) : c).join("");
+function exFill(q, right, pool) {
+  const labels = [right];
+  for (const x of shuffle([...pool])) { if (labels.length >= 4) break; if (x && !labels.includes(x)) labels.push(x); }
+  if (labels.length < 4) return false;
+  const l = shuffle(labels); q.options = l; q.correct = l.indexOf(right); return true;
+}
+const exQ = o => Object.assign({ section: "kana", prompt: "", big: "", sub: "", speak: "", bigJa: true, optJa: false, listen: false, options: [], correct: 0, item: null, cardId: null }, o);
+function exKana(out, n, script, group) {
+  const items = shuffle(ALL.filter(it => !isKanji(it) && (group < 0 || it.group === group) && (script < 0 || it.script === script)
+    && (group >= 0 || (it.script === KATA ? SET.kata : SET.hira))));
+  for (const it of items) {
+    if (n <= 0) break;
+    const others = distractors(it, 6, false), rev = Math.random() < 0.5 && !SET.kanamode;
+    const q = exQ({ item: it });
+    if (rev) { Object.assign(q, { prompt: ui("prompt_reverse"), big: it.romaji, bigJa: false, optJa: true }); if (!exFill(q, it.kana, others.map(o => o.kana))) continue; }
+    else { Object.assign(q, { prompt: ui("prompt_read"), big: it.kana, optJa: SET.kanamode }); if (!exFill(q, SET.kanamode ? kanaAnswer(it) : it.romaji, others.map(o => SET.kanamode ? kanaAnswer(o) : o.romaji))) continue; }
+    out.push(q); n--;
+  }
+}
+function exKanaWords(out, n) {
+  for (const w of shuffle(WORDS.filter(w => w.script === KATA ? SET.kata : SET.hira))) {
+    if (n <= 0) break;
+    const q = exQ({ big: w.kana, speak: w.kana, item: w.chars[Math.floor(Math.random() * w.chars.length)] });
+    const wrong = new Set(), kanaWrong = [];
+    if (!SET.kanamode) for (const rule of [R_SOKUON, R_CHOON]) if (hasRule(w, rule)) wrong.add(romanize(w.units, -1, null, rule));
+    for (let tries = 0; tries < 60 && wrong.size + kanaWrong.length < 8; tries++) {
+      const pos = Math.floor(Math.random() * w.units.length), c = w.units[pos].item; if (!c) continue;
+      let cand = [...similar(c), ...dakuRel(c)]; if (tries > 20) cand = cand.concat(rowMates(c));
+      if (!cand.length) continue;
+      const alt = cand[Math.floor(Math.random() * cand.length)];
+      if (alt.kana.length !== c.kana.length || alt.romaji === c.romaji) continue;
+      if (SET.kanamode) kanaWrong.push(otherScript(w.units.map((u, i) => i === pos ? alt.kana : u.kana).join("")));
+      else wrong.add(romanize(w.units, pos, alt, R_NONE));
+    }
+    if (SET.kanamode) { Object.assign(q, { prompt: ui("prompt_kana_match"), optJa: true }); if (!exFill(q, otherScript(w.kana), kanaWrong)) continue; }
+    else { q.prompt = ui("prompt_word"); if (!exFill(q, w.romaji, [...wrong])) continue; }
+    out.push(q); n--;
+  }
+}
+function exKanji(out, n) {
+  const items = shuffle(ALL.filter(it => it.group === KANJI_G));
+  for (const it of items) {
+    if (n <= 0) break;
+    let cand = distractors(it, 6, false); if (cand.length < 3) cand = cand.concat(items.filter(o => o !== it && !cand.includes(o)));
+    const q = exQ({ section: "kanji", item: it, prompt: ui("prompt_kanji_read"), big: it.kana });
+    if (!exFill(q, it.reading + "\n" + kMeaning(it.kana), cand.map(o => o.reading + "\n" + kMeaning(o.kana)))) continue;
+    out.push(q); n--;
+  }
+}
+function exVocab(out, n, firstOnly, listen) {
+  const known = VOCAB.filter(v => !isNewCard(v.id));
+  const src = firstOnly && known.length >= n ? known.slice(0, Math.max(n, Math.min(known.length, 50))) : known.length >= n ? known : VOCAB;
+  for (const v of shuffle([...src])) {
+    if (n <= 0) break;
+    const m = vMeaning(v); let others = VOCAB.filter(o => o !== v && o.theme === v.theme); if (others.length < 3) others = VOCAB.filter(o => o !== v);
+    const lab = o => needsReading(o) ? o.word + "\n" + o.reading : o.word;
+    const q = exQ({ section: listen ? "listening" : "vocab", cardId: v.id });
+    if (!listen && Math.random() < 0.5) {
+      Object.assign(q, { prompt: ui("prompt_vocab_reverse"), big: m, bigJa: false, optJa: true });
+      if (!exFill(q, lab(v), others.filter(o => vMeaning(o) !== m).map(lab))) continue;
+    } else {
+      if (listen) Object.assign(q, { prompt: ui("prompt_vocab_listen"), big: "🔊", listen: true, speak: v.reading });
+      else Object.assign(q, { prompt: ui("prompt_word_meaning"), big: v.word, sub: needsReading(v) ? v.reading : "" });
+      if (!exFill(q, m, others.map(vMeaning).filter(x => x !== m))) continue;
+    }
+    out.push(q); n--;
+  }
+}
+function exNumbers(out, n) {
+  const rules = shuffle(Array.from({ length: n }, (_, i) => NUM.RULES[i % NUM.RULES.length]));
+  for (const r of rules) {
+    const nq = NUM.question(r, Math.random, false, false), q = exQ({ section: "numbers", cardId: "n:" + r, big: nq.display, correct: nq.correct });
+    if (nq.kind === NUM.MEANING) Object.assign(q, { prompt: ui("prompt_num_meaning"), options: nq.values.map(v => formatValue(nq.valueType, v)) });
+    else Object.assign(q, { prompt: ui("prompt_read"), optJa: true, options: nq.options.map(o => SET.kanamode ? o : o + "\n" + fromKana(o, false)) });
+    out.push(q);
+  }
+}
+function exPhrases(out, n) {
+  for (const p of shuffle([...PHRASES])) {
+    if (n <= 0) break;
+    let pool = PHRASES.filter(o => o !== p && o.scene === p.scene).map(o => o.text); if (pool.length < 3) pool = PHRASES.filter(o => o !== p).map(o => o.text);
+    const q = exQ({ section: "reading", cardId: p.id, prompt: ui("exam_prompt_phrase"), big: pTrans(p), bigJa: false, optJa: true });
+    if (!exFill(q, p.text, pool)) continue;
+    out.push(q); n--;
+  }
+}
+function exGrammar(out, n) {
+  const rules = shuffle(Array.from({ length: n }, (_, i) => GRAM.RULES[i % GRAM.RULES.length]));
+  for (const r of rules) {
+    let words = grammarWords(r);
+    if (words.length < 2) words = (GRAM.isAdj(r) ? GWORDS.adjs : GWORDS.verbs).filter(w => !GRAM.isAdj(r) || w.cls === GRAM.adjClass(r));
+    if (!words.length) continue;
+    const w = words[Math.floor(Math.random() * words.length)], gq = GRAM.question(r, w.reading, w.cls, Math.random);
+    out.push(exQ({ section: "grammar", cardId: "g:" + r, prompt: sect("gr", r) || r, big: w.word, sub: w.word === w.reading ? "" : w.reading, optJa: true,
+      options: gq.options.map(o => SET.kanamode ? o : o + "\n" + fromKana(o, false)), correct: gq.correct }));
+  }
+}
+function exParticles(out, n) {
+  for (const x of shuffle([...SENTS])) {
+    if (n <= 0) break;
+    const q = exQ({ section: "grammar", prompt: ui("prompt_sentence"), big: x.text.replace("＿", "（　）"), optJa: true });
+    if (!exFill(q, x.particle, x.wrong)) continue;
+    out.push(q); n--;
+  }
+}
+function exReading(out, n) {
+  const sents = shuffle(READING.flatMap(t => t.s.map((x, i) => [x.text, sect("rs", t.id + "#" + i) || ""]).filter(x => x[1])));
+  const trs = sents.map(x => x[1]);
+  for (const [jp, tr] of sents) {
+    if (n <= 0) break;
+    const q = exQ({ section: "reading", prompt: ui("exam_prompt_sentence"), big: jp });
+    if (!exFill(q, tr, trs.filter(x => x !== tr))) continue;
+    out.push(q); n--;
+  }
+}
+function buildExam(id) {
+  const out = [], n = examSize(id);
+  switch (id) {
+    case "hira": exKana(out, n, HIRA, BASE); break;
+    case "kata": exKana(out, n, KATA, BASE); break;
+    case "daku": exKana(out, n / 2, -1, DAKU); exKana(out, n - out.length, -1, YOON); break;
+    case "kana": exKanaWords(out, 24); exKana(out, n - out.length, -1, -1); break;
+    case "words": exVocab(out, n, true, false); break;
+    case "vocab": exVocab(out, n, false, false); break;
+    case "numbers": exNumbers(out, n); break;
+    case "phrases": exPhrases(out, n); break;
+    case "grammar": exGrammar(out, n); break;
+    case "kanji": exKanji(out, n); break;
+    case "reading": exReading(out, n); break;
+    default: {
+      const a = []; exKana(a, 3, -1, -1); exKanji(a, 3); exVocab(a, 4, false, false);
+      const b = []; exGrammar(b, 6); exParticles(b, 4);
+      const c = []; exReading(c, 6); exNumbers(c, 4);
+      const d = []; if (canListen()) exVocab(d, 10, false, true); else exPhrases(d, 10);
+      return [...a, ...b, ...c, ...d];
+    }
+  }
+  return shuffle(out);
+}
+function recordExam(id, right, total, wrongItems, wrongCards) {
+  S.ex = S.ex || {};
+  const now = Date.now(), pct = total ? Math.floor(right * 100 / total) : 0, e = S.ex[id] || (S.ex[id] = [0, 0]);
+  e[0] = Math.max(e[0], pct);
+  let pts = 0;
+  if (pct >= examPass(id) && !e[1]) { e[1] = now; pts = id === "n5" ? 300 : 100; }
+  for (const it of wrongItems) { const s = st(it); s.l = Math.min(s.l, LESSON_LEVEL); s.d = now; }
+  for (const c of wrongCards) { const s = S.cards[c]; if (s) { s.l = Math.min(s.l, 1); s.d = now; } }
+  rollDay();
+  if (pts) { award(pts); const h = S.h[S.day] || (S.h[S.day] = [0, 0, 0, 0]); h[2] += pts; }
+  checkBadges(true); save();
+  return pts;
+}
+const EX = { id: null, qs: [], pos: 0, chosen: [], running: false };
+const examTitle = id => id === "n5" ? ui("path_n5") : id === "kana" ? ui("path_kana") : ui("exam_title", stageName(id));
+function openExam(id) {
+  document.querySelectorAll("dialog[open]").forEach(d => d.close());
+  EX.id = id; EX.running = false;
+  $("ex-title2").textContent = examTitle(id);
+  const b = $("ex-body"); b.innerHTML = "";
+  const p1 = document.createElement("p"); p1.textContent = ui("exam_intro", examSize(id), examPass(id)); b.appendChild(p1);
+  const best = examBest(id);
+  if (best >= 0) { const p2 = document.createElement("p"); p2.className = "tiny"; p2.style.color = examPassed(id) ? "var(--green)" : ""; p2.textContent = (examPassed(id) ? "✓  " + ui("path_passed") + "  ·  " : "") + ui("exam_best", best); b.appendChild(p2); }
+  const go = document.createElement("button"); go.className = "btn-primary"; go.style.width = "100%"; go.textContent = ui("exam_start");
+  go.onclick = () => { EX.qs = buildExam(id); if (!EX.qs.length) { toast(ui("practice_none")); return; } EX.pos = 0; EX.chosen = []; EX.running = true; examAsk(); };
+  b.appendChild(go);
+  $("dlg-exam").showModal();
+}
+function examAsk() {
+  const q = EX.qs[EX.pos], b = $("ex-body"); b.innerHTML = "";
+  const wrap = document.createElement("div"); wrap.className = "ex-q";
+  const pr = document.createElement("b"); pr.style.color = "var(--blue)"; pr.textContent = ui("exam_progress", EX.pos + 1, EX.qs.length); wrap.appendChild(pr);
+  const bar = document.createElement("div"); bar.className = "goalbar"; bar.style.width = "100%"; bar.innerHTML = "<i></i>"; bar.querySelector("i").style.width = (100 * EX.pos / EX.qs.length) + "%"; wrap.appendChild(bar);
+  if (EX.id === "n5") { const sc = document.createElement("div"); sc.className = "ex-sec"; sc.textContent = ui("exam_sec_" + q.section).toUpperCase(); wrap.appendChild(sc); }
+  const g1 = document.createElement("div"); g1.className = "grow"; wrap.appendChild(g1);
+  const pm = document.createElement("div"); pm.className = "ex-prompt"; pm.textContent = q.prompt; wrap.appendChild(pm);
+  const big = document.createElement("div"); big.className = "ex-big" + (q.bigJa ? "" : " latin"); big.lang = q.bigJa ? "ja" : lang; big.textContent = q.big;
+  const n = [...q.big].length;
+  big.style.fontSize = (q.listen ? 84 : !q.bigJa ? (n <= 12 ? 32 : n <= 24 ? 26 : 20) : n <= 2 ? 110 : n <= 4 ? 76 : n <= 6 ? 54 : n <= 9 ? 40 : Math.max(22, Math.floor(300 / n))) + "px";
+  if (q.listen) { big.style.cursor = "pointer"; big.onclick = () => speak(q.speak); setTimeout(() => speak(q.speak), 250); }
+  wrap.appendChild(big);
+  if (q.sub) { const sb = document.createElement("div"); sb.className = "ex-sub"; sb.lang = "ja"; sb.textContent = q.sub; wrap.appendChild(sb); }
+  const g2 = document.createElement("div"); g2.className = "grow"; wrap.appendChild(g2);
+  const grid = document.createElement("div"); grid.className = "ex-opts";
+  q.options.forEach((t, i) => { const bt = document.createElement("button"); bt.className = "opt" + (q.optJa && !t.includes("\n") ? " ja" : ""); bt.textContent = t; if (q.optJa) bt.lang = "ja"; bt.onclick = () => examChoose(i); grid.appendChild(bt); });
+  wrap.appendChild(grid);
+  const dk = document.createElement("button"); dk.className = "link-btn"; dk.textContent = ui("dont_know"); dk.onclick = () => examChoose(-1); wrap.appendChild(dk);
+  b.appendChild(wrap);
+}
+function examChoose(i) {
+  if (!EX.running) return;
+  EX.chosen.push(i); EX.pos++;
+  if (EX.pos >= EX.qs.length) examResult(); else examAsk();
+}
+function examResult() {
+  EX.running = false;
+  const qs = EX.qs, total = qs.length, right = qs.filter((q, i) => EX.chosen[i] === q.correct).length, pct = Math.floor(right * 100 / total), need = examPass(EX.id), passed = pct >= need;
+  const wi = [], wc = [], secs = {};
+  qs.forEach((q, i) => { const ok = EX.chosen[i] === q.correct; const s = secs[q.section] || (secs[q.section] = [0, 0]); s[1]++; if (ok) s[0]++; else { if (q.item) wi.push(q.item); if (q.cardId) wc.push(q.cardId); } });
+  const pts = recordExam(EX.id, right, total, wi, wc);
+  const b = $("ex-body"); b.innerHTML = "";
+  const stamp = document.createElement("div"); stamp.className = "ex-stamp" + (passed ? "" : " fail"); stamp.lang = "ja"; stamp.textContent = passed ? "合格" : "もう一度"; b.appendChild(stamp); anim(stamp, "stamp");
+  const res = document.createElement("p"); res.className = "ex-res"; res.style.color = passed ? "var(--green)" : "";
+  res.textContent = ui(passed ? "exam_passed" : "exam_failed") + "\n" + ui("exam_score", right, total, pct, need).replace(" · ", "\n") + (pts ? "\n" + ui("exam_points", pts) : ""); b.appendChild(res);
+  if (Object.keys(secs).length > 1) { const sp = document.createElement("p"); sp.className = "ex-res"; sp.style.fontWeight = "400"; sp.textContent = Object.entries(secs).map(([k, v]) => ui("exam_sec_" + k) + ":  " + v[0] + " / " + v[1]).join("\n"); b.appendChild(sp); }
+  if (right < total) {
+    const h = document.createElement("div"); h.className = "sec"; h.innerHTML = "<b>✗</b><span></span>"; h.querySelector("span").textContent = ui("exam_mistakes"); b.appendChild(h);
+    const nt = document.createElement("p"); nt.className = "tiny"; nt.textContent = ui("exam_review_note"); b.appendChild(nt);
+    qs.forEach((q, i) => {
+      const c = EX.chosen[i]; if (c === q.correct) return;
+      const m = document.createElement("div"); m.className = "ex-mis";
+      const a = document.createElement("div"); a.className = q.bigJa ? "q" : ""; a.lang = q.bigJa ? "ja" : lang; a.textContent = q.listen ? "🔊 " + q.speak : q.big + (q.sub ? "  ·  " + q.sub : ""); m.appendChild(a);
+      const ok = document.createElement("div"); ok.className = "ok"; ok.textContent = "✓  " + q.options[q.correct].replace(/\n/g, " "); m.appendChild(ok);
+      if (c >= 0) { const no = document.createElement("div"); no.className = "no"; no.textContent = "✗  " + q.options[c].replace(/\n/g, " "); m.appendChild(no); }
+      b.appendChild(m);
+    });
+  }
+  const again = document.createElement("button"); again.className = passed ? "card-btn" : "btn-primary"; again.style.width = "100%"; again.style.marginTop = "14px"; again.textContent = ui("exam_retry"); again.onclick = () => openExam(EX.id);
+  const done = document.createElement("button"); done.className = passed ? "btn-primary" : "card-btn"; done.style.width = "100%"; done.style.marginTop = "10px"; done.textContent = ui("exam_done");
+  done.onclick = () => { $("dlg-exam").close(); openStats(); };
+  b.append(again, done);
+  showNotices();
+  $("dlg-exam").querySelector(".sheet").scrollTop = 0;
+}
+$("ex-close").onclick = () => { if (EX.running && !confirm(ui("exam_abort"))) return; EX.running = false; $("dlg-exam").close(); };
 
 // ------------------------------------------------------------------ Einstufungstest (wie PlacementActivity.java)
 const PL = { script: 0, row: 0, items: [], pos: 0, ok: true, fails: 0, passed: [[], []], rows: [0, 0], busy: false };
