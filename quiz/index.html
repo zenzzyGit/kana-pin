@@ -273,6 +273,9 @@ select, .text-in { background: var(--card); color: var(--ink); border: 1.5px sol
 .rd-jp rt.guess { color: var(--muted); }
 .rd-ownjp { font-size: 22px; }
 .ls-who { font-size: 12px; font-weight: 700; }
+.tk-cue { font-size: 22px; font-weight: 700; margin: 6px 0; }
+.tk-jp { font-family: var(--hand); font-weight: 600; font-size: 26px; margin-top: 14px; }
+.tk-line.mine { background: color-mix(in srgb, var(--blue) 12%, var(--card)); }
 .ls-who.m { color: var(--blue); } .ls-who.f { color: var(--red); }
 .rd-lv { margin: 16px 0 6px; font-family: var(--hand); font-weight: 600; color: var(--red); font-size: 18px; }
 .rd-furi { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 14px; }
@@ -644,6 +647,13 @@ dialog#dlg-wrapped::backdrop { background: #000; }
   <div class="sheet">
     <div class="sheet-head"><h2 id="jl-head" data-ui="jl_title"></h2><button class="icon-btn" id="jl-close">✕</button></div>
     <div id="jl-body"></div>
+  </div>
+</dialog>
+
+<dialog id="dlg-talk">
+  <div class="sheet">
+    <div class="sheet-head"><h2 data-ui="talk_title"></h2><button class="icon-btn" data-close>✕</button></div>
+    <div id="tk-body"></div>
   </div>
 </dialog>
 
@@ -2580,6 +2590,18 @@ function tokenMeaning(g) {
   return g.startsWith("v:") ? sect("vo", k) || "" : g.startsWith("p:") ? particleTip(k) : g.startsWith("g:") ? sect("rg", k) || ""
     : g.startsWith("k:") ? kwMeaning(k) : g.startsWith("w:") ? meaning(k) : g.startsWith("j:") ? jMeaning(k) : "";
 }
+function recordRoleplay(id, right, total) {
+  const s = cardSt(id), now = Date.now();
+  s.s++; s.ls = now; s.i = true; if (!s.f) s.f = now; s.c += right; s.w += total - right;
+  track("read", right, total - right, 0);
+  if (right * 100 >= total * TALK_ROLE_OK) s.l = Math.max(s.l, CARD_KNOWN);
+  s.d = now + 365 * DAY;
+  rollDay(); let pts = 0;
+  for (let i = 0; i < total; i++) { const ok = i < right; pts += ok ? 15 : 0; countDay(ok, ok ? 15 : 0); }
+  if (pts) award(pts);
+  checkBadges(true); save();
+  return pts;
+}
 function recordListening(id, right, total) { S.lo = (S.lo || 0) + right; return recordReading(id, right, total); }
 function recordReading(id, right, total) {
   const s = cardSt(id), now = Date.now();
@@ -3917,7 +3939,7 @@ function speakRecord() {
 $("sx-ev-vocab").onclick = () => startDeck(DECK_VOCAB);
 $("sx-ev-num").onclick = () => startDeck(DECK_NUM);
 $("sx-ev-ph").onclick = () => startDeck(DECK_PHRASE);
-$("sx-ev-speak").onclick = openSpeak;
+$("sx-ev-speak").onclick = () => openTalk();
 $("sp-listen").onclick = () => speak(PHRASES[SP.i].text);
 $("sp-slow").onclick = () => speak(PHRASES[SP.i].text, 0.55);
 $("sp-jp").onclick = () => { if (SP.hide && !SP.shown) { SP.shown = true; showSpeak(); } speak(PHRASES[SP.i].text); };
@@ -4218,6 +4240,171 @@ function showListen(d) {
   const back2 = kdEl("button", "btn-primary", ui("listen_back"), b); back2.style.cssText = "width:100%;margin:16px 0"; back2.onclick = showListenList;
   if (!same) $("dlg-listen").querySelector(".sheet").scrollTop = 0;
 }
+
+// ------------------------------------------------------------------ Sprechtraining (wie Talk.java / TalkActivity.java)
+const TALK_TARGET = [0, 0, 0, 25, 30, 30], TALK_ROLE_OK = 70, TALK_LEVELS = [5, 4, 3], TALK_SESSION = 10;
+function talkItems(lv) {
+  if (lv === 5) return PHRASES.map(p => ({ id: "s:" + p.text, text: p.text, reading: p.reading.replace(/ /g, ""), cue: pTrans(p), hint: "", level: 5 }));
+  const out = [];
+  for (const id of GPDATA.order) {
+    const p = gpPoint(id); if (!p || p.lv !== lv) continue;
+    p.ex.forEach((e, i) => out.push({ id: "s:" + id.slice(3) + "#" + i, text: GPT.text(e, e.c[e.b]).replace(/ /g, ""), reading: GPT.reading(e, e.r[e.b]).replace(/ /g, ""), cue: e.en, hint: p.pat, level: lv }));
+  }
+  return out;
+}
+const talkRoles = lv => DIALOGS.filter(d => d.lv === lv);
+const talkDefaultRole = d => !d.l.length || d.l[0].who === "M" ? "F" : "M";
+function talkStation(lv) {
+  const k = talkItems(lv).filter(it => (S.cards[it.id] || {}).l >= CARD_KNOWN).length, rp = talkRoles(lv), r = rp.filter(d => (S.cards["r:" + d.id] || {}).l >= CARD_KNOWN).length;
+  return [Math.min(k, TALK_TARGET[lv]) + r, TALK_TARGET[lv] + rp.length, k, r];
+}
+const TK = { lv: 5, view: 0, item: null, last: null, done: 0, right: 0, answered: false, shown: 0, role: null, me: "F", line: 0, ok: 0, total: 0, states: [], rec: null };
+function openTalk(lv) {
+  document.querySelectorAll("dialog[open]").forEach(d => d.close());
+  TK.lv = lv || TALK_LEVELS.find(l => { const s = talkStation(l); return s[0] < s[1]; }) || 3;
+  talkHub(); $("dlg-talk").showModal();
+}
+function talkListen(heardCb) {
+  if (!Recognition) { toast(ui("speak_no_recognizer")); return; }
+  try { if (TK.rec) TK.rec.abort(); } catch (e) {}
+  try { speechSynthesis.cancel(); } catch (e) {}
+  const rec = new Recognition(); TK.rec = rec; rec.lang = "ja-JP"; rec.maxAlternatives = 5; rec.interimResults = false;
+  let got = false;
+  rec.onresult = e => { got = true; const alts = [], r0 = e.results[0]; for (let k = 0; k < r0.length; k++) alts.push(r0[k].transcript); heardCb(alts); };
+  rec.onerror = () => { if (!got) toast(ui("speak_nothing")); };
+  try { rec.start(); } catch (e) { toast(ui("speak_no_recognizer")); }
+}
+function talkHead(b, title) { const h = kdEl("h3", null, title, b); h.style.cssText = "font-family:var(--hand);font-size:24px;margin:4px 0"; }
+function talkBack(b) { const bk = kdEl("button", "link-btn", ui("talk_back"), b); bk.style.textAlign = "left"; bk.onclick = talkHub; }
+function talkHub() {
+  TK.view = 0; try { speechSynthesis.cancel(); } catch (e) {}
+  const b = $("tk-body"); b.innerHTML = "";
+  kdEl("p", "tiny", ui("talk_intro"), b).style.maxWidth = "none";
+  const seg = kdEl("div", "btnrow", null, b); seg.id = "tk-lv";
+  for (const lv of TALK_LEVELS) { const bt = kdEl("button", lv === TK.lv ? "btn-primary" : "card-btn", "N" + lv, seg); bt.style.flex = "1"; bt.dataset.lv = lv; bt.onclick = () => { TK.lv = lv; talkHub(); }; }
+  const st = talkStation(TK.lv);
+  kdEl("p", null, ui("talk_progress", st[2], talkItems(TK.lv).length, TALK_TARGET[TK.lv], st[3], talkRoles(TK.lv).length), b).id = "tk-progress";
+  kdEl("div", "rd-lv", ui("talk_say"), b);
+  kdEl("p", "tiny", ui(TK.lv === 5 ? "talk_say_hint5" : "talk_say_hint"), b);
+  const go = kdEl("button", "btn-primary", ui("talk_say_start", TALK_SESSION), b); go.id = "tk-say"; go.style.width = "100%"; go.onclick = talkStart;
+  kdEl("div", "rd-lv", ui("talk_role"), b);
+  kdEl("p", "tiny", ui("talk_role_hint"), b);
+  for (const d of talkRoles(TK.lv)) {
+    const ok = (S.cards["r:" + d.id] || {}).l >= CARD_KNOWN;
+    const bt = kdEl("button", "card-btn tk-role", (ok ? "✓  " : "") + d.ti, b); bt.dataset.id = d.id; bt.style.cssText = "width:100%;margin-top:6px" + (ok ? ";color:var(--green)" : "");
+    bt.onclick = () => roleStart(d, talkDefaultRole(d));
+  }
+  kdEl("div", "rd-lv", ui("talk_shadow"), b);
+  const sh = kdEl("button", "card-btn", ui("talk_shadow_btn"), b); sh.style.width = "100%"; sh.onclick = () => { $("dlg-talk").close(); openSpeak(); };
+  $("dlg-talk").querySelector(".sheet").scrollTop = 0;
+}
+function talkStart() { Object.assign(TK, { done: 0, right: 0, last: null }); talkNext(); }
+function talkNext() {
+  if (TK.done >= TALK_SESSION) return talkDone();
+  const items = talkItems(TK.lv), id = pickCard(items.map(i => i.id), 5, TK.last, true);
+  if (!id) return talkDone();
+  Object.assign(TK, { item: items.find(i => i.id === id), last: id, answered: false, view: 1, shown: Date.now() });
+  talkSay(null, false);
+}
+function talkSay(heard, reveal) {
+  const b = $("tk-body"); b.innerHTML = ""; const it = TK.item;
+  talkBack(b);
+  kdEl("p", "tiny", ui("talk_count", TK.done + 1, TALK_SESSION) + "  ·  N" + TK.lv, b).style.color = "var(--blue)";
+  kdEl("p", "tiny", ui("talk_say_prompt"), b);
+  const cue = kdEl("div", "tk-cue", it.cue, b); cue.id = "tk-cue";
+  if (it.hint) kdEl("p", "tiny", ui("talk_use", it.hint), b);
+  const show = reveal || !!heard;
+  if (show) {
+    const jp = kdEl("div", "tk-jp", it.text, b); jp.lang = "ja"; jp.id = "tk-jp";
+    const rd = (it.reading !== it.text ? it.reading : "") + (SET.kanamode ? "" : (it.reading !== it.text ? "\n" : "") + fromKana(it.reading, true));
+    if (rd) { const r = kdEl("div", "rd-rd", rd, b); r.lang = "ja"; }
+    const ls = kdEl("button", "link-btn", "🔊  " + ui("talk_listen"), b); ls.onclick = () => speak(it.text);
+  }
+  if (heard) {
+    const res = kdEl("div", "rd-res", null, b); res.lang = "ja"; res.id = "tk-res";
+    res.style.color = heard.verdict === 2 ? "var(--green)" : heard.verdict === 1 ? "var(--blue)" : "";
+    res.append(ui(heard.verdict === 2 ? "speak_match" : heard.verdict === 1 ? "speak_close" : "speak_off") + "\n" + ui("talk_heard", heard.heard) + "\n");
+    [...heard.target].forEach((ch, i) => { const sp = document.createElement("span"); sp.textContent = ch; if (!heard.hit[i]) sp.className = "miss"; res.appendChild(sp); });
+  }
+  if (TK.answered) { const nx = kdEl("button", "btn-primary", ui("talk_next"), b); nx.id = "tk-next"; nx.style.cssText = "width:100%;margin-top:14px"; nx.onclick = talkNext; }
+  else {
+    const mic = kdEl("button", "btn-primary", "🎤  " + ui("talk_speak"), b); mic.id = "tk-mic"; mic.style.cssText = "width:100%;margin-top:14px";
+    mic.onclick = () => talkListen(alts => { const r = speakBest(it.text, it.reading, alts); if (r.verdict === 2) { S.sk = (S.sk || 0) + 1; talkRate(true, r); } else talkSay(r, true); });
+    if (!show) { const rv = kdEl("button", "card-btn", ui("talk_reveal"), b); rv.id = "tk-reveal"; rv.style.cssText = "width:100%;margin-top:8px"; rv.onclick = () => talkSay(null, true); }
+    else {
+      const row = kdEl("div", "btnrow", null, b); row.style.marginTop = "8px";
+      const ok = kdEl("button", "card-btn", ui("talk_self_ok"), row); ok.id = "tk-ok"; ok.style.flex = "1"; ok.onclick = () => talkRate(true, heard);
+      const no = kdEl("button", "card-btn", ui("talk_self_again"), row); no.id = "tk-again"; no.style.flex = "1"; no.onclick = () => talkRate(false, heard);
+      kdEl("p", "tiny", ui("talk_self_hint"), b);
+    }
+  }
+}
+function talkRate(ok, heard) {
+  if (TK.answered) return;
+  TK.answered = true; TK.done++; if (ok) TK.right++;
+  recordCard(TK.item.id, ok, !heard || heard.verdict !== 2, false, 15, Date.now() - TK.shown);
+  talkSay(heard, true);
+}
+function talkDone() {
+  TK.view = 0; const b = $("tk-body"); b.innerHTML = "";
+  talkHead(b, ui("talk_say"));
+  const r = kdEl("p", null, ui("talk_result", TK.right, TK.done), b); r.id = "tk-result"; r.style.cssText = "font-weight:700;color:var(--green);font-size:20px";
+  const st = talkStation(TK.lv);
+  kdEl("p", null, ui("talk_progress", st[2], talkItems(TK.lv).length, TALK_TARGET[TK.lv], st[3], talkRoles(TK.lv).length), b);
+  showNotices();
+  const again = kdEl("button", "btn-primary", ui("talk_say_start", TALK_SESSION), b); again.style.width = "100%"; again.onclick = talkStart;
+  const bk = kdEl("button", "card-btn", ui("talk_back"), b); bk.style.cssText = "width:100%;margin-top:8px"; bk.onclick = talkHub;
+}
+function roleStart(d, me) {
+  Object.assign(TK, { role: d, me, line: 0, ok: 0, total: 0, states: d.l.map(() => -1), view: 2 });
+  roleStep();
+}
+function roleStep() {
+  const d = TK.role, partner = [];
+  while (TK.line < d.l.length && d.l[TK.line].who !== TK.me) { partner.push(d.l[TK.line]); TK.states[TK.line] = 1; TK.line++; }
+  if (partner.length) playLines(partner, 0.85);
+  roleShow(null);
+}
+function roleShow(heard) {
+  const d = TK.role, b = $("tk-body"); b.innerHTML = "";
+  talkBack(b); talkHead(b, d.ti);
+  kdEl("p", "tiny", ui("talk_role_you", ui(TK.me === "M" ? "listen_man" : "listen_woman")) + "  ·  " + d.si, b);
+  const sw = kdEl("button", "link-btn", ui("talk_role_switch"), b); sw.id = "tk-swap"; sw.onclick = () => roleStart(d, TK.me === "M" ? "F" : "M");
+  const finished = TK.line >= d.l.length;
+  d.l.forEach((x, i) => {
+    if (i > TK.line || (i === TK.line && finished)) return;
+    const mine = x.who === TK.me, cur = i === TK.line && !finished;
+    const box = kdEl("div", "rd-sent tk-line" + (mine ? " mine" : ""), null, b);
+    kdEl("div", "ls-who " + (mine ? "m" : x.who === "M" ? "m" : "f"), mine ? ui("talk_you") : ui(x.who === "M" ? "listen_man" : "listen_woman"), box);
+    if (mine && cur) { const c = kdEl("div", "tk-cue", ui("talk_say_this", x.tr), box); c.id = "tk-linecue"; }
+    else {
+      const jp = kdEl("div", "rd-jp", x.text, box); jp.lang = "ja"; if (mine && TK.states[i] === 0) jp.style.color = "var(--red)";
+      kdEl("div", "rd-tr", x.tr, box);
+      if (!mine) box.onclick = () => playLines([x], 0.85);
+    }
+  });
+  if (heard) {
+    const res = kdEl("div", "rd-res", ui(heard.verdict === 2 ? "speak_match" : heard.verdict === 1 ? "speak_close" : "speak_off") + "\n" + ui("talk_heard", heard.heard), b);
+    res.style.color = heard.verdict === 1 ? "var(--blue)" : "";
+  }
+  if (finished) {
+    const pts = recordRoleplay("r:" + d.id, TK.ok, Math.max(1, TK.total)), good = TK.ok * 100 >= Math.max(1, TK.total) * TALK_ROLE_OK;
+    const r = kdEl("p", null, ui("talk_role_result", TK.ok, TK.total) + (pts ? "  ·  +" + pts : ""), b); r.id = "tk-role-result";
+    r.style.cssText = "font-weight:700;font-size:18px;color:" + (good ? "var(--green)" : "var(--blue)");
+    showNotices();
+    const ag = kdEl("button", "card-btn", ui("talk_role_again"), b); ag.style.width = "100%"; ag.onclick = () => roleStart(d, TK.me);
+    const bk = kdEl("button", "btn-primary", ui("talk_back"), b); bk.style.cssText = "width:100%;margin-top:8px"; bk.onclick = talkHub;
+  } else {
+    const x = d.l[TK.line];
+    const mic = kdEl("button", "btn-primary", "🎤  " + ui("talk_speak"), b); mic.id = "tk-mic"; mic.style.cssText = "width:100%;margin-top:12px";
+    mic.onclick = () => talkListen(alts => { const r = speakBest(x.text, x.reading.replace(/ /g, ""), alts); if (r.verdict === 2) { S.sk = (S.sk || 0) + 1; roleDone(true); } else roleShow(r); });
+    const row = kdEl("div", "btnrow", null, b); row.style.marginTop = "8px";
+    const ok = kdEl("button", "card-btn", ui("talk_self_ok"), row); ok.id = "tk-ok"; ok.style.flex = "1"; ok.onclick = () => roleDone(true);
+    const sk = kdEl("button", "link-btn", ui("talk_role_show"), row); sk.id = "tk-show"; sk.style.flex = "1"; sk.onclick = () => roleDone(false);
+  }
+  const sh = $("dlg-talk").querySelector(".sheet"); sh.scrollTop = sh.scrollHeight;
+}
+function roleDone(ok) { TK.total++; if (ok) TK.ok++; TK.states[TK.line] = ok ? 1 : 0; TK.line++; roleStep(); }
 
 // ------------------------------------------------------------------ Lernpfad (wie Path.java): Hauptziel Kana lesen, danach Aufbau
 const PATH_CORE = ["hira", "kata", "daku", "kana"], PATH_EXTRA = ["words", "numbers", "phrases", "grammar", "kanji", "reading", "vocab", "n5"];
@@ -5005,6 +5192,11 @@ function roadmap(st) {
   for (const x of DIALOGS) lisOf[x.lv].push("h:" + x.id);
   for (let lv = 2; lv <= 5; lv++) lKnown[lv] = lisOf[lv].filter(cardKnown).length;
   if (lisOf[5].length) { const ln = add("listen5", "listening", "n5", lKnown[5], lisOf[5].length); ln.ids = lisOf[5].slice(); ln.level = 5; }
+  const sKnown = [0, 0, 0, 0, 0, 0], sAll = [0, 0, 0, 0, 0, 0], rpKnown = [0, 0, 0, 0, 0, 0];
+  for (const lv of TALK_LEVELS) for (const it of talkItems(lv)) { sAll[lv]++; if (cardKnown(it.id)) sKnown[lv]++; }
+  for (let lv = 2; lv <= 5; lv++) rpKnown[lv] = lisOf[lv].filter(id => cardKnown("r:" + id.slice(2))).length;
+  const speakNode = (lv, unit) => { if (!sAll[lv]) return; const t = Math.min(TALK_TARGET[lv], sAll[lv]); const n = add("speak" + lv, "speaking", unit, Math.min(sKnown[lv], t) + rpKnown[lv], t + lisOf[lv].length); n.level = lv; };
+  speakNode(5, "n5");
   add("n5", "exam", "n5", passedEx("n5") ? 1 : 0, 1);
   const kanaKnown = hira + kata + daku + yoon, ladder = [0, 0, 0, 0], wd = [], wa = [], kd = [], ka = [], gd = [], ga = [];
   let wDone = 0, wAll = 0, kDone = 0, kAll = 0, gDone = 0, gAll = 0;
@@ -5026,6 +5218,7 @@ function roadmap(st) {
     }
     if (readOf[lv].length) { const rn = add("read" + lv, "reading", "n" + lv, rKnown[lv], readOf[lv].length); rn.ids = readOf[lv].slice(); rn.level = lv; }
     if (lisOf[lv].length) { const ln = add("listen" + lv, "listening", "n" + lv, lKnown[lv], lisOf[lv].length); ln.ids = lisOf[lv].slice(); ln.level = lv; }
+    speakNode(lv, "n" + lv);
     const g = add("n" + lv, "exam", "n" + lv, passedEx("n" + lv) ? 1 : 0, 1); g.complete = g.done === 1; }
   add("n1", "future", "n1", 0, 0);
   let reached = 0; for (let lv = 5; lv >= 2; lv--) { if (ladder[5 - lv] >= RM_REACHED) reached = lv; else break; }
@@ -5049,9 +5242,9 @@ function roadDump(m) {
   for (const s of m.skills) o += s.id + " " + s.done + "/" + s.total + " L" + s.level + " " + s.prev + "-" + s.next + " " + Math.floor(skFrac(s) * 1000 + 1e-9) + "\n";
   return o;
 }
-const rmName = n => n.kind === "kanji" ? ui("rm_node_kanji", n.part, n.parts) : n.kind === "words" ? ui("rm_node_words", n.part, n.parts) : n.kind === "goal" ? ui("rm_node_goal", "N" + n.id.slice(1)) : n.kind === "grammar" ? ui("rm_node_grammar", "N" + n.level) : n.kind === "reading" ? ui("rm_node_reading", "N" + n.level) : n.kind === "listening" ? ui("rm_node_listening", "N" + n.level) : n.kind === "future" ? "N1" : ui("path_" + n.id);
+const rmName = n => n.kind === "kanji" ? ui("rm_node_kanji", n.part, n.parts) : n.kind === "words" ? ui("rm_node_words", n.part, n.parts) : n.kind === "goal" ? ui("rm_node_goal", "N" + n.id.slice(1)) : n.kind === "grammar" ? ui("rm_node_grammar", "N" + n.level) : n.kind === "reading" ? ui("rm_node_reading", "N" + n.level) : n.kind === "listening" ? ui("rm_node_listening", "N" + n.level) : n.kind === "speaking" ? ui("rm_node_speaking", "N" + n.level) : n.kind === "future" ? "N1" : ui("path_" + n.id);
 const RM_ICON = { hira: "あ", kata: "ア", daku: "が", words: "語", numbers: "数", phrases: "話", grammar: "文", reading: "読" };
-const rmIcon = n => RM_ICON[n.id] || (n.kind === "exam" ? "📝" : n.kind === "kanji" ? (n.ids[0] || "字") : n.kind === "words" ? "単" : n.kind === "grammar" ? "文" : n.kind === "reading" ? "読" : n.kind === "listening" ? "聞" : n.kind === "goal" ? "🏆" : "🔒");
+const rmIcon = n => RM_ICON[n.id] || (n.kind === "exam" ? "📝" : n.kind === "kanji" ? (n.ids[0] || "字") : n.kind === "words" ? "単" : n.kind === "grammar" ? "文" : n.kind === "reading" ? "読" : n.kind === "listening" ? "聞" : n.kind === "speaking" ? "話" : n.kind === "goal" ? "🏆" : "🔒");
 function rmSummary(m) {
   const a = m.reached ? ui("rm_reached", "N" + m.reached) : ui("rm_below"), next = m.reached ? m.reached - 1 : 5;
   return next < 2 ? a : a + "\n" + ui("rm_missing_g", "N" + next, m.missingWords, m.missingKanji, m.missingGrammar);
@@ -5167,6 +5360,9 @@ function openNode(n) {
       const e = kdEl("button", "card-btn", ui("rm_enable"), b); e.id = "nd-enable"; e.style.width = "100%";
       e.onclick = () => { SET.grammar = true; store.set("kp_settings", SET); e.disabled = true; e.textContent = ui("rm_enabled"); };
     }
+  } else if (n.kind === "speaking") {
+    info.textContent = ui("rm_desc_speaking", "N" + n.level, TALK_TARGET[n.level], n.done, n.total);
+    label = ui("talk_open"); action = () => { close(); openTalk(n.level); };
   } else if (n.kind === "listening") {
     info.textContent = ui("rm_desc_listening", "N" + n.level, n.done, n.total);
     label = ui("practice_listen"); action = () => { close(); openListen(); };
