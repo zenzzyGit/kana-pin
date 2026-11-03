@@ -352,6 +352,40 @@ select, .text-in { background: var(--card); color: var(--ink); border: 1.5px sol
 .kd-sent .tr { color: var(--muted); font-size: 14px; }
 .kd-stats { white-space: pre-line; font-size: 15px; }
 .hard .hl { cursor: pointer; text-decoration: underline dotted; }
+.sx-nav { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.sx-nav b { flex: 1; text-align: center; color: var(--blue); font-size: 18px; }
+.sx-nav button { min-width: 52px; min-height: 42px; }
+.tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
+.tile { background: var(--card); border: 1.2px solid var(--rule); border-radius: 10px; padding: 8px 12px 10px; }
+.tile b { display: block; font-family: var(--hand); font-weight: 600; font-size: 26px; }
+.tile span { font-size: 13px; color: var(--muted); }
+.kbar { height: 8px; background: var(--rule); border-radius: 4px; overflow: hidden; margin: 3px 0 8px; }
+.kbar i { display: block; height: 100%; background: var(--blue); }
+.vbars { display: grid; gap: 2px; align-items: end; height: 100px; margin-top: 8px; }
+.vbars i { display: block; background: color-mix(in srgb, var(--blue) 55%, transparent); border-radius: 2px 2px 0 0; min-height: 0; }
+.vbars i.peak { background: var(--red); }
+.vlab { display: grid; gap: 2px; font-size: 10px; color: var(--muted); text-align: center; }
+dialog#dlg-wrapped { width: 100vw; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; border: none; }
+dialog#dlg-wrapped::backdrop { background: #000; }
+.wr { position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; padding: max(12px, env(safe-area-inset-top)) 22px max(14px, env(safe-area-inset-bottom)); box-sizing: border-box; cursor: pointer; user-select: none; transition: background .3s; }
+.wr-bars { display: flex; gap: 4px; height: 4px; }
+.wr-bars i { flex: 1; border-radius: 2px; background: currentColor; opacity: .3; }
+.wr-bars i.on { opacity: 1; }
+.wr-body { flex: 1; display: flex; flex-direction: column; justify-content: center; text-align: center; overflow: hidden; }
+.wr-body .h { font-family: var(--hand); font-weight: 600; line-height: 1.05; overflow-wrap: anywhere; }
+.wr-body p { margin: 6px 0; }
+.wr-body.in { animation: wrin .3s ease-out; }
+@keyframes wrin { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.wr-hint { text-align: center; font-size: 12px; opacity: .7; }
+.wr-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
+.wr-tiles div { background: rgba(255,255,255,.12); border-radius: 12px; padding: 8px; }
+.wr-tiles b { display: block; font-family: var(--hand); font-weight: 600; font-size: 28px; }
+.wr-tiles span { font-size: 12px; opacity: .8; }
+.wr-btns { display: flex; gap: 10px; margin-top: 22px; }
+.wr-btns button { flex: 1; min-height: 50px; }
+.wr .vbars i { background: rgba(255,255,255,.45); }
+.wr .vbars i.peak { background: #F2C230; }
+.wr .vlab { color: inherit; opacity: .7; }
 .ty-ro { font-weight: 700; font-size: 22px; margin-top: 6px; overflow-wrap: anywhere; }
 .ty-buf { font-family: var(--hand); font-weight: 600; font-size: 30px; min-height: 56px; padding: 6px 14px; margin-top: 14px; border: 1.5px solid var(--ink); border-radius: 10px; background: var(--card); overflow-wrap: anywhere; }
 .kb { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 3px; margin-top: 10px; }
@@ -544,6 +578,15 @@ select, .text-in { background: var(--card); color: var(--ink); border: 1.5px sol
   </div>
 </dialog>
 
+<dialog id="dlg-statx">
+  <div class="sheet">
+    <div class="sheet-head"><h2 data-ui="st_title"></h2><button class="icon-btn" data-close>✕</button></div>
+    <div id="sx2-body"></div>
+  </div>
+</dialog>
+
+<dialog id="dlg-wrapped"><div class="wr" id="wr"></div></dialog>
+
 <dialog id="dlg-chars">
   <div class="sheet">
     <div class="sheet-head"><h2 data-ui="kd_overview"></h2><button class="icon-btn" data-close>✕</button></div>
@@ -613,6 +656,7 @@ select, .text-in { background: var(--card); color: var(--ink); border: 1.5px sol
     <button class="link-btn" id="sx-place" data-ui="place_offer"></button>
     <button class="card-btn" id="sx-typing" style="width:100%;margin-top:10px"></button>
     <button class="card-btn" id="sx-chars" style="width:100%;margin-top:10px" data-ui="kd_overview_btn"></button>
+    <button class="card-btn" id="sx-statx" style="width:100%;margin-top:10px" data-ui="st_btn"></button>
     <div class="sec"><b>2</b><span data-ui="h_everyday"></span></div>
     <p class="tiny" id="sx-ev" style="max-width:none;white-space:pre-line"></p>
     <div class="ev-btns"><button class="btn-primary" id="sx-ev-vocab" data-ui="practice_vocab"></button><button class="card-btn" id="sx-ev-num" data-ui="practice_numbers"></button>
@@ -1297,7 +1341,59 @@ const TYPE = (() => {
     + r.units.map(u => " " + u.k + ":" + u.typed + (u.extra ? "+" + u.extra : "") + ">" + u.canon + (u.ok ? (u.soft ? "~" : "") : u.miss ? "?" : "!")).join("");
   return { units, romaji, check, checkKana, mod, normalize, toHira, toKata, display, dump };
 })();
-if (typeof module !== "undefined") module.exports = { NUM, GRAM, TYPE, speakBest, speakNorm };
+
+// ------------------------------------------------------------------ Monats-Rückblick: Kennzahlen eines Monats aus dem Lernstand (wie Recap.java)
+const RECAP = (() => {
+  const DAY = 86400000;
+  const monthOf = t => { const d = new Date(t); return String(d.getFullYear() * 100 + d.getMonth() + 1); };
+  const prevMonth = m => { let y = Math.floor(Number(m) / 100), mm = Number(m) % 100 - 1; if (mm < 1) { mm = 12; y--; } return String(y * 100 + mm); };
+  const daysIn = m => new Date(Math.floor(Number(m) / 100), Number(m) % 100, 0).getDate();
+  const spm = list => { let s = 0, ms = 0; for (const [, v] of list) { s += v[0]; ms += v[1]; } return s < 30 || ms <= 0 ? -1 : Math.round(s * 60000 / ms); };
+  function answersOf(h, m) { let n = 0; for (const [k, v] of Object.entries(h || {})) if (k.slice(0, 6) === m) n += (v[0] || 0) + (v[1] || 0); return n; }
+  function compute(st, m) {
+    const h = st.h || {}, mo = (st.mo || {})[m] || null, r = { month: m };
+    let days = 0, c = 0, w = 0, pts = 0, goal = 0, best = "", bestC = 0;
+    for (const k of Object.keys(h).sort()) {
+      if (k.slice(0, 6) !== m) continue;
+      const v = h[k]; c += v[0] || 0; w += v[1] || 0; pts += v[2] || 0; if (v[3]) goal++;
+      if ((v[0] || 0) > 0) days++;
+      if ((v[0] || 0) > bestC) { bestC = v[0]; best = k; }
+    }
+    let streak = 0, run = 0;
+    for (let d = 1; d <= daysIn(m); d++) { const v = h[m + String(d).padStart(2, "0")]; if (v && v[0] > 0) { run++; streak = Math.max(streak, run); } else run = 0; }
+    Object.assign(r, { days, answers: c + w, correct: c, pct: c + w ? Math.floor(100 * c / (c + w)) : 0, points: pts, goalDays: goal, bestDay: best, bestDayCorrect: bestC, streak });
+    r.hasDetail = !!mo;
+    const m0 = mo || {};
+    r.minutes = Math.round((m0.t || 0) / 60000);
+    r.kinds = Object.entries(m0.q || {}).map(([k, v]) => [k, v[0] || 0, v[1] || 0]).filter(x => x[1] + x[2] > 0)
+      .sort((a, b) => (b[1] + b[2]) - (a[1] + a[2]) || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+    r.hours = Array.from({ length: 24 }, (_, i) => (m0.hr || [])[i] || 0);
+    r.weekdays = Array.from({ length: 7 }, (_, i) => (m0.wd || [])[i] || 0);
+    const arg = a => { let b = -1, bv = 0; a.forEach((v, i) => { if (v > bv) { bv = v; b = i; } }); return b; };
+    r.peakHour = arg(r.hours); r.peakDay = arg(r.weekdays);
+    r.newItems = m0.nw || 0; r.known = m0.kn || 0;
+    r.misses = Object.entries(m0.mi || {}).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0)).slice(0, 3);
+    r.fastest = m0.fb ? [m0.fb[0], m0.fb[1]] : null;
+    r.sessionsUnlock = m0.un || 0; r.sessionsPractice = m0.pr || 0;
+    r.badges = Object.entries(st.ach || {}).filter(([, t]) => t && monthOf(t) === m).sort((a, b) => a[1] - b[1] || (a[0] < b[0] ? -1 : 1)).map(x => x[0]);
+    r.exams = Object.entries(st.ex || {}).filter(([, e]) => e[1] && monthOf(e[1]) === m).map(x => x[0]).sort();
+    const yt = Object.entries(st.yt || {}).filter(([k]) => { const d = new Date(Number(k) * DAY); return String(d.getUTCFullYear() * 100 + d.getUTCMonth() + 1) === m; })
+      .sort((a, b) => Number(a[0]) - Number(b[0]));
+    const kk = Math.min(3, Math.floor(yt.length / 2));
+    r.tempoStart = kk ? spm(yt.slice(0, kk)) : -1; r.tempoEnd = kk ? spm(yt.slice(yt.length - kk)) : -1;
+    r.prevAnswers = answersOf(h, prevMonth(m));
+    return r;
+  }
+  /** Für Tests: Ergebnis als Text (wie Recap.dump). */
+  const dump = r => ["month=" + r.month, "days=" + r.days, "answers=" + r.answers, "correct=" + r.correct, "pct=" + r.pct, "points=" + r.points,
+    "goal=" + r.goalDays, "best=" + r.bestDay + "/" + r.bestDayCorrect, "streak=" + r.streak, "detail=" + r.hasDetail, "min=" + r.minutes,
+    "kinds=" + r.kinds.map(x => x.join(":")).join(","), "hours=" + r.hours.join(","), "peakH=" + r.peakHour, "wd=" + r.weekdays.join(","), "peakD=" + r.peakDay,
+    "new=" + r.newItems, "known=" + r.known, "miss=" + r.misses.map(x => x.join(":")).join(","), "fast=" + (r.fastest ? r.fastest.join(":") : "-"),
+    "un=" + r.sessionsUnlock, "pr=" + r.sessionsPractice, "badges=" + r.badges.join(","), "exams=" + r.exams.join(","),
+    "tempo=" + r.tempoStart + ">" + r.tempoEnd, "prev=" + r.prevAnswers].join(" ");
+  return { compute, dump, monthOf, prevMonth, daysIn };
+})();
+if (typeof module !== "undefined") module.exports = { NUM, GRAM, TYPE, RECAP, speakBest, speakNorm };
 
 
 // ------------------------------------------------------------------ Speicher
@@ -1614,7 +1710,7 @@ function fsrsNext(S, D, g, t) {
   }
   return [Math.max(0.01, Math.min(36500, ns)), nd];
 }
-let S = Object.assign({ items: {}, wk: "", wp: 0, tp: 0, st: 0, bs: 0, la: "", day: "", dc: 0, dw: 0, wr: 0, lo: 0, dk: 0, gd: 0, kw: 0, dt: 0, se: 0, du: 0, h: {}, ach: {}, cards: {}, xs: {}, ex: {} }, store.get("kp_state", {}));
+let S = Object.assign({ items: {}, wk: "", wp: 0, tp: 0, st: 0, bs: 0, la: "", day: "", dc: 0, dw: 0, wr: 0, lo: 0, dk: 0, gd: 0, kw: 0, dt: 0, se: 0, du: 0, h: {}, ach: {}, cards: {}, xs: {}, ex: {}, mo: {} }, store.get("kp_state", {}));
 if (!S.ex) S.ex = {};
 if (!S.cards) S.cards = {};
 if (!S.xs) S.xs = {};
@@ -1743,6 +1839,25 @@ function countDay(ok, pts) {
 const weekPoints = () => S.wk === currentWeek() ? S.wp : 0;
 const streakDays = () => (S.la === dayKey(Date.now()) || S.la === dayKey(Date.now() - DAY)) ? S.st : 0;
 const knownCount = () => Object.values(S.items).filter(s => s.l >= 4).length;
+// ------------------------------------------------------------------ Monatsstatistik (wie Learner.track …)
+const monthKey = t => dayKey(t).slice(0, 6);
+function monthRec() {
+  S.mo = S.mo || {};
+  const k = monthKey(Date.now());
+  if (!S.mo[k]) { S.mo[k] = {}; const ks = Object.keys(S.mo).sort(); while (ks.length > 25) delete S.mo[ks.shift()]; }
+  return S.mo[k];
+}
+const addArr = (o, key, i, size, v) => { const a = o[key] || (o[key] = []); while (a.length < size) a.push(0); a[i] += v; };
+function track(kind, right, wrong, ms) {
+  const m = monthRec(), n = right + wrong;
+  m.q = m.q || {}; addArr(m.q, kind, 0, 2, right); addArr(m.q, kind, 1, 2, wrong);
+  m.t = (m.t || 0) + Math.max(0, Math.min(Math.round(ms || 0), 60000 * Math.max(1, n)));
+  const d = new Date(); addArr(m, "hr", d.getHours(), 24, n); addArr(m, "wd", (d.getDay() + 6) % 7, 7, n);
+  m.kn = Math.max(m.kn || 0, knownCount());
+}
+function trackMiss(kana) { const m = monthRec(); m.mi = m.mi || {}; m.mi[kana] = (m.mi[kana] || 0) + 1; }
+function trackFast(ms, kana) { if (ms < 300) return; const m = monthRec(); if (!m.fb || ms < m.fb[0]) m.fb = [Math.round(ms), kana]; }
+function trackCount(key) { const m = monthRec(); m[key] = (m[key] || 0) + 1; }
 function knownIn(script, group) { return ALL.filter(it => it.group === group && (script < 0 || it.script === script) && lvl(it) >= 4).length; }
 function badgeProgress(id) {
   switch (id) {
@@ -1787,6 +1902,8 @@ function checkBadges(announce) {
 }
 function record(it, ok, ms, chosenKey, q, hinted) {
   const { timed, slow } = review(it, ok, ms, chosenKey, q, hinted);
+  track(isKanji(it) ? "kanji" : "kana", ok ? 1 : 0, ok ? 0 : 1, ms);
+  if (!ok) trackMiss(it.kana); else if (timed && !slow && !hinted) trackFast(ms, it.kana);
   rollDay();
   let pts = 0;
   if (ok) {
@@ -1802,6 +1919,7 @@ function record(it, ok, ms, chosenKey, q, hinted) {
 function review(it, ok, ms, chosenKey, q, hinted) {
   const s = st(it), now = Date.now(), first = s.s === 0 && !hinted, prevLast = s.ls || 0, wasSeen = s.s > 0;
   const timed = ms > 0 && ms < 20000 && !hinted, slow = hinted || (timed && ms > fastLimit(q));
+  if (!wasSeen) trackCount("nw");
   s.s++; s.i = true; s.ls = now;
   if (ok) {
     s.c++;
@@ -1854,11 +1972,13 @@ function pickSentence(avoid) {
 }
 function recordWord(w, ok, ms, hinted, missed, alt) {
   if (!ok && missed) { record(missed, false, 0, alt ? keyOf(alt) : null, Q_READ, false); return 0; }
+  track("word", ok ? 1 : 0, ok ? 0 : 1, ms);
   rollDay(); let pts = 0;
   if (ok) { pts = hinted ? 3 : (ms > 0 && ms < 1500 * w.units.length ? 30 : 20); S.wr = (S.wr || 0) + 1; award(pts); }
   countDay(ok, pts); checkBadges(true); save(); return pts;
 }
 function recordExtra(kind, ok, ms, hinted, fastMs) {
+  track(kind === "kw" ? "kanji" : kind === "dt" ? "dict" : "sent", ok ? 1 : 0, ok ? 0 : 1, ms);
   rollDay(); let pts = 0;
   if (ok) {
     const base = kind === "se" ? 20 : 25;
@@ -1916,7 +2036,8 @@ function cardStats(ids) {
   for (const id of ids) { const s = S.cards[id]; if (!s || (!s.i && !s.s)) continue; out[2]++; if (s.l >= CARD_KNOWN) out[0]++; if (s.d <= now) out[1]++; }
   return out;
 }
-function recordCard(id, ok, hinted, fast, base) {
+function recordCard(id, ok, hinted, fast, base, ms) {
+  track("card", ok ? 1 : 0, ok ? 0 : 1, ms || 0);
   const s = cardSt(id), now = Date.now(), prevLast = s.ls || 0, wasSeen = s.s > 0;
   s.s++; s.ls = now; s.i = true; if (!s.f) s.f = now;
   if (ok) { s.c++; s.l = hinted ? Math.max(1, s.l) : Math.min(MAX_LEVEL, s.l + 1); }
@@ -2055,6 +2176,7 @@ function tokenMeaning(g) {
 function recordReading(id, right, total) {
   const s = cardSt(id), now = Date.now();
   s.s++; s.ls = now; s.i = true; if (!s.f) s.f = now; s.c += right; s.w += total - right;
+  track("read", right, total - right, 0);
   if (right === total) s.l = Math.max(s.l, CARD_KNOWN);
   s.d = now + 365 * DAY;
   rollDay(); let pts = 0;
@@ -2081,6 +2203,25 @@ function everydaySummary() {
 }
 
 // ------------------------------------------------------------------ Abgleich (gleiche Regeln wie Learner.merge)
+/** Monatsstatistik zusammenführen (wie Learner.mergeMonths): Zähler als Zuwachs, schnellste Antwort Minimum, sichere Zeichen Maximum. */
+function mergeMonths(local, remote, base) {
+  const out = JSON.parse(JSON.stringify(remote || {})); base = base || {};
+  const grow = (r, l, b) => (r || 0) + Math.max(0, (l || 0) - (b || 0));
+  const arr = (l, r, b) => Array.from({ length: Math.max((l || []).length, (r || []).length) }, (_, i) => grow((r || [])[i], (l || [])[i], (b || [])[i]));
+  for (const [k, l] of Object.entries(local)) {
+    const r = out[k], b = base[k] || {};
+    if (!r) { out[k] = JSON.parse(JSON.stringify(l)); continue; }
+    const m = JSON.parse(JSON.stringify(r));
+    for (const n of ["t", "nw", "un", "pr"]) m[n] = grow(r[n], l[n], b[n]);
+    m.kn = Math.max(l.kn || 0, r.kn || 0);
+    for (const n of ["hr", "wd"]) m[n] = arr(l[n], r[n], b[n]);
+    m.q = Object.assign({}, r.q || {}); for (const q of Object.keys(l.q || {})) m.q[q] = arr(l.q[q], (r.q || {})[q], (b.q || {})[q]);
+    m.mi = Object.assign({}, r.mi || {}); for (const q of Object.keys(l.mi || {})) m.mi[q] = grow((r.mi || {})[q], l.mi[q], (b.mi || {})[q]);
+    if (l.fb && (!r.fb || l.fb[0] < r.fb[0])) m.fb = l.fb;
+    out[k] = m;
+  }
+  return out;
+}
 function merge(local, remote, base) {
   if (!remote || !remote.items) return local;
   base = base || {};
@@ -2090,6 +2231,7 @@ function merge(local, remote, base) {
     out.cards = out.cards || {};
     for (const [k, l] of Object.entries(local.cards)) { const r = out.cards[k]; if (!r || (l.ls || 0) >= (r.ls || 0)) out.cards[k] = l; }
   }
+  if (local.mo) out.mo = mergeMonths(local.mo, out.mo, (base || {}).mo);
   if (local.yt) {
     out.yt = out.yt || {};
     for (const [k, l] of Object.entries(local.yt)) { const r = out.yt[k]; if (!r || l[0] > r[0] || (l[0] === r[0] && l[1] > r[1])) out.yt[k] = l; }
@@ -2216,6 +2358,7 @@ let q = Q_READ, phase = "ask", hint = 0, isNew = false, isRetry = false, shownAt
 let opts = [], wopts = [], xopts = [], xcorrect = -1;
 
 function startRound(focus) {
+  trackCount("pr");
   Object.assign(R, { need: Number(SET.per) || 5, streak: 0, answered: 0, points: 0, retry: [], gaps: [], focus: focus && focus.length ? focus : null, total: focus && focus.length ? 10 : 0, duel: null, deck: -1, intros: 0 });
   newBadges = []; goalJust = false; clearTimeout(advTimer);
   cur = null; $("quiz").hidden = false; $("done").hidden = true; $("notice").hidden = true;
@@ -2373,7 +2516,7 @@ function recallShow() {
 function recallRate(knew) {
   if (phase !== "ask" || !card || !recallShown) return;
   phase = "wait";
-  const pts = recordCard(card.id, knew, false, false, card.points);
+  const pts = recordCard(card.id, knew, false, false, card.points, performance.now() - shownAt);
   R.answered++; if (knew) { R.streak++; R.points += pts; }
   const noticed = showNotices();
   $("feedback").style.color = knew ? "" : "var(--blue)";
@@ -2653,7 +2796,7 @@ function answer(ok, chosen, typed, idx, btn) {
   const ms = performance.now() - shownAt; phase = "wait";
   let pts, retryItem = cur, wordChosen = null, rule = R_NONE;
   if (q === Q_CARD) {
-    pts = recordCard(card.id, ok, hint > 0, card.fastMs > 0 && ms < card.fastMs && hint === 0, card.points);
+    pts = recordCard(card.id, ok, hint > 0, card.fastMs > 0 && ms < card.fastMs && hint === 0, card.points, ms);
     retryItem = null; wordChosen = typed;
   } else if (q === Q_TYPING) {
     if (!tyRes) tyRes = TYPE.check(tyUnits, typed || "", !!SET.tyStrict);
@@ -2837,7 +2980,7 @@ async function sync(force) {
       const rev = await rpc("kana_progress_put", { p_id: B.id, p_secret: B.secret, p_rev: res.rev, p_data: merged });
       if (rev < 0) continue;
       if (version === v) { S = Object.assign(S, merged); checkBadges(false); store.set("kp_state", S); }
-      const base = {}; for (const k of [...COUNTERS, "wp", "dc", "dw"]) base[k] = merged[k] || 0; base.wk = merged.wk; base.day = merged.day;
+      const base = {}; for (const k of [...COUNTERS, "wp", "dc", "dw"]) base[k] = merged[k] || 0; base.wk = merged.wk; base.day = merged.day; base.mo = merged.mo || {};
       store.set("kp_sync_base", base);
       return true;
     }
@@ -3563,7 +3706,8 @@ const epochDay = () => Math.floor((Date.now() - new Date().getTimezoneOffset() *
 function recordTyping(correct, syll, helped, right, wrong, ms, reading) {
   const now = Date.now();
   for (const it of right) { if (wrong.includes(it)) continue; const s = S.items[it.kana]; if (s && s.s > 0 && s.d <= now) review(it, true, 0, null, Q_READ, false); }
-  for (const it of wrong) { const s = S.items[it.kana]; if (!s || !s.s) continue; s.w++; s.l = Math.max(0, s.l - 1); s.d = Math.min(s.d, now + 10 * MIN); s.ls = now; }
+  track("typing", correct ? 1 : 0, correct ? 0 : 1, ms);
+  for (const it of wrong) { trackMiss(it.kana); const s = S.items[it.kana]; if (!s || !s.s) continue; s.w++; s.l = Math.max(0, s.l - 1); s.d = Math.min(s.d, now + 10 * MIN); s.ls = now; }
   rollDay(); let pts = 0;
   if (correct) {
     pts = helped ? 3 : 10 + Math.min(30, syll); if (!helped) S.ty = (S.ty || 0) + 1; award(pts);
@@ -3774,6 +3918,176 @@ function tySummary() {
   showNotices();
 }
 $("ty-close").onclick = () => { if (TY.running) { tyStart(); return; } $("dlg-typing").close(); };
+
+// ------------------------------------------------------------------ Statistik und Monats-Rückblick (wie StatsActivity.java / WrappedActivity.java)
+const cap = s => s ? s[0].toLocaleUpperCase(lang) + s.slice(1) : s;
+const monthDate = m => new Date(Math.floor(Number(m) / 100), Number(m) % 100 - 1, 1);
+const monthLabel = m => cap(monthDate(m).toLocaleDateString(lang, { month: "long", year: "numeric" }));
+const monthName = m => cap(monthDate(m).toLocaleDateString(lang, { month: "long" }));
+const dayLabel = d => { const v = Number(d); return new Date(Math.floor(v / 10000), Math.floor(v / 100) % 100 - 1, v % 100).toLocaleDateString(lang, { day: "numeric", month: "short", year: "numeric" }); };
+const minText = min => min >= 60 ? ui("st_hmin", Math.floor(min / 60), min % 60) : ui("st_min", min);
+const minShort = min => min >= 60 ? ui("st_hmin_short", Math.floor(min / 60), String(min % 60).padStart(2, "0")) : ui("st_min", min);
+const secText = ms => (ms / 1000).toFixed(1).replace(".", lang === "en" ? "." : ",") + " s";
+const kindName = k => { const t = ui("kind_" + k); return t === "kind_" + k ? k : t; };
+const nextMonth = m => { let y = Math.floor(Number(m) / 100), mm = Number(m) % 100 + 1; if (mm > 12) { mm = 1; y++; } return String(y * 100 + mm); };
+let sxMonth = null;
+function vbars(parent, values, labels, peak) {
+  const g = document.createElement("div"); g.className = "vbars"; g.style.gridTemplateColumns = `repeat(${values.length}, minmax(0, 1fr))`;
+  const max = Math.max(1, ...values);
+  values.forEach((v, i) => { const b = document.createElement("i"); b.style.height = (100 * v / max) + "%"; if (i === peak) b.className = "peak"; g.appendChild(b); });
+  const l = document.createElement("div"); l.className = "vlab"; l.style.gridTemplateColumns = `repeat(${values.length}, minmax(0, 1fr))`;
+  values.forEach((_, i) => { const s = document.createElement("span"); s.textContent = labels[i] || ""; l.appendChild(s); });
+  parent.append(g, l);
+}
+function openStatx(month) {
+  document.querySelectorAll("dialog[open]").forEach(d => d.close());
+  sxMonth = month || monthKey(Date.now());
+  renderStatx();
+  $("dlg-statx").showModal();
+}
+function renderStatx() {
+  const m = sxMonth, r = RECAP.compute(S, m), now = monthKey(Date.now()), b = $("sx2-body"); b.innerHTML = "";
+  const el = (tag, cls, text, parent) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; (parent || b).appendChild(e); return e; };
+  const nav = el("div", "sx-nav");
+  const pv = el("button", "card-btn", "◀", nav); pv.onclick = () => { sxMonth = RECAP.prevMonth(m); renderStatx(); };
+  el("b", null, monthLabel(m), nav).id = "sx2-month";
+  const nx = el("button", "card-btn", "▶", nav); nx.disabled = m === now; nx.style.opacity = m === now ? .3 : 1; nx.onclick = () => { sxMonth = nextMonth(m); renderStatx(); };
+  const sec = t => el("div", "kd-sec", t);
+  if (!r.answers && !r.hasDetail) el("p", "tiny", ui("st_no_data"));
+  else {
+    const tiles = el("div", "tiles"); tiles.id = "sx2-tiles";
+    const tile = (big, lab) => { const d = el("div", "tile", null, tiles); el("b", null, big, d); el("span", null, lab, d); };
+    tile(r.days, ui("st_days")); tile(r.answers, ui("st_answers") + " · " + r.pct + " % " + ui("st_rate"));
+    if (r.hasDetail) tile(minShort(r.minutes), ui("st_time"));
+    tile(r.points, ui("st_points")); tile(r.streak, ui("st_streak"));
+    if (r.hasDetail) { tile(r.newItems, ui("st_new")); tile(r.known, ui("st_known")); tile(r.sessionsUnlock + r.sessionsPractice, ui("st_unlocks")); }
+    if (r.prevAnswers > 0) { const d = Math.round(100 * (r.answers - r.prevAnswers) / r.prevAnswers); const p2 = el("p", "tiny", ui("st_vs_prev", (d >= 0 ? "+" : "−") + Math.abs(d) + " %")); p2.style.color = d >= 0 ? "var(--green)" : ""; }
+    if (r.kinds.length) {
+      sec(ui("st_kinds")); const max = Math.max(...r.kinds.map(k => k[1] + k[2]));
+      const kb = el("div"); kb.id = "sx2-kinds";
+      for (const [k, ok, bad] of r.kinds) { const n = ok + bad; el("div", null, kindName(k) + "   " + n + "  ·  " + Math.floor(100 * ok / Math.max(1, n)) + " % " + ui("st_rate"), kb); const bar = el("div", "kbar", null, kb); const i = document.createElement("i"); i.style.width = (100 * n / max) + "%"; bar.appendChild(i); }
+    }
+    if (r.peakHour >= 0) {
+      sec(ui("st_hours")); const hb = el("div"); hb.id = "sx2-hours"; vbars(hb, r.hours, r.hours.map((_, i) => i % 6 ? "" : String(i)), r.peakHour);
+      sec(ui("st_weekdays")); const wb = el("div"); vbars(wb, r.weekdays, ui("st_weekday_names").split(" "), r.peakDay);
+    }
+    if (r.misses.length) {
+      sec(ui("st_misses")); const mc = el("div", "kd-chips"); mc.id = "sx2-misses";
+      for (const [k, n] of r.misses) { const c = el("button", "kd-chip", null, mc); c.lang = "ja"; el("b", null, k, c); el("small", null, ui("st_misses_n", n), c); const it = BY[k]; if (it && !isKanji(it)) c.onclick = () => openKana(it); }
+    }
+    if (r.tempoStart > 0 && r.tempoEnd > 0) el("p", null, ui("st_tempo", r.tempoStart, r.tempoEnd));
+    if (!r.hasDetail) el("p", "tiny", ui("st_detail_note"));
+    const w = el("button", "btn-primary", ui("st_open_recap", monthLabel(m))); w.id = "sx2-recap"; w.style.cssText = "width:100%;margin-top:16px"; w.onclick = () => openWrapped(m);
+  }
+  sec(ui("st_records"));
+  let total = 0, bestC = 0, bestD = null, time = 0, fast = null;
+  for (const [k, v] of Object.entries(S.h || {})) { total += (v[0] || 0) + (v[1] || 0); if ((v[0] || 0) > bestC || ((v[0] || 0) === bestC && bestD && k < bestD)) { bestC = v[0] || 0; bestD = k; } }
+  for (const x of Object.values(S.mo || {})) { time += x.t || 0; if (x.fb && (!fast || x.fb[0] < fast[0])) fast = x.fb; }
+  const rec = el("div"); rec.id = "sx2-records";
+  el("p", null, ui("st_rec_streak", S.bs || 0), rec);
+  if (bestD && bestC > 0) el("p", null, ui("st_rec_day", bestC, dayLabel(bestD)), rec);
+  if (fast) el("p", null, ui("st_rec_fast", fast[1], secText(fast[0])), rec);
+  el("p", null, ui("st_rec_total", total), rec);
+  if (time > 0) el("p", null, ui("st_rec_time", minText(Math.floor(time / 60000))), rec);
+  el("p", null, ui("st_rec_points", S.tp || 0), rec);
+}
+const WR = { slides: [], pos: 0, month: null, r: null };
+const WR_C = { blue: ["#2E4BA8", "#fff"], red: ["#D23A2F", "#fff"], green: ["#2E8B57", "#fff"], yellow: ["#F2C230", "#1D2230"], ink: ["#1D2230", "#fff"], purple: ["#6B3FA0", "#fff"] };
+function wrTiles(r) {
+  const t = [[r.days, ui("st_days")], [r.answers, ui("st_answers")], [r.pct + " %", ui("st_rate")], [r.points, ui("st_points")]];
+  if (r.hasDetail) t.push([minShort(r.minutes), ui("st_time")], [r.newItems, ui("st_new")]); else t.push([r.streak, ui("st_streak")], [r.goalDays, "🎯"]);
+  return t;
+}
+function openWrapped(month) {
+  const m = month || RECAP.prevMonth(monthKey(Date.now())), r = RECAP.compute(S, m);
+  store.set("kp_recap_seen_" + m, 1);
+  const S1 = [], add = (c, f) => S1.push({ c: WR_C[c], f });
+  const mName = monthName(m);
+  const P = (p, t, size, hand, top) => { const e = document.createElement(hand ? "div" : "p"); if (hand) e.className = "h"; e.textContent = t; e.style.fontSize = size + "px"; if (top) e.style.marginTop = top + "px"; p.appendChild(e); return e; };
+  add("blue", p => { P(p, ui("wr_cover", mName), 30, true); P(p, ui("wr_cover_sub"), 16); P(p, r.days, 120, true, 36); P(p, ui("wr_days"), 20); });
+  if (r.hasDetail && r.minutes > 0) add("red", p => { P(p, ui("st_time"), 22); P(p, minText(r.minutes), 64, true, 16); if (r.minutes >= 48) P(p, ui("wr_time_line", Math.floor(r.minutes / 24)), 17, false, 20); });
+  if (r.answers > 0) add("green", p => {
+    P(p, ui("st_answers"), 22); P(p, r.answers, 100, true, 10); P(p, ui("wr_answers_line", r.pct), 18);
+    if (r.prevAnswers > 0) { const d = Math.round(100 * (r.answers - r.prevAnswers) / r.prevAnswers); P(p, ui(d >= 0 ? "wr_up" : "wr_down", Math.abs(d)), 16, false, 16); }
+    r.kinds.slice(0, 4).forEach(([k, ok, bad], i) => P(p, kindName(k) + "  ·  " + (ok + bad), 15, false, i ? 2 : 20));
+  });
+  if (r.bestDayCorrect > 0) add("yellow", p => { P(p, ui("wr_best_title"), 22); P(p, dayLabel(r.bestDay), 40, true, 16); P(p, ui("wr_best_line", r.bestDayCorrect), 18); if (r.streak > 1) P(p, ui("wr_streak_line", r.streak), 16, false, 24); });
+  if (r.hasDetail && r.peakHour >= 0) add("ink", p => {
+    const h = r.peakHour, persona = h >= 5 && h <= 9 ? 0 : h >= 10 && h <= 13 ? 1 : h >= 14 && h <= 17 ? 2 : h >= 18 && h <= 21 ? 3 : 4;
+    P(p, ui("wr_peak_title"), 20); P(p, ui("wr_persona_" + persona), 44, true, 6); P(p, ui("wr_peak_line", h), 17, false, 12);
+    const box = document.createElement("div"); box.style.marginTop = "18px"; p.appendChild(box); vbars(box, r.hours, r.hours.map((_, i) => i % 6 ? "" : String(i)), h);
+    if (r.peakDay >= 0) P(p, ui("wr_fav_day", new Date(2024, 0, 1 + r.peakDay).toLocaleDateString(lang, { weekday: "long" })), 16, false, 16);
+  });
+  if (r.hasDetail && r.newItems > 0) add("purple", p => { P(p, ui("st_new"), 22); P(p, r.newItems, 120, true, 6); P(p, ui("wr_new_line"), 17); if (r.known > 0) P(p, ui("wr_known_line", r.known), 17, false, 22); });
+  if (r.misses.length) add("red", p => {
+    const [k, n] = r.misses[0]; P(p, ui("wr_boss_title"), 22); const e = P(p, k, 130, true); e.lang = "ja"; P(p, ui("wr_boss_line", n), 18);
+    const it = BY[k]; if (it) P(p, ui("wr_boss_now", arr("mastery_names")[masteryOf(it) + 1] || ""), 16, false, 18);
+  });
+  if (r.fastest) add("green", p => { P(p, ui("wr_fast_title"), 22); const e = P(p, r.fastest[1], 130, true); e.lang = "ja"; P(p, ui("wr_fast_line", secText(r.fastest[0])), 18); });
+  const typed = (r.kinds.find(k => k[0] === "typing") || [0, 0])[1], read = (r.kinds.find(k => k[0] === "read") || [0, 0, 0]).slice(1).reduce((a, b) => a + b, 0);
+  if (typed > 0 || read > 0 || (r.tempoStart > 0 && r.tempoEnd > 0)) add("yellow", p => {
+    P(p, ui("wr_read_title"), 26, true); if (typed) P(p, ui("wr_typing_line", typed), 18, false, 20); if (read) P(p, ui("wr_read_line", read), 18, false, 10);
+    if (r.tempoStart > 0 && r.tempoEnd > 0) P(p, ui("st_tempo", r.tempoStart, r.tempoEnd), 18, false, 10);
+  });
+  if (r.badges.length || r.exams.length || r.sessionsUnlock > 0) add("blue", p => {
+    P(p, ui("wr_badges_title"), 26, true);
+    if (r.badges.length) { P(p, r.badges.map(b => BADGE_ICONS[BADGES.indexOf(b)] || "").join("  "), 36, true, 14); P(p, ui("wr_badges_line", r.badges.length), 18); }
+    if (r.exams.length) P(p, ui("wr_exams_line", r.exams.length), 18, false, 12);
+    if (r.sessionsUnlock > 0) P(p, ui("wr_sessions_line", r.sessionsUnlock), 16, false, 12);
+  });
+  add("ink", p => {
+    P(p, ui("wr_sum_title", mName), 26, true);
+    const g = document.createElement("div"); g.className = "wr-tiles"; p.appendChild(g);
+    for (const [v, l] of wrTiles(r)) { const d = document.createElement("div"); const b2 = document.createElement("b"); b2.textContent = v; const s2 = document.createElement("span"); s2.textContent = l; d.append(b2, s2); g.appendChild(d); }
+    const bt = document.createElement("div"); bt.className = "wr-btns"; p.appendChild(bt);
+    const sh = document.createElement("button"); sh.className = "btn-primary"; sh.id = "wr-share"; sh.textContent = ui("wr_share"); sh.onclick = e => { e.stopPropagation(); wrShare(m, r); };
+    const cl = document.createElement("button"); cl.className = "card-btn"; cl.id = "wr-close"; cl.textContent = ui("wr_close"); cl.onclick = e => { e.stopPropagation(); $("dlg-wrapped").close(); };
+    bt.append(sh, cl);
+  });
+  Object.assign(WR, { slides: S1, pos: 0, month: m, r });
+  document.querySelectorAll("dialog[open]").forEach(d => d.close());
+  $("dlg-wrapped").showModal(); wrShow(0);
+}
+function wrShow(i) {
+  if (i < 0) return;
+  WR.pos = Math.min(i, WR.slides.length - 1);
+  const s = WR.slides[WR.pos], w = $("wr"); w.innerHTML = ""; w.style.background = s.c[0]; w.style.color = s.c[1];
+  const bars = document.createElement("div"); bars.className = "wr-bars"; WR.slides.forEach((_, k) => { const b = document.createElement("i"); if (k <= WR.pos) b.className = "on"; bars.appendChild(b); }); w.appendChild(bars);
+  const body = document.createElement("div"); body.className = "wr-body in"; body.id = "wr-body"; w.appendChild(body); s.f(body);
+  const hint = document.createElement("div"); hint.className = "wr-hint"; hint.textContent = ui("wr_hint"); hint.style.visibility = WR.pos === WR.slides.length - 1 ? "hidden" : "visible"; w.appendChild(hint);
+}
+$("wr").onclick = e => { const r = $("wr").getBoundingClientRect(); if (e.clientX - r.left < r.width / 3) wrShow(WR.pos - 1); else if (WR.pos < WR.slides.length - 1) wrShow(WR.pos + 1); };
+async function wrShare(m, r) {
+  const c = document.createElement("canvas"); c.width = 1080; c.height = 1350; const g = c.getContext("2d");
+  try { await document.fonts.load('600 72px "Klee One"'); } catch (e) {}
+  g.fillStyle = "#1D2230"; g.fillRect(0, 0, 1080, 1350); g.textAlign = "center";
+  g.fillStyle = "#fff"; g.font = '600 72px "Klee One", serif'; g.fillText(ui("wr_sum_title", monthName(m)), 540, 170);
+  g.fillStyle = "rgba(255,255,255,.75)"; g.font = "36px sans-serif"; g.fillText(monthLabel(m), 540, 235);
+  const cols = ["#2E4BA8", "#D23A2F", "#2E8B57", "#6B3FA0", "#F2C230", "#2E4BA8"];
+  wrTiles(r).forEach(([v, l], i) => {
+    const x = 80 + (i % 2) * 470, y = 300 + Math.floor(i / 2) * 290;
+    g.fillStyle = cols[i % cols.length]; g.beginPath(); g.roundRect(x, y, 450, 260, 36); g.fill();
+    g.fillStyle = cols[i % cols.length] === "#F2C230" ? "#1D2230" : "#fff";
+    g.font = `600 ${String(v).length > 7 ? 76 : 104}px "Klee One", serif`; g.fillText(String(v), x + 225, y + 150);
+    g.font = "34px sans-serif"; g.fillText(l, x + 225, y + 215);
+  });
+  g.fillStyle = "rgba(255,255,255,.65)"; g.font = "34px sans-serif"; g.fillText("KagiScreen  ·  かな", 540, 1300);
+  const blob = await new Promise(res => c.toBlob(res, "image/png"));
+  const file = new File([blob], "kagiscreen-" + m + ".png", { type: "image/png" }), text = ui("wr_share_text", monthLabel(m));
+  if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], text }); return; } catch (e) { if (e.name === "AbortError") return; } }
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = file.name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+$("sx-statx").onclick = () => openStatx();
+function recapNotice() {
+  const prev = RECAP.prevMonth(monthKey(Date.now()));
+  if (new Date().getDate() > 7 || store.get("kp_recap_seen_" + prev, 0)) return;
+  if (!RECAP.compute(S, prev).answers) return;
+  pendingNotice.push("🎉  " + ui("wr_banner", monthLabel(prev)));
+  const el = $("notice"), off = () => { el.onclick = null; el.style.cursor = ""; };
+  el.style.cursor = "pointer"; el.onclick = () => { off(); el.hidden = true; openWrapped(prev); };
+  setTimeout(off, 8000);
+}
 
 // ------------------------------------------------------------------ Zeichentabelle und Kana-Detailseiten (wie KanaActivity.java)
 const KINFO = CFG.kanaInfo || { oh: {}, ok: {}, ext: {} };
@@ -4110,6 +4424,7 @@ function buildExam(id) {
 function recordExam(id, right, total, wrongItems, wrongCards) {
   S.ex = S.ex || {};
   const now = Date.now(), pct = total ? Math.floor(right * 100 / total) : 0, e = S.ex[id] || (S.ex[id] = [0, 0]);
+  track("exam", right, total - right, 0);
   e[0] = Math.max(e[0], pct);
   let pts = 0;
   if (pct >= examPass(id) && !e[1]) { e[1] = now; pts = id === "n5" ? 300 : 100; }
@@ -4351,6 +4666,7 @@ if ("speechSynthesis" in window) speechSynthesis.getVoices();
   applyTheme();
   await loadLang(pickLang());
   applyStatic();
+  recapNotice();
   startRound();
   loadStrokes();
   sync(false);
