@@ -344,6 +344,34 @@ select, .text-in { background: var(--card); color: var(--ink); border: 1.5px sol
 .kd-chip b { display: block; font-family: var(--hand); font-weight: 600; font-size: 24px; }
 .kd-chip small { color: var(--muted); font-size: 12px; }
 .kd-chip.cur { border-color: var(--red); background: color-mix(in srgb, var(--red) 14%, var(--card)); }
+.rm-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.rm-row b { width: 30px; flex: none; }
+.rm-row .goalbar { flex: 1; min-width: 0; }
+.rm-row span { width: 46px; flex: none; text-align: right; font-size: 14px; }
+.rm-skills { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
+.rm-skill { background: var(--card); border: 1.2px solid var(--rule); border-radius: 12px; padding: 8px 12px 10px; min-width: 0; }
+.rm-skill b { display: block; font-size: 14px; overflow-wrap: anywhere; }
+.rm-skill .tiny { margin: 4px 0 0; overflow-wrap: anywhere; }
+.rm-unit { border-radius: 14px; padding: 10px 16px 12px; color: #fff; margin: 18px 0 6px; }
+.rm-unit b { font-size: 20px; display: block; }
+.rm-unit div { font-size: 14px; opacity: .9; }
+.rm-node { display: block; position: relative; border: none; background: none; width: 100%; padding: 8px 0 6px; cursor: pointer; color: var(--ink); }
+.rm-node .ring { width: 76px; height: 76px; border-radius: 50%; margin: 0 auto; display: grid; place-items: center; transform: translateX(calc(var(--off) * (min(100vw, 560px) / 2 - 110px)));
+  background: conic-gradient(var(--c) calc(var(--p) * 1turn), color-mix(in srgb, var(--muted) 25%, transparent) 0); }
+.rm-node .dot { width: 62px; height: 62px; border-radius: 50%; display: grid; place-items: center; background: var(--card); border: 1.5px solid var(--rule); font-family: var(--hand); font-weight: 600; font-size: 28px; line-height: 1; }
+.rm-node.done .dot { background: var(--c); color: #fff; border-color: var(--c); }
+.rm-node.cur .ring { width: 90px; height: 90px; }
+.rm-node.cur .dot { width: 74px; height: 74px; border: 3px solid var(--c); font-size: 33px; }
+.rm-node.future .dot { color: var(--muted); background: color-mix(in srgb, var(--muted) 15%, transparent); }
+.rm-node .lbl { display: block; width: max-content; max-width: 180px; margin: 6px auto 0; font-weight: 700; font-size: 13px; transform: translateX(calc(var(--off) * (min(100vw, 560px) / 2 - 110px))); }
+.rm-node .st { display: block; width: max-content; max-width: 180px; margin: 0 auto; font-size: 11.5px; color: var(--muted); transform: translateX(calc(var(--off) * (min(100vw, 560px) / 2 - 110px))); }
+.rm-node .here { display: inline-block; background: var(--c); color: #fff; font-weight: 700; font-size: 12px; border-radius: 10px; padding: 3px 10px; margin-bottom: 6px; transform: translateX(calc(var(--off) * (min(100vw, 560px) / 2 - 110px))); }
+.nd-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 10px; max-height: 210px; overflow: auto; }
+.nd-chips button { width: 38px; height: 38px; border: 1px solid var(--rule); border-radius: 6px; font-family: var(--hand); font-weight: 600; font-size: 20px; color: var(--ink); background: color-mix(in srgb, var(--muted) 12%, transparent); }
+.nd-chips button.m1 { background: color-mix(in srgb, var(--red) 22%, transparent); }
+.nd-chips button.m2 { background: color-mix(in srgb, var(--amber, #C98512) 28%, transparent); }
+.nd-chips button.m3 { background: color-mix(in srgb, var(--green) 22%, transparent); }
+.nd-chips button.m4 { background: color-mix(in srgb, var(--green) 55%, transparent); }
 .kd-word { padding: 6px 0; cursor: pointer; font-size: 17px; overflow-wrap: anywhere; }
 .kd-word .ja { font-family: var(--hand); font-weight: 600; font-size: 20px; }
 .kd-sent { background: var(--card); border: 1.2px solid var(--rule); border-radius: 10px; padding: 8px 14px 10px; margin-top: 8px; cursor: pointer; }
@@ -451,6 +479,7 @@ dialog#dlg-wrapped::backdrop { background: #000; }
   <div class="top">
     <span class="brand" id="brand">かな</span>
     <span class="progress" id="progress"></span>
+    <button class="icon-btn" id="btn-road" aria-label="Path">🗺️</button>
     <button class="icon-btn" id="btn-stats" aria-label="Progress">📊</button>
     <button class="icon-btn" id="btn-friends" aria-label="Friends">👥</button>
     <button class="icon-btn" id="btn-board" aria-label="Leaderboard">🏆</button>
@@ -580,6 +609,20 @@ dialog#dlg-wrapped::backdrop { background: #000; }
   </div>
 </dialog>
 
+<dialog id="dlg-road">
+  <div class="sheet">
+    <div class="sheet-head"><h2 data-ui="rm_title"></h2><button class="icon-btn" data-close>✕</button></div>
+    <div id="rm-body"></div>
+  </div>
+</dialog>
+
+<dialog id="dlg-node">
+  <div class="sheet">
+    <div class="sheet-head"><h2 id="nd-title"></h2><button class="icon-btn" data-close>✕</button></div>
+    <div id="nd-body"></div>
+  </div>
+</dialog>
+
 <dialog id="dlg-jlpt">
   <div class="sheet">
     <div class="sheet-head"><h2 id="jl-head" data-ui="jl_title"></h2><button class="icon-btn" id="jl-close">✕</button></div>
@@ -671,6 +714,7 @@ dialog#dlg-wrapped::backdrop { background: #000; }
     <ul class="path" id="sx-path"></ul>
     <button class="btn-primary" id="sx-path-btn" style="margin-top:10px;width:100%"></button>
     <button class="link-btn" id="sx-place" data-ui="place_offer"></button>
+    <button class="card-btn" id="sx-road" style="width:100%;margin-top:10px" data-ui="rm_btn"></button>
     <button class="card-btn" id="sx-typing" style="width:100%;margin-top:10px"></button>
     <button class="card-btn" id="sx-chars" style="width:100%;margin-top:10px" data-ui="kd_overview_btn"></button>
     <button class="card-btn" id="sx-statx" style="width:100%;margin-top:10px" data-ui="st_btn"></button>
@@ -679,7 +723,7 @@ dialog#dlg-wrapped::backdrop { background: #000; }
     <div class="ev-btns"><button class="btn-primary" id="sx-ev-vocab" data-ui="practice_vocab"></button><button class="card-btn" id="sx-ev-num" data-ui="practice_numbers"></button>
       <button class="card-btn" id="sx-ev-ph" data-ui="practice_phrases"></button><button class="card-btn" id="sx-ev-speak" data-ui="practice_speak"></button>
       <button class="card-btn" id="sx-ev-gr" data-ui="practice_grammar"></button><button class="card-btn" id="sx-ev-read" data-ui="practice_read"></button>
-      <button class="card-btn" id="sx-ev-jlpt" data-ui="practice_jlpt"></button><button class="card-btn" id="sx-jlpt" data-ui="jl_btn"></button></div>
+      <button class="card-btn" id="sx-ev-jlpt" data-ui="practice_jlpt"></button><button class="card-btn" id="sx-jlpt" data-ui="rm_btn"></button></div>
     <div class="sec"><b>3</b><span data-ui="h_forecast"></span></div>
     <p class="tiny" id="sx-fc-text" style="max-width:none"></p>
     <div class="fc" id="sx-fc"></div>
@@ -1709,7 +1753,7 @@ const INTERVAL = [0, MIN, 5 * MIN, 20 * MIN, HOUR, 4 * HOUR, 12 * HOUR, DAY, 3 *
 const BADGES = ["hira_all", "kata_all", "daku_all", "yoon_all", "kanji_20", "kanji_all", "streak_7", "streak_30", "streak_100", "goal_7", "words_10", "words_100", "listen_50", "draw_50", "points_1000", "points_10000",
   "kanji2_all", "kwords_25", "dict_25", "sentences_25", "duel_5", "kanji3_all", "vocab_100", "numbers_all", "phrases_30", "grammar_all", "reading_all", "exam_first", "exam_n5", "typing_50"];
 const BADGE_ICONS = ["あ", "ア", "が", "きゃ", "山", "森", "🔥", "🔥", "🔥", "🎯", "語", "語", "🔊", "✎", "★", "★", "雲", "学", "👂", "は", "⚔", "旅", "単", "円", "話", "文", "読", "合", "五", "あa"];
-const COUNTERS = ["tp", "wr", "lo", "dk", "gd", "kw", "dt", "se", "du", "ty"];
+const COUNTERS = ["tp", "wr", "lo", "dk", "gd", "kw", "dt", "se", "du", "ty", "sk"];
 // FSRS-5 (gleiche Werte wie Learner.java)
 const W = [0.40255, 1.18385, 3.173, 15.69105, 7.1949, 0.5345, 1.4604, 0.0046, 1.54575, 0.1192, 1.01925, 1.9395, 0.11, 0.29605, 2.2698, 0.2315, 2.9898, 0.51655, 0.6621];
 const DECAY = -0.5, FACTOR = 19 / 81, RETENTION = 0.9;
@@ -2395,16 +2439,16 @@ let opts = [], wopts = [], xopts = [], xcorrect = -1;
 
 function startRound(focus) {
   trackCount("pr");
-  Object.assign(R, { need: Number(SET.per) || 5, streak: 0, answered: 0, points: 0, retry: [], gaps: [], focus: focus && focus.length ? focus : null, total: focus && focus.length ? 10 : 0, duel: null, deck: -1, intros: 0 });
+  Object.assign(R, { need: Number(SET.per) || 5, streak: 0, answered: 0, points: 0, retry: [], gaps: [], focus: focus && focus.length ? focus : null, total: focus && focus.length ? 10 : 0, duel: null, deck: -1, intros: 0, ids: null });
   newBadges = []; goalJust = false; clearTimeout(advTimer);
   cur = null; $("quiz").hidden = false; $("done").hidden = true; $("notice").hidden = true;
   $("quit").hidden = !R.focus; $("brand").textContent = R.focus ? ui("practice_brand") : "かな";
   next();
 }
 /** Nur Karten eines Stapels üben (Wörter, Zahlen, Sätze). */
-function startDeck(deck) {
-  if (!deckIds(deck).length) { toast(ui("practice_none")); return false; }
-  Object.assign(R, { need: 1, streak: 0, answered: 0, points: 0, retry: [], gaps: [], focus: null, total: 10, duel: null, deck, intros: 0 });
+function startDeck(deck, ids) {
+  if (!(ids || deckIds(deck)).length) { toast(ui("practice_none")); return false; }
+  Object.assign(R, { need: 1, streak: 0, answered: 0, points: 0, retry: [], gaps: [], focus: null, total: 10, duel: null, deck, intros: 0, ids: ids || null });
   newBadges = []; goalJust = false; clearTimeout(advTimer);
   cur = null; $("quiz").hidden = false; $("done").hidden = true; $("notice").hidden = true;
   $("quit").hidden = false; $("brand").textContent = ui("practice_brand");
@@ -2528,7 +2572,7 @@ function startTyping(x) {
   const inp = $("type-in"); inp.value = ""; $("type-preview").textContent = ""; setTimeout(() => inp.focus(), 60);
 }
 function startCard(deck, practice) {
-  const ids = deckIds(deck); if (!ids.length) return false;
+  const ids = R.ids || deckIds(deck); if (!ids.length) return false;
   const id = pickCard(ids, DECK_MAX_NEW[deck] * (practice ? 2 : 1), lastCardId, practice); if (!id) return false;
   if (isNewCard(id) && !practice && R.intros >= 1) return false;
   const c = buildCard(id); if (!c) return false;
@@ -2976,7 +3020,7 @@ function finishRound() {
   setGoalBar($("done-goalbar")); $("done-code").hidden = true; $("done-share").hidden = true;
   const p = pool(), known = p.filter(it => lvl(it) >= 4).length, sd = streakDays();
   $("done-stats").textContent = ui("summary_known", known, p.length) + (sd > 0 ? "\n🔥 " + ui("streak_days", sd) : "");
-  $("progress").textContent = ""; $("quit").hidden = true; $("brand").textContent = "かな"; R.focus = null; R.deck = -1;
+  $("progress").textContent = ""; $("quit").hidden = true; $("brand").textContent = "かな"; R.focus = null; R.deck = -1; R.ids = null;
   pathAutoUnlock();
   submit().then(() => sync(false));
 }
@@ -3523,6 +3567,7 @@ function speakResult(heard) {
   const r = speakBest(p.text, p.reading, heard);
   res.style.color = r.verdict === 2 ? "var(--green)" : r.verdict === 1 ? "var(--blue)" : "var(--red)";
   res.textContent = ui("speak_heard", r.heard) + "\n" + ui(r.verdict === 2 ? "speak_match" : r.verdict === 1 ? "speak_close" : "speak_off");
+  if (r.verdict === 2) { S.sk = (S.sk || 0) + 1; save(); }
   hv.hidden = r.verdict === 2; hv.innerHTML = "";
   [...r.target].forEach((ch, k) => { const sp = document.createElement("span"); sp.textContent = ch; if (!r.hit[k]) sp.className = "miss"; hv.appendChild(sp); });
   if (SP.hide && !SP.shown) { SP.shown = true; const keep = [res.textContent, res.style.color, hv.innerHTML, hv.hidden]; showSpeak(); res.hidden = false; [res.textContent, res.style.color, hv.innerHTML, hv.hidden] = keep; }
@@ -3640,6 +3685,7 @@ function readRecord(x, res) {
     res.hidden = false; res.innerHTML = "";
     res.style.color = r.verdict === 2 ? "var(--green)" : r.verdict === 1 ? "var(--blue)" : "";
     res.append(ui(r.verdict === 2 ? "speak_match" : r.verdict === 1 ? "speak_close" : "speak_off") + "\n");
+    if (r.verdict === 2) { S.sk = (S.sk || 0) + 1; save(); }
     [...r.target].forEach((ch, i) => { const sp = document.createElement("span"); sp.textContent = ch; if (!r.hit[i]) sp.className = "miss"; res.appendChild(sp); });
   };
   rec.onerror = () => { if (!got) { res.hidden = false; res.textContent = ui("speak_nothing"); } };
@@ -4392,6 +4438,186 @@ function openKanji(it) {
   $("dlg-kana").querySelector(".sheet").scrollTop = 0;
 }
 
+// ------------------------------------------------------------------ Lernweg (wie Roadmap.java / RoadmapActivity.java)
+const RM_WORD = 150, RM_KANJI = 50, RM_REACHED = 80, RM_TIERS = [10, 25, 50, 100, 200, 400, 800];
+const RM_UNITS = ["kana", "n5", "n4", "n3", "n2", "n1"], RM_COLORS = ["#D2453B", "#2D6CDF", "#2E9E5B", "#D98A12", "#7A4CC2", "#5A6070"];
+function rmSplit(n, size) { const parts = Math.max(1, Math.ceil(n / size)), b = []; for (let i = 0; i <= parts; i++) b.push(Math.floor(i * n / parts)); return b; }
+function roadmap(st) {
+  const items = st.items || {}, cards = st.cards || {}, nodes = [];
+  const itemKnown = k => !!items[k] && (items[k].l || 0) >= 4, cardKnown = id => !!cards[id] && (cards[id].l || 0) >= CARD_KNOWN;
+  const cardsKnownP = p => Object.keys(cards).filter(k => k.startsWith(p) && (cards[k].l || 0) >= CARD_KNOWN).length;
+  const knownInG = (script, group) => ALL.filter(it => it.group === group && (script < 0 || it.script === script) && itemKnown(it.kana)).length;
+  const passedEx = id => !!(st.ex && st.ex[id] && st.ex[id][1] > 0);
+  const add = (id, kind, unit, done, total) => { const n = { id, kind, unit, done, total, complete: total > 0 && done >= total, ids: [], level: 0, part: 0, parts: 0 }; nodes.push(n); return n; };
+  const levelNodes = (unit, lv, kanji, words) => {
+    const ks = [], ws = [], kb = rmSplit(kanji.length, RM_KANJI), wb = rmSplit(words.length, RM_WORD);
+    if (kanji.length) for (let i = 0; i + 1 < kb.length; i++) { const ids = kanji.slice(kb[i], kb[i + 1]), n = { id: "k" + lv + "_" + (i + 1), kind: "kanji", unit, ids, done: ids.filter(itemKnown).length, total: ids.length, level: lv, part: i + 1, parts: kb.length - 1 }; n.complete = n.done * 10 >= n.total * 9; ks.push(n); }
+    if (words.length) for (let i = 0; i + 1 < wb.length; i++) { const ids = words.slice(wb[i], wb[i + 1]), n = { id: "j" + lv + "_" + (i + 1), kind: "words", unit, ids, done: ids.filter(cardKnown).length, total: ids.length, level: lv, part: i + 1, parts: wb.length - 1 }; n.complete = n.done * 10 >= n.total * 9; ws.push(n); }
+    let a = 0, b = 0;
+    while (a < ks.length || b < ws.length) { if (b >= ws.length || (a < ks.length && (a + 0.5) * ws.length <= (b + 0.5) * ks.length)) nodes.push(ks[a++]); else nodes.push(ws[b++]); }
+  };
+  const hira = knownInG(HIRA, BASE), kata = knownInG(KATA, BASE), daku = knownInG(-1, DAKU), yoon = knownInG(-1, YOON);
+  add("hira", "kana", "kana", hira, 46); add("kata", "kana", "kana", kata, 46); add("daku", "kana", "kana", Math.min(daku, 46) + Math.min(yoon, 66), 112);
+  add("kana", "exam", "kana", passedEx("kana") ? 1 : 0, 1);
+  const wordsOf = [[], [], [], [], [], []], kanjiOf = [[], [], [], [], [], []];
+  for (const w of JWORDS) wordsOf[w.level].push(w.id);
+  for (const it of ALL) if (isKanji(it)) { const lv = KDICT[it.kana] ? KDICT[it.kana][3] : 0; if (lv >= 2 && lv <= 5) kanjiOf[lv].push(it.kana); }
+  const gTotal = GRAM.RULES.length, gk = cardsKnownP("g:");
+  add("words", "basic", "n5", Math.min(cardsKnownP("v:"), 50), 50); add("numbers", "basic", "n5", cardsKnownP("n:"), NUM.RULES.length);
+  add("phrases", "basic", "n5", Math.min(cardsKnownP("p:"), 30), 30); add("grammar", "basic", "n5", gk, gTotal);
+  levelNodes("n5", 5, kanjiOf[5], wordsOf[5]);
+  add("reading", "basic", "n5", cardsKnownP("t:"), READING.length); add("n5", "exam", "n5", passedEx("n5") ? 1 : 0, 1);
+  const kanaKnown = hira + kata + daku + yoon, ladder = [0, 0, 0, 0], wd = [], wa = [], kd = [], ka = [];
+  let wDone = 0, wAll = 0, kDone = 0, kAll = 0;
+  for (let lv = 5; lv >= 2; lv--) {
+    wDone += wordsOf[lv].filter(cardKnown).length; kDone += kanjiOf[lv].filter(itemKnown).length; wAll += wordsOf[lv].length; kAll += kanjiOf[lv].length;
+    wd[lv] = wDone; wa[lv] = wAll; kd[lv] = kDone; ka[lv] = kAll;
+    const wf = wAll ? wDone / wAll : 0, kf = kAll ? kDone / kAll : 0;
+    const pct = lv === 5 ? 0.2 * kanaKnown / 204 + 0.4 * wf + 0.2 * kf + 0.2 * (gTotal ? Math.min(1, gk / gTotal) : 0) : 0.6 * wf + 0.4 * kf;
+    ladder[5 - lv] = Math.floor(100 * pct + 1e-9);
+  }
+  for (let lv = 4; lv >= 2; lv--) { levelNodes("n" + lv, lv, kanjiOf[lv], wordsOf[lv]); const g = add("m" + lv, "goal", "n" + lv, Math.min(ladder[5 - lv], 100), 100); g.complete = ladder[5 - lv] >= RM_REACHED; }
+  add("n1", "future", "n1", 0, 0);
+  let reached = 0; for (let lv = 5; lv >= 2; lv--) { if (ladder[5 - lv] >= RM_REACHED) reached = lv; else break; }
+  const next = reached === 0 ? 5 : reached - 1;
+  const missingWords = next >= 2 ? wa[next] - wd[next] : 0, missingKanji = next >= 2 ? ka[next] - kd[next] : 0;
+  const current = nodes.find(n => !n.complete && n.kind !== "future") || null;
+  const kanjiKnown = ALL.filter(it => isKanji(it) && itemKnown(it.kana)).length, nKanji = ALL.filter(isKanji).length;
+  const part = (id, done, total) => ({ id, done, total, level: 0, prev: 0, next: 0 });
+  const counted = (id, v) => { let level = 0; while (level < RM_TIERS.length && v >= RM_TIERS[level]) level++; return { id, done: v, total: 0, level, prev: level ? RM_TIERS[level - 1] : 0, next: level < RM_TIERS.length ? RM_TIERS[level] : 0 }; };
+  const skills = [part("kana", kanaKnown, 204), part("vocab", cardsKnownP("v:") + cardsKnownP("j:"), VOCAB.length + JVOCAB.length), part("kanji", kanjiKnown, nKanji),
+    part("grammar", gk, gTotal), part("reading", cardsKnownP("t:"), READING.length),
+    counted("listening", (st.lo || 0) + (st.dt || 0)), counted("speaking", st.sk || 0), counted("writing", (st.dk || 0) + (st.ty || 0))];
+  return { nodes, ladder, reached, missingWords, missingKanji, current, skills };
+}
+const rmFrac = n => n.total <= 0 ? 0 : Math.min(1, n.done / n.total);
+const skFrac = s => s.total > 0 ? Math.min(1, s.done / s.total) : s.next <= 0 ? 1 : Math.max(0, Math.min(1, (s.done - s.prev) / (s.next - s.prev)));
+function roadDump(m) {
+  let o = "";
+  for (const n of m.nodes) o += n.id + " " + n.kind + " " + n.unit + " " + n.done + "/" + n.total + (n.complete ? " ✓" : "") + (n.ids.length ? " " + n.ids[0] + "…" + n.ids[n.ids.length - 1] : "") + "\n";
+  o += "ladder " + m.ladder.map(v => v + " ").join("") + "reached " + m.reached + " missing " + m.missingWords + "/" + m.missingKanji + " current " + (m.current ? m.current.id : "-") + "\n";
+  for (const s of m.skills) o += s.id + " " + s.done + "/" + s.total + " L" + s.level + " " + s.prev + "-" + s.next + " " + Math.floor(skFrac(s) * 1000 + 1e-9) + "\n";
+  return o;
+}
+const rmName = n => n.kind === "kanji" ? ui("rm_node_kanji", n.part, n.parts) : n.kind === "words" ? ui("rm_node_words", n.part, n.parts) : n.kind === "goal" ? ui("rm_node_goal", "N" + n.id.slice(1)) : n.kind === "future" ? "N1" : ui("path_" + n.id);
+const RM_ICON = { hira: "あ", kata: "ア", daku: "が", words: "語", numbers: "数", phrases: "話", grammar: "文", reading: "読" };
+const rmIcon = n => RM_ICON[n.id] || (n.kind === "exam" ? "📝" : n.kind === "kanji" ? (n.ids[0] || "字") : n.kind === "words" ? "単" : n.kind === "goal" ? "🏆" : "🔒");
+function rmSummary(m) {
+  const a = m.reached ? ui("rm_reached", "N" + m.reached) : ui("rm_below"), next = m.reached ? m.reached - 1 : 5;
+  return next < 2 ? a : a + "\n" + ui("rm_missing", "N" + next, m.missingWords, m.missingKanji);
+}
+const skText = s => s.total > 0 ? ui("rm_skill_part", s.done, s.total, Math.floor(100 * s.done / s.total)) : s.next <= 0 ? ui("rm_skill_max", s.level, s.done) : ui("rm_skill_level", s.level, s.done, s.next);
+function openRoad() {
+  document.querySelectorAll("dialog[open]").forEach(d => d.close());
+  const m = roadmap(S), b = $("rm-body"); b.innerHTML = "";
+  kdEl("p", "tiny", ui("rm_intro"), b);
+  const lc = kdEl("div", "me-card", null, b); lc.id = "rm-ladder";
+  kdEl("b", null, rmSummary(m), lc).style.whiteSpace = "pre-line";
+  for (let i = 0; i < 5; i++) {
+    const r = kdEl("div", "rm-row", null, lc), n = kdEl("b", null, "N" + (5 - i), r); n.style.color = RM_COLORS[i + 1];
+    if (i < 4) { jlBar(r, m.ladder[i], 100, RM_COLORS[i + 1]); kdEl("span", null, m.ladder[i] + " %", r); }
+    else kdEl("div", "tiny", ui("rm_n1_missing"), r).style.flex = "1";
+  }
+  kdEl("p", "tiny", ui("rm_ladder_note", RM_REACHED), lc);
+  const lb = kdEl("button", "card-btn", ui("rm_lists"), lc); lb.style.width = "100%"; lb.onclick = () => openJlpt();
+  kdEl("div", "kd-sec", ui("rm_skills"), b);
+  const sg = kdEl("div", "rm-skills", null, b); sg.id = "rm-skills";
+  for (const s of m.skills) { const c = kdEl("div", "rm-skill", null, sg); kdEl("b", null, ui("rm_skill_" + s.id), c); jlBar(c, skFrac(s) * 100, 100); kdEl("p", "tiny", skText(s), c); }
+  kdEl("p", "tiny", ui("rm_skills_note"), b);
+  kdEl("div", "kd-sec", ui("rm_path"), b);
+  const path = kdEl("div", null, null, b); path.id = "rm-path";
+  let unit = null, idx = 0, curEl = null;
+  const zig = [0, 0.45, 0.75, 0.45, 0, -0.45, -0.75, -0.45];
+  for (const n of m.nodes) {
+    if (n.unit !== unit) {
+      unit = n.unit; idx = 0;
+      const u = kdEl("div", "rm-unit", null, path), ui0 = RM_UNITS.indexOf(unit); u.style.background = RM_COLORS[ui0]; u.dataset.unit = unit;
+      kdEl("b", null, ui("rm_unit_" + unit), u); kdEl("div", null, ui("rm_unit_" + unit + "_sub"), u);
+      const all = m.nodes.filter(x => x.unit === unit && x.kind !== "future");
+      if (all.length) kdEl("div", null, ui("rm_unit_count", all.filter(x => x.complete).length, all.length), u);
+    }
+    const isCur = n === m.current, bt = kdEl("button", "rm-node" + (n.complete ? " done" : "") + (isCur ? " cur" : "") + (n.kind === "future" ? " future" : ""), null, path);
+    bt.dataset.id = n.id; bt.style.setProperty("--off", zig[idx++ % zig.length]); bt.style.setProperty("--c", RM_COLORS[RM_UNITS.indexOf(n.unit)]);
+    bt.style.setProperty("--p", n.kind === "future" ? 0 : rmFrac(n));
+    if (isCur) kdEl("span", "here", ui("rm_here"), bt);
+    const ring = kdEl("span", "ring", null, bt), dot = kdEl("span", "dot", rmIcon(n), ring); dot.lang = "ja";
+    kdEl("span", "lbl", rmName(n), bt);
+    kdEl("span", "st", n.kind === "future" ? ui("rm_n1_missing") : n.kind === "exam" ? ui(n.complete ? "rm_passed" : "rm_open") : n.kind === "goal" ? n.done + " % / " + RM_REACHED + " %" : n.done + " / " + n.total, bt);
+    bt.onclick = () => openNode(n);
+    if (isCur) curEl = bt;
+  }
+  kdEl("p", "tiny", ui("jl_source"), b);
+  $("dlg-road").showModal();
+  const dl = $("dlg-road");
+  dl.scrollTop = 0;
+  if (curEl) dl.scrollTop = Math.max(0, curEl.getBoundingClientRect().top - dl.getBoundingClientRect().top - dl.clientHeight / 3);
+}
+function openNode(n) {
+  const b = $("nd-body"); b.innerHTML = ""; $("nd-title").textContent = rmName(n);
+  const info = kdEl("p", null, "", b); info.style.whiteSpace = "pre-line";
+  let action = null, label = ui("rm_practice");
+  const close = () => document.querySelectorAll("dialog[open]").forEach(d => d.close());
+  if (n.kind === "kana" || n.kind === "basic") {
+    info.textContent = ui("rm_desc_progress", n.done, n.total);
+    if (n.id === "reading") label = ui("practice_read");
+    action = () => {
+      close();
+      const set = (k, v) => { SET[k] = v; store.set("kp_settings", SET); };
+      if (n.id === "kata") set("kata", true);
+      if (n.id === "daku") { set("daku", true); set("yoon", true); }
+      if (n.id === "reading") return openRead();
+      if (n.id === "words") { set("vocab", true); return startDeck(DECK_VOCAB); }
+      if (n.id === "numbers") { set("numbers", true); return startDeck(DECK_NUM); }
+      if (n.id === "phrases") { set("phrases", true); return startDeck(DECK_PHRASE); }
+      if (n.id === "grammar") { set("grammar", true); return startDeck(DECK_GRAMMAR); }
+      startRound();
+    };
+  } else if (n.kind === "exam") {
+    const open = examOpen(n.id);
+    info.textContent = ui(n.complete ? "rm_desc_exam_done" : open ? "rm_desc_exam_open" : "rm_desc_exam_locked");
+    if (n.complete || open) { label = ui("rm_exam"); action = () => { close(); openExam(n.id); }; }
+  } else if (n.kind === "kanji") {
+    info.textContent = ui("rm_desc_kanji", "N" + n.level, n.done, n.total);
+    const ch = kdEl("div", "nd-chips", null, b); ch.lang = "ja"; ch.id = "nd-chips";
+    for (const k of n.ids) { const it = BY[k]; if (!it) continue; const x = kdEl("button", null, k, ch); x.className = "m" + (masteryOf(it) + 1); x.onclick = () => { close(); openKanji(it); }; }
+    action = () => {
+      close();
+      const its = n.ids.map(k => BY[k]).filter(Boolean), f = its.filter(it => masteryOf(it) < 2).slice(0, 6);
+      for (const it of its) if (f.length < 4 && !f.includes(it)) f.push(it);
+      startRound(f);
+    };
+    rmEnable(b, n);
+  } else if (n.kind === "words") {
+    info.textContent = ui("rm_desc_words", "N" + n.level, n.done, n.total);
+    const by = {}; JWORDS.forEach(w => { by[w.id] = w; });
+    const next = n.ids.filter(id => !(S.cards[id] && S.cards[id].l >= CARD_KNOWN)).slice(0, 8).map(id => by[id]).filter(Boolean);
+    if (next.length) { kdEl("p", "tiny", ui("rm_next_words"), b); const l = kdEl("div", null, null, b); l.id = "nd-words"; for (const w of next) { const d = kdEl("div", "kd-word", null, l); kdEl("span", "ja", w.word, d).lang = "ja"; d.append((w.word === w.reading ? "" : "（" + w.reading + "）") + "  ·  " + w.meaning); d.onclick = () => speak(w.reading); } }
+    action = () => {
+      const ok = n.ids.filter(id => { const v = CARD_BY[id]; return v && v.chars.every(c => lvl(c) >= LESSON_LEVEL); });
+      if (!ok.length) { toast(ui("rm_kana_first")); return; }
+      close(); startDeck(deckOf(ok[0]), ok);
+    };
+    rmEnable(b, n);
+  } else if (n.kind === "goal") info.textContent = ui("rm_desc_goal", "N" + n.id.slice(1), n.done, RM_REACHED);
+  else info.textContent = ui("rm_desc_n1");
+  if (action) { const a = kdEl("button", "btn-primary", label, b); a.id = "nd-action"; a.style.cssText = "width:100%;margin-top:12px"; a.onclick = action; }
+  $("dlg-node").showModal();
+}
+function rmEnable(b, n) {
+  let on, apply;
+  if (n.kind === "kanji") {
+    const need = Math.max(...n.ids.map(k => BY[k] ? kStageOf(BY[k].group) : 0));
+    on = kStage() >= need;
+    apply = () => { ["kanji", "kanji2", "kanji3", "kanji4", "kanji5"].forEach((k, i) => { if (i < need) SET[k] = true; }); };
+  } else { on = SET.jlpt && SET.jlpt <= n.level; apply = () => { SET.jlpt = n.level; }; }
+  if (on) return;
+  kdEl("p", "tiny", ui("rm_not_on_unlock"), b);
+  const e = kdEl("button", "card-btn", ui("rm_enable"), b); e.id = "nd-enable"; e.style.width = "100%";
+  e.onclick = () => { apply(); store.set("kp_settings", SET); e.disabled = true; e.textContent = ui("rm_enabled"); };
+}
+$("btn-road").onclick = () => openRoad();
+$("sx-road").onclick = () => openRoad();
+
 // ------------------------------------------------------------------ Weg zu N2 (wie JlptActivity.java)
 const JLPT_LEVELS = [5, 4, 3, 2];
 const kanjiOfLevel = lv => ALL.filter(it => isKanji(it) && KDICT[it.kana] && KDICT[it.kana][3] === lv);
@@ -4463,7 +4689,7 @@ function jlKanji(lv) {
   $("dlg-jlpt").querySelector(".sheet").scrollTop = 0;
 }
 $("jl-close").onclick = () => $("dlg-jlpt").close();
-$("sx-jlpt").onclick = () => openJlpt();
+$("sx-jlpt").onclick = () => openRoad();
 $("sx-ev-jlpt").onclick = () => { if (!SET.jlpt) openJlpt(); else startDeck(DECK_JLPT); };
 $("st-credits").onclick = () => { $("cr-text").textContent = ui("credits_text"); $("dlg-credits").showModal(); };
 $("kd-close").onclick = () => { clearTimeout(strokeTimer); $("dlg-kana").close(); };
@@ -4833,7 +5059,7 @@ $("rc-show").onclick = recallShow;
 $("rc-again").onclick = () => recallRate(false);
 $("rc-knew").onclick = () => recallRate(true);
 $("dontknow").onclick = () => { if (phase !== "ask") return; if (R.duel) answerDuel(false, null); else answer(false, null, null, -1, null); };
-$("quit").onclick = () => { if (R.duel) finishDuel(true); else { R.focus = null; R.deck = -1; startRound(); } };
+$("quit").onclick = () => { if (R.duel) finishDuel(true); else { R.focus = null; R.deck = -1; R.ids = null; startRound(); } };
 $("type-ok").onclick = onType;
 $("type-in").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); onType(); } });
 $("type-in").addEventListener("input", e => { const t = e.target.value.trim(); $("type-preview").textContent = t && (q === Q_DICT || (SET.kanamode && q === Q_TYPE)) ? toHiragana(t) : ""; });
