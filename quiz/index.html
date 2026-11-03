@@ -323,6 +323,15 @@ select, .text-in { background: var(--card); color: var(--ink); border: 1.5px sol
 .ty-cell .y { font-size: 12px; color: var(--muted); }
 .ty-cell.bad .y { text-decoration: line-through; }
 .ty-tr { color: var(--muted); margin-top: 4px; }
+.ty-ro { font-weight: 700; font-size: 22px; margin-top: 6px; overflow-wrap: anywhere; }
+.ty-buf { font-family: var(--hand); font-weight: 600; font-size: 30px; min-height: 56px; padding: 6px 14px; margin-top: 14px; border: 1.5px solid var(--ink); border-radius: 10px; background: var(--card); overflow-wrap: anywhere; }
+.kb { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 3px; margin-top: 10px; }
+.kb button { height: 42px; padding: 0; font-family: var(--hand); font-weight: 600; font-size: 20px; border: 1px solid var(--rule); border-radius: 6px; background: var(--card); color: var(--ink); }
+.kb button:active { background: color-mix(in srgb, var(--blue) 20%, var(--card)); }
+.kb button.empty { visibility: hidden; }
+.kb2 { grid-template-columns: 1.4fr 1.4fr 1.4fr 1.2fr 0.9fr 1.1fr; margin-top: 3px; }
+.kb2 button.w { font-family: var(--body); font-size: 14px; font-weight: 400; }
+.ty-flow.kana .ty-cell .y { font-family: var(--hand); font-size: 15px; }
 .rowx .rk.up { color: var(--green); }
 .rowx .rk.down { color: var(--red); }
 .opt.particle { font-family: var(--hand); font-weight: 600; font-size: 34px; }
@@ -473,6 +482,7 @@ select, .text-in { background: var(--card); color: var(--ink); border: 1.5px sol
     <label class="chk"><input type="checkbox" data-set="words"> <span data-ui="words_setting"></span></label>
     <label class="chk"><input type="checkbox" data-set="sentences"> <span data-ui="sentences_setting"></span></label>
     <label class="chk"><input type="checkbox" data-set="listen"> <span data-ui="listen_setting"></span></label>
+    <label class="chk"><input type="checkbox" data-set="tyunlock"> <span data-ui="typing_unlock_setting"></span></label>
     <label class="chk"><input type="checkbox" data-set="dictation"> <span data-ui="dictation_setting"></span></label>
     <label class="chk"><input type="checkbox" data-set="speak"> <span data-ui="speak_auto"></span></label>
     <div class="sec"><b>3</b><span data-ui="reminder"></span></div>
@@ -1127,8 +1137,8 @@ const TYPE = (() => {
     }
     return prev[m];
   }
-  /** Eingabe gegen die Silben prüfen: je Silbe ok / weich (Hinweis) / falsch. */
-  function check(us, input) {
+  /** Eingabe gegen die Silben prüfen: je Silbe ok / weich (Hinweis) / falsch. Streng: weiche Schreibweisen zählen als Fehler (mit Hinweis). */
+  function check(us, input, strict) {
     const s = normalize(input), P = us.filter(u => !u.punct), n = P.length, m = s.length, INF = 2e9;
     const dp = [], from = [];
     for (let i = 0; i <= n; i++) { dp.push(new Array(m + 1).fill(INF)); from.push(new Array(m + 1).fill(null)); }
@@ -1143,18 +1153,23 @@ const TYPE = (() => {
           const sub = s.substr(j, L);
           let best = INF, soft = 0;
           for (const v of u.vars) { const x = lev(v, sub); if (x < best) { best = x; soft = 0; } }
-          for (const v of u.soft) { const x = lev(v, sub); if (x < best) { best = x; soft = 1; } }
+          for (const v of u.soft) {
+            const l = lev(v, sub);
+            if (!strict) { if (l < best) { best = l; soft = 1; } }
+            else if (l === 0) { if (best >= 1) { best = 1; soft = 2; } }   // streng: weiche Schreibweise = Fehler mit Hinweis
+            else if (l + 1 < best) { best = l + 1; soft = 0; }
+          }
           const c = d + best * 10000 + (best > 0 ? 100 : 0) + soft;   // zuerst Tippfehler, dann falsche Silben, dann Hinweise
           if (c < dp[i + 1][j + L]) { dp[i + 1][j + L] = c; from[i + 1][j + L] = [i, j, L, best, soft]; }
         }
       }
     }
-    const res = P.map(u => ({ k: u.k, canon: u.canon, typed: "", ok: false, soft: false, hint: u.hint, extra: "" }));
+    const res = P.map(u => ({ k: u.k, canon: u.canon, typed: "", ok: false, soft: false, hint: u.hint, extra: "", miss: false }));
     let i = n, j = m;
     while (i > 0 || j > 0) {
       const f = from[i][j];
       if (f[2] < 0) { if (s[f[1]] !== "-") { const r = res[Math.max(0, f[0] - 1)]; if (r) r.extra = s[f[1]] + r.extra; } }
-      else { const r = res[f[0]]; r.typed = s.substr(f[1], f[2]); r.ok = f[3] === 0; r.soft = r.ok && f[4] === 1; }
+      else { const r = res[f[0]]; r.typed = s.substr(f[1], f[2]); r.ok = f[3] === 0; r.soft = r.ok && f[4] === 1; r.miss = f[4] === 2; }
       i = f[0]; j = f[1];
     }
     // Weglassen (z. B. langer Vokal) zählt nur direkt nach einer richtig getippten Silbe
@@ -1163,13 +1178,79 @@ const TYPE = (() => {
       if (r.ok && r.typed === "" && (k === 0 || !res[k - 1].ok || res[k - 1].typed === "")) { r.ok = false; r.soft = false; }
     }
     for (const r of res) if (r.extra) { r.ok = false; r.soft = false; }
-    const ok = res.filter(r => r.ok).length;
-    return { units: res, correct: n > 0 && ok === n, right: ok, total: n, hints: [...new Set(res.filter(r => r.soft).map(r => r.hint))] };
+    return result(res, n);
   }
+  function result(res, n) {
+    const ok = res.filter(r => r.ok).length;
+    return { units: res, correct: n > 0 && ok === n, right: ok, total: n, hints: [...new Set(res.filter(r => r.soft || r.miss).map(r => r.hint).filter(Boolean))] };
+  }
+  /** Kana-Tastatur: ゛ ゜ und klein auf das letzte Zeichen anwenden (hin und zurück). */
+  const MODS = { daku: ["かきくけこさしすせそたちつてとはひふへほう", "がぎぐげござじずぜぞだぢづでどばびぶべぼゔ"], handaku: ["はひふへほ", "ぱぴぷぺぽ"], small: ["あいうえおつやゆよわ", "ぁぃぅぇぉっゃゅょゎ"] };
+  function mod(c, kind) {
+    const isK = c !== hira(c), h = hira(c), [a, b] = MODS[kind];
+    let r = c;
+    if (a.includes(h)) r = b[a.indexOf(h)];
+    else if (b.includes(h)) r = a[b.indexOf(h)];
+    else if (kind === "handaku" && MODS.daku[1].includes(h)) { const p = MODS.daku[0][MODS.daku[1].indexOf(h)]; if (MODS.handaku[0].includes(p)) r = MODS.handaku[1][MODS.handaku[0].indexOf(p)]; }
+    else if (kind === "daku" && MODS.handaku[1].includes(h)) r = MODS.daku[1][MODS.daku[0].indexOf(MODS.handaku[0][MODS.handaku[1].indexOf(h)])];
+    return isK && r !== c ? kata(r) : r;
+  }
+  /**
+   * Geschriebene Kana gegen die Silben prüfen (Romaji → Kana, Diktat). は/へ/を als わ/え/お, ア statt ー und die falsche Schrift
+   * zählen weich (streng: falsch), jeweils mit Hinweis. anyScript: Schrift egal (Eingabe kam über Romaji).
+   */
+  function checkKana(us, input, strict, anyScript) {
+    const P = us.filter(u => !u.punct), n = P.length, INF = 2e9;
+    const clean = [...(input || "")].filter(c => (c >= "ぁ" && c <= "ゖ") || (c >= "ァ" && c <= "ヶ") || c === "ー").join("");
+    const T = clean ? units([clean]).filter(u => !u.punct) : [], m = T.length;
+    const cost = (e, t, prev) => {
+      if (t.k === e.k) return [0, 0, null];
+      const eh = e.h, th = t.h;
+      let alt = null;
+      if (th === eh) alt = "script";
+      else if (e.hint === "particle_wa" && th === "わ") alt = "particle_wa";
+      else if (e.hint === "particle_e" && th === "え") alt = "particle_e";
+      else if (eh === "を" && th === "お") alt = "particle_o";
+      else if (eh === "ぢ" && th === "じ" || eh === "づ" && th === "ず" || eh === "じ" && th === "ぢ" || eh === "ず" && th === "づ") return [0, 0, null];
+      else if (e.kind === "bar" && prev && hira(t.k) === hira(VOWEL_KANA[prev.canon[prev.canon.length - 1]] || "")) alt = "long";
+      if (!alt) return [1, 0, null];
+      if (alt === "script" && anyScript) return [0, 0, null];
+      const scriptOk = anyScript || (hira(e.k[0]) === e.k[0]) === (hira(t.k[0]) === t.k[0]) || e.kind === "bar";
+      if (alt !== "script" && !scriptOk) return [strict ? 2 : 1, 1, alt];
+      return strict ? [1, 2, alt] : [0, 1, alt];
+    };
+    const dp = [], from = [];
+    for (let i = 0; i <= n; i++) { dp.push(new Array(m + 1).fill(INF)); from.push(new Array(m + 1).fill(null)); }
+    dp[0][0] = 0;
+    for (let i = 0; i <= n; i++) for (let j = 0; j <= m; j++) {
+      const d = dp[i][j]; if (d >= INF) continue;
+      if (j < m) { const c = d + 10100; if (c < dp[i][j + 1]) { dp[i][j + 1] = c; from[i][j + 1] = [i, j, -1, 0, 0, null]; } }
+      if (i < n) {
+        const c = d + 10100; if (c < dp[i + 1][j]) { dp[i + 1][j] = c; from[i + 1][j] = [i, j, 0, 1, 0, null]; }
+        if (j < m) {
+          const [x, sf, alt] = cost(P[i], T[j], i > 0 ? P[i - 1] : null);
+          const part = x > 0 && P[i].h[0] === T[j].h[0] ? 50 : 0;   // gleiches erstes Zeichen: eher diese Silbe gemeint
+          const c2 = d + x * 10000 + (x > 0 ? 100 : 0) + sf - part;
+          if (c2 < dp[i + 1][j + 1]) { dp[i + 1][j + 1] = c2; from[i + 1][j + 1] = [i, j, 1, x, sf, alt]; }
+        }
+      }
+    }
+    const res = P.map(u => ({ k: u.k, canon: u.canon, typed: "", ok: false, soft: false, hint: null, extra: "", miss: false }));
+    let i = n, j = m;
+    while (i > 0 || j > 0) {
+      const f = from[i][j];
+      if (f[2] < 0) { const r = res[Math.max(0, f[0] - 1)]; if (r) r.extra = T[f[1]].k + r.extra; }
+      else if (f[2] === 1) { const r = res[f[0]]; r.typed = T[f[1]].k; r.ok = f[3] === 0; r.hint = f[5]; r.soft = r.ok && f[4] === 1; r.miss = !r.ok && !!f[5]; }
+      i = f[0]; j = f[1];
+    }
+    for (const r of res) if (r.extra) { r.ok = false; r.soft = false; }
+    return result(res, n);
+  }
+  const VOWEL_KANA = { a: "あ", i: "い", u: "う", e: "え", o: "お" };
   /** Für Tests: Ergebnis als Text (wie Typing.dump). */
   const dump = r => (r.correct ? "OK" : "NO") + " " + r.right + "/" + r.total + " " + r.hints.join(",") + " |"
-    + r.units.map(u => " " + u.k + ":" + u.typed + (u.extra ? "+" + u.extra : "") + ">" + u.canon + (u.ok ? (u.soft ? "~" : "") : "!")).join("");
-  return { units, romaji, check, normalize, toHira, toKata, display, dump };
+    + r.units.map(u => " " + u.k + ":" + u.typed + (u.extra ? "+" + u.extra : "") + ">" + u.canon + (u.ok ? (u.soft ? "~" : "") : u.miss ? "?" : "!")).join("");
+  return { units, romaji, check, checkKana, mod, normalize, toHira, toKata, display, dump };
 })();
 if (typeof module !== "undefined") module.exports = { NUM, GRAM, TYPE, speakBest, speakNorm };
 
@@ -1182,7 +1263,7 @@ const store = {
 const $ = id => document.getElementById(id);
 const SET = Object.assign({ hira: true, kata: true, daku: false, yoon: false, kanji: false, kanji2: false, kanji3: false, gradual: true, lessons: true,
   kanamode: false, typing: true, words: true, sentences: true, listen: true, dictation: true, speak: false, per: 5, goal: 20,
-  vocab: true, numbers: true, phrases: true, grammar: true, pathauto: true, tyRange: 0, tyScript: 0, tySpaces: true }, store.get("kp_settings", {}));
+  vocab: true, numbers: true, phrases: true, grammar: true, pathauto: true, tyRange: 0, tyScript: 0, tySpaces: true, tyMode: 0, tyStrict: false, tyunlock: false }, store.get("kp_settings", {}));
 
 // ------------------------------------------------------------------ Zeichen (wie Kana.java)
 const HIRA = 0, KATA = 1, KANJI = 2, BASE = 0, DAKU = 1, YOON = 2, KANJI_G = 3, KANJI_G2 = 4, KANJI_G3 = 5;
@@ -1461,7 +1542,7 @@ function pickLang() {
 }
 
 // ------------------------------------------------------------------ Lernstand (wie Learner.java)
-const Q_READ = 0, Q_REVERSE = 1, Q_TYPE = 2, Q_WORD = 4, Q_LISTEN = 5, Q_KWORD = 6, Q_DICT = 7, Q_SENT = 8, Q_CARD = 9;
+const Q_READ = 0, Q_REVERSE = 1, Q_TYPE = 2, Q_WORD = 4, Q_LISTEN = 5, Q_KWORD = 6, Q_DICT = 7, Q_SENT = 8, Q_CARD = 9, Q_TYPING = 10;
 const MAX_LEVEL = 9, MAX_LEARNING = 4, WORD_LEVEL = 4, LESSON_LEVEL = 3;
 const MIN = 60000, HOUR = 60 * MIN, DAY = 24 * HOUR;
 const INTERVAL = [0, MIN, 5 * MIN, 20 * MIN, HOUR, 4 * HOUR, 12 * HOUR, DAY, 3 * DAY, 7 * DAY];
@@ -1660,6 +1741,20 @@ function checkBadges(announce) {
   }
 }
 function record(it, ok, ms, chosenKey, q, hinted) {
+  const { timed, slow } = review(it, ok, ms, chosenKey, q, hinted);
+  rollDay();
+  let pts = 0;
+  if (ok) {
+    pts = hinted ? 3 : (q === Q_TYPE ? 20 : (q === Q_REVERSE || q === Q_LISTEN) ? 15 : 10) + ((it.group === YOON || isKanji(it)) ? 5 : 0);
+    if (!hinted && timed && !slow) pts = Math.floor(pts * 3 / 2);
+    if (q === Q_LISTEN && !hinted) S.lo = (S.lo || 0) + 1;
+    award(pts);
+  }
+  countDay(ok, pts); checkBadges(true); save();
+  return pts;
+}
+/** Lernstand eines Zeichens nach einer Antwort fortschreiben (Stufe, FSRS, Fälligkeit) – ohne Punkte und Tageszähler. */
+function review(it, ok, ms, chosenKey, q, hinted) {
   const s = st(it), now = Date.now(), first = s.s === 0 && !hinted, prevLast = s.ls || 0, wasSeen = s.s > 0;
   const timed = ms > 0 && ms < 20000 && !hinted, slow = hinted || (timed && ms > fastLimit(q));
   s.s++; s.i = true; s.ls = now;
@@ -1681,16 +1776,7 @@ function record(it, ok, ms, chosenKey, q, hinted) {
   if (!ok) s.d = now + 30000;
   else if (s.l < WORD_LEVEL) s.d = now + jit(INTERVAL[s.l]);
   else s.d = now + jit(Math.max(HOUR, Math.min(365 * DAY, Math.max(intervalDays(s.fs) * DAY, INTERVAL[Math.min(s.l, 6)]))));
-  rollDay();
-  let pts = 0;
-  if (ok) {
-    pts = hinted ? 3 : (q === Q_TYPE ? 20 : (q === Q_REVERSE || q === Q_LISTEN) ? 15 : 10) + ((it.group === YOON || isKanji(it)) ? 5 : 0);
-    if (!hinted && timed && !slow) pts = Math.floor(pts * 3 / 2);
-    if (q === Q_LISTEN && !hinted) S.lo = (S.lo || 0) + 1;
-    award(pts);
-  }
-  countDay(ok, pts); checkBadges(true); save();
-  return pts;
+  return { timed, slow };
 }
 // Abwechslung: Zusatzaufgaben der letzten 45 Minuten kommen nicht wieder, lange nicht gezeigte eher (wie Learner.pickFresh)
 const COOLDOWN = 45 * 60000;
@@ -1959,6 +2045,10 @@ function merge(local, remote, base) {
     out.cards = out.cards || {};
     for (const [k, l] of Object.entries(local.cards)) { const r = out.cards[k]; if (!r || (l.ls || 0) >= (r.ls || 0)) out.cards[k] = l; }
   }
+  if (local.yt) {
+    out.yt = out.yt || {};
+    for (const [k, l] of Object.entries(local.yt)) { const r = out.yt[k]; if (!r || l[0] > r[0] || (l[0] === r[0] && l[1] > r[1])) out.yt[k] = l; }
+  }
   if (local.ex) {
     out.ex = out.ex || {};
     for (const [k, l] of Object.entries(local.ex)) {
@@ -2076,7 +2166,7 @@ async function showStrokes(it) {
 // ------------------------------------------------------------------ Quiz
 const R = { need: 5, streak: 0, answered: 0, points: 0, retry: [], gaps: [], focus: null, total: 0, duel: null, deck: -1, intros: 0 };
 let card = null, lastCardId = null, recallShown = false, advTimer = 0;
-let cur = null, word = null, lastWord = null, kw = null, lastKw = null, sent = null, lastSent = null, dict = null;
+let cur = null, word = null, lastWord = null, kw = null, lastKw = null, sent = null, lastSent = null, dict = null, tysent = null, tyUnits = null, tyRes = null;
 let q = Q_READ, phase = "ask", hint = 0, isNew = false, isRetry = false, shownAt = 0;
 let opts = [], wopts = [], xopts = [], xcorrect = -1;
 
@@ -2201,7 +2291,17 @@ function tryExtra() {
   if ((r -= pK) < 0) { const w = pickKword(lastKw); if (!w) return false; startKword(w); return true; }
   if ((r -= pS) < 0) { const x = pickSentence(lastSent); if (!x) return false; startSentence(x); return true; }
   if ((r -= pD) < 0) { const w = pickWord(lastWord, true); if (!w) return false; startDictation(w); return true; }
+  if ((r -= (SET.tyunlock ? 0.05 : 0)) < 0) {
+    const pool = TYPING.filter(x => tyLen(x) <= 8 && tyReadable(x, 0)); if (!pool.length) return false;
+    const x = pickFresh(pool, y => y.id); if (!x) return false; startTyping(x); return true;
+  }
   return false;
+}
+function startTyping(x) {
+  tysent = x; tyUnits = TYPE.units(x.words); tyRes = null; xcorrect = -1; markShown(x.id);
+  const first = tyUnits.map(u => !u.punct && tyItem(u.k)).find(Boolean) || cur;
+  beginExtra(Q_TYPING, first);
+  const inp = $("type-in"); inp.value = ""; $("type-preview").textContent = ""; setTimeout(() => inp.focus(), 60);
 }
 function startCard(deck, practice) {
   const ids = deckIds(deck); if (!ids.length) return false;
@@ -2300,7 +2400,7 @@ function startDictation(w) {
   setTimeout(() => speak(w.kana), 250);
 }
 function next() {
-  phase = "ask"; hint = 0; isRetry = false; word = null; kw = null; sent = null; dict = null; xcorrect = -1; card = null; introBadge = null;
+  phase = "ask"; hint = 0; isRetry = false; word = null; kw = null; sent = null; dict = null; tysent = null; xcorrect = -1; card = null; introBadge = null;
   if (R.deck >= 0) { if (!startCard(R.deck, true)) { toast(ui("practice_none")); startRound(); } return; }
   if (R.duel) {
     const d = R.duel; if (d.idx >= d.qs.length) { finishDuel(false); return; }
@@ -2352,7 +2452,7 @@ function progressText() {
   return s;
 }
 function anim(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
-const isExtra = () => q === Q_KWORD || q === Q_SENT || q === Q_DICT;
+const isExtra = () => q === Q_KWORD || q === Q_SENT || q === Q_DICT || q === Q_TYPING;
 function optLabel(o) {
   if (q === Q_REVERSE || q === Q_LISTEN) return o.kana;
   if (isKanji(o)) return o.reading + "\n" + kMeaning(o.kana);
@@ -2361,11 +2461,11 @@ function optLabel(o) {
 function render(fresh) {
   const explain = phase === "explain", it = cur, cardQ = q === Q_CARD && !!card, recall = cardQ && card.kind === C_RECALL;
   const textOpts = q === Q_WORD || q === Q_KWORD || q === Q_SENT || cardQ;
-  const kanji = isKanji(it) && !textOpts && q !== Q_DICT, typeQ = q === Q_TYPE || q === Q_DICT;
+  const kanji = isKanji(it) && !textOpts && q !== Q_DICT && q !== Q_TYPING, typeQ = q === Q_TYPE || q === Q_DICT || q === Q_TYPING;
   const counter = kanji ? null : counterpart(it), kanaPrompt = SET.kanamode && !R.duel && !!counter;
   $("progress").textContent = progressText();
   const badge = introBadge ? introBadge : cardQ ? card.badge : R.duel ? ui(R.duel.live ? "badge_live" : "badge_duel") : isRetry ? ui("badge_retry") : isNew ? ui("badge_new") : q === Q_WORD ? ui("badge_word") : q === Q_LISTEN ? ui("badge_listen")
-    : q === Q_KWORD ? ui("badge_kanji_word") : q === Q_SENT ? ui("badge_sentence") : q === Q_DICT ? ui("badge_dictation") : "";
+    : q === Q_KWORD ? ui("badge_kanji_word") : q === Q_SENT ? ui("badge_sentence") : q === Q_DICT ? ui("badge_dictation") : q === Q_TYPING ? ui("badge_typing") : "";
   $("badge").textContent = badge; $("badge").classList.toggle("on", !!badge);
   const big = $("big"), compact = typeQ || hint > 0 || explain;
   big.classList.remove("latin", "tap", "sentence"); big.onclick = null; big.style.removeProperty("font-size");
@@ -2393,6 +2493,9 @@ function render(fresh) {
   } else if (q === Q_SENT) {
     $("prompt").textContent = ui("prompt_sentence"); big.classList.add("sentence");
     big.textContent = explain ? sentFull(sent) : sent.text.replace("＿", "（　）");
+  } else if (q === Q_TYPING) {
+    $("prompt").textContent = ui("prompt_typing"); big.classList.add("sentence");
+    big.textContent = TYPE.display(tysent.words, true);
   } else if (q === Q_LISTEN || q === Q_DICT) {
     $("prompt").textContent = ui(q === Q_DICT ? "prompt_dictation" : "prompt_listen"); big.textContent = "🔊"; big.classList.add("tap");
     big.onclick = () => speak(q === Q_DICT ? dict.kana : spokenOf(cur)); big.style.fontSize = (compact ? 64 : 96) + "px";
@@ -2405,7 +2508,7 @@ function render(fresh) {
     const two = it.kana.length > 1; big.style.fontSize = (compact ? (two ? 80 : 104) : (two ? 110 : 150)) + "px";
   }
   $("script").classList.toggle("cardsub", cardQ);
-  $("script").textContent = cardQ ? (recall && recallShown ? card.revealSub : card.sub) : textOpts || q === Q_DICT ? "" : scriptName(it).toUpperCase();
+  $("script").textContent = cardQ ? (recall && recallShown ? card.revealSub : card.sub) : textOpts || q === Q_DICT || q === Q_TYPING ? "" : scriptName(it).toUpperCase();
   if (fresh) $("feedback").textContent = "";
   const maxHint = maxHintFor(), canHint = !explain && phase === "ask" && hint < maxHint;
   const hb = $("hint-btn"); hb.hidden = explain; hb.classList.toggle("hidden", !canHint);
@@ -2443,8 +2546,8 @@ function render(fresh) {
     });
   }
   $("type").hidden = explain || !typeQ;
-  $("type-in").placeholder = ui(q === Q_DICT ? "dictation_hint" : "type_hint");
-  $("type-choice").hidden = q === Q_DICT;
+  $("type-in").placeholder = ui(q === Q_DICT ? "dictation_hint" : q === Q_TYPING ? "typing_input_hint" : "type_hint");
+  $("type-choice").hidden = q === Q_DICT || q === Q_TYPING;
   $("explain").hidden = !explain;
   $("quiz").classList.toggle("explaining", explain);
   $("dontknow").style.visibility = explain || recall ? "hidden" : "visible";
@@ -2461,6 +2564,7 @@ function onType() {
   if (phase !== "ask") return;
   const t = $("type-in").value; if (!t.trim()) return;
   if (q === Q_DICT) { answer(sameWord(t, dict.kana), null, t, -1, null); $("type-in").blur(); return; }
+  if (q === Q_TYPING) { tyRes = TYPE.check(tyUnits, t, !!SET.tyStrict); answer(tyRes.correct, null, t, -1, null); $("type-in").blur(); return; }
   const ok = matches(cur, t); answer(ok, ok ? cur : findByRomaji(cur.script, canon(t)), t, -1, null);
   $("type-in").blur();
 }
@@ -2506,6 +2610,12 @@ function answer(ok, chosen, typed, idx, btn) {
   if (q === Q_CARD) {
     pts = recordCard(card.id, ok, hint > 0, card.fastMs > 0 && ms < card.fastMs && hint === 0, card.points);
     retryItem = null; wordChosen = typed;
+  } else if (q === Q_TYPING) {
+    if (!tyRes) tyRes = TYPE.check(tyUnits, typed || "", !!SET.tyStrict);
+    const right = [], wrong = [];
+    for (const u of tyRes.units) { const it = tyItem(u.k); if (!it) continue; const to = u.ok && !u.soft ? right : u.ok ? null : wrong; if (to && !to.includes(it)) to.push(it); }
+    pts = recordTyping(ok, tyRes.total, false, right, wrong, ms, true);
+    retryItem = null; wordChosen = typed;
   } else if (isExtra()) {
     const fast = q === Q_SENT ? 4000 : q === Q_DICT ? 3000 * Math.max(2, dict.units.length) : 3500;
     pts = recordExtra(q === Q_KWORD ? "kw" : q === Q_DICT ? "dt" : "se", ok, ms, hint > 0, fast);
@@ -2529,7 +2639,7 @@ function answer(ok, chosen, typed, idx, btn) {
     $("feedback").textContent = t + "  ·  +" + pts;
     $("progress").textContent = progressText();
     let delay = card ? 1500 : (word || isExtra() || isKanji(cur)) ? 1300 : 700;
-    if (q === Q_SENT) delay = 2200;
+    if (q === Q_SENT || q === Q_TYPING) delay = 2200;
     if (noticed) delay += 900;
     if (willFinish()) delay = Math.min(delay, word || isExtra() || card ? 900 : 450);
     advTimer = setTimeout(advance, delay);
@@ -2549,10 +2659,11 @@ function answer(ok, chosen, typed, idx, btn) {
 }
 function speechText() {
   if (card) return card.speak;
-  return sent ? sentFull(sent).replace(/ /g, "") : kw ? kw.reading : dict ? dict.kana : word ? word.kana : spokenOf(cur);
+  return tysent ? TYPE.display(tysent.words, false) : sent ? sentFull(sent).replace(/ /g, "") : kw ? kw.reading : dict ? dict.kana : word ? word.kana : spokenOf(cur);
 }
 function successText() {
   if (card) return card.success;
+  if (tysent) { const tr = tyTrans(tysent); return TYPE.romaji(tyUnits) + (tr ? "  ·  " + tr : ""); }
   if (kw) return `${kw.text} = ${SET.kanamode ? kw.reading : kw.reading + " (" + kw.romaji + ")"}  ·  ${kwMeaning(kw.text)}`;
   if (sent) return sentTrans(sent);
   if (dict) return `${dict.kana}${SET.kanamode ? "" : " = " + dict.romaji}  ·  ${meaning(dict.kana)}`;
@@ -2595,7 +2706,13 @@ function explainWord(missed, alt, chosenLabel, rule) {
 }
 function explainExtra(chosen) {
   const dk = !chosen || !String(chosen).trim(); let main = "", ch = "", t = "";
-  if (card) {
+  if (tysent) {
+    main = TYPE.display(tysent.words, true) + "\n" + TYPE.romaji(tyUnits); ch = dk ? "" : ui("typing_yours", String(chosen).trim());
+    const wl = tyRes ? tyRes.units.filter(u => !u.ok).map(u => u.k + " = " + (u.canon || "·")).join("   ") : "";
+    if (wl && !dk) t += ui("typing_wrong_list", wl) + "\n\n";
+    if (tyRes) for (const h of tyRes.hints) t += ui("typing_hint_" + h) + "\n\n";
+    t += tyTrans(tysent) || "";
+  } else if (card) {
     main = card.main; ch = dk ? "" : ui("explain_your_choice", String(chosen).replace(/\n/g, " · ")); t = card.tip;
   } else if (kw) {
     main = `${kw.text}  =  ${kw.reading}`; ch = dk ? "" : ui("explain_your_reading", chosen);
@@ -3386,20 +3503,45 @@ function tyReadable(x, script) {
 }
 const tyPool = (only) => TYPING.filter(x => tyFits(tyLen(x), SET.tyRange) && (!only || tyReadable(x, SET.tyScript)));
 const tyTrans = x => x.src === "se" ? sect("se", x.key) : sect(x.src, x.key);
-function recordTyping(correct, syll, helped, misItems) {
+const epochDay = () => Math.floor((Date.now() - new Date().getTimezoneOffset() * 60000) / DAY);
+/**
+ * Satz gelesen oder geschrieben (wie Learner.recordTyping): richtige Zeichen zählen je Satz einmal wie eine richtige Antwort,
+ * aber nur wenn sie fällig sind; angetippte zählen nicht; falsche verlieren eine Stufe und kommen in 10 Minuten wieder.
+ */
+function recordTyping(correct, syll, helped, right, wrong, ms, reading) {
   const now = Date.now();
-  for (const it of misItems) { const s = S.items[it.kana]; if (s && s.s > 0) s.d = Math.min(s.d, now + 10 * MIN); }
+  for (const it of right) { if (wrong.includes(it)) continue; const s = S.items[it.kana]; if (s && s.s > 0 && s.d <= now) review(it, true, 0, null, Q_READ, false); }
+  for (const it of wrong) { const s = S.items[it.kana]; if (!s || !s.s) continue; s.w++; s.l = Math.max(0, s.l - 1); s.d = Math.min(s.d, now + 10 * MIN); s.ls = now; }
   rollDay(); let pts = 0;
-  if (correct) { pts = helped ? 3 : 10 + Math.min(30, syll); if (!helped) S.ty = (S.ty || 0) + 1; award(pts); }
+  if (correct) {
+    pts = helped ? 3 : 10 + Math.min(30, syll); if (!helped) S.ty = (S.ty || 0) + 1; award(pts);
+    if (!helped && reading && ms > 0 && ms < 120000) {
+      S.yt = S.yt || {}; const k = String(epochDay()), t = S.yt[k];
+      if (t) { t[0] += syll; t[1] += Math.round(ms); } else S.yt[k] = [syll, Math.round(ms)];
+      for (const d of Object.keys(S.yt)) if (Number(d) < epochDay() - 60) delete S.yt[d];
+    }
+  }
   countDay(correct, pts); checkBadges(true); save();
   return pts;
 }
-const TY = { all: false, round: [], pos: 0, ok: 0, sr: 0, st: 0, pts: 0, mis: new Set(), units: null, helped: false, answered: false, running: false };
+/** Lesetempo in Silben pro Minute über [heute − to, heute − from]; −1 bei unter 30 Silben. */
+function readingTempo(from, to) {
+  const today = epochDay(); let syl = 0, ms = 0;
+  for (const [k, v] of Object.entries(S.yt || {})) { const d = Number(k); if (d <= today - from && d >= today - to) { syl += v[0]; ms += v[1]; } }
+  return syl < 30 || ms <= 0 ? -1 : Math.round(syl * 60000 / ms);
+}
+const TY = { all: false, round: [], pos: 0, ok: 0, sr: 0, st: 0, pts: 0, mis: new Set(), units: null, helped: false, answered: false, running: false,
+  tapped: new Set(), buf: "", kata: false, own: false, shown: 0, tsyl: 0, tms: 0 };
+const TY_COLS = ["あいうえお", "かきくけこ", "さしすせそ", "たちつてと", "なにぬねの", "はひふへほ", "まみむめも", "や・ゆ・よ", "らりるれろ", "わ・ん・を"];
 function tyEl(tag, cls, text, parent) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; if (parent) parent.appendChild(e); return e; }
-function tySeg(b, label, names, cur, pick) {
+function tySeg(b, label, names, cur, pick, id) {
   tyEl("p", "tiny", label, b).style.margin = "14px 0 0";
-  const g = tyEl("div", "seg", null, b);
-  names.forEach((n, i) => { const bt = tyEl("button", i === cur ? "on" : "", n, g); bt.onclick = () => pick(i); });
+  const g = tyEl("div", "seg", null, b); if (id) g.id = id;
+  names.forEach((n, i) => { const bt = tyEl("button", i === cur ? "on" : "", n, g); bt.style.whiteSpace = "pre-line"; bt.onclick = () => pick(i); });
+}
+function tyCheckbox(b, label, val, on, id) {
+  const lab = tyEl("label", "chk", null, b), cb = tyEl("input", null, null, lab); cb.type = "checkbox"; cb.checked = val; if (id) cb.id = id;
+  tyEl("span", null, label, lab); cb.onchange = () => on(cb.checked);
 }
 function openTyping() {
   document.querySelectorAll("dialog[open]").forEach(d => d.close());
@@ -3410,20 +3552,27 @@ function tyStart() {
   TY.running = false;
   $("ty-title").textContent = ui("typing_title");
   const b = $("ty-body"); b.innerHTML = "";
+  const mode = SET.tyMode || 0;
   tyEl("p", null, ui("typing_intro"), b);
   const save1 = () => { store.set("kp_settings", SET); tyStart(); };
+  tySeg(b, ui("typing_mode"), ["typing_mode_read", "typing_mode_write", "typing_mode_listen"].map(k => ui(k)), mode, i => { SET.tyMode = i; save1(); }, "ty-modes");
   tySeg(b, ui("typing_len"), ["typing_len_short", "typing_len_medium", "typing_len_long", "typing_len_all"].map(k => ui(k)), SET.tyRange, i => { SET.tyRange = i; save1(); });
   tySeg(b, ui("typing_script"), ["typing_script_orig", "typing_script_hira", "typing_script_kata"].map(k => ui(k)), SET.tyScript, i => { SET.tyScript = i; save1(); });
-  const lab = tyEl("label", "chk", null, b), cb = tyEl("input", null, null, lab); cb.type = "checkbox"; cb.id = "ty-spaces"; cb.checked = SET.tySpaces !== false;
-  tyEl("span", null, ui("typing_spaces"), lab); cb.onchange = () => { SET.tySpaces = cb.checked; store.set("kp_settings", SET); };
+  if (mode === 0) tyCheckbox(b, ui("typing_spaces"), SET.tySpaces !== false, v => { SET.tySpaces = v; store.set("kp_settings", SET); }, "ty-spaces");
+  tyCheckbox(b, ui("typing_strict"), !!SET.tyStrict, v => { SET.tyStrict = v; store.set("kp_settings", SET); }, "ty-strict");
   const readable = tyPool(true), pool = TY.all ? tyPool(false) : readable;
   const info = tyEl("p", null, ui("typing_pool", pool.length), b); info.style.cssText = "color:var(--blue);font-weight:700";
   if (readable.length < 3 && !TY.all) {
     tyEl("p", "tiny", ui("typing_pool_few", readable.length), b);
     const any = tyEl("button", "card-btn", ui("typing_all_anyway"), b); any.style.width = "100%"; any.onclick = () => { TY.all = true; tyStart(); };
   }
+  tyEl("p", "tiny", ui("typing_counts"), b);
+  const tNow = readingTempo(0, 6), tBefore = readingTempo(7, 30);
+  if (tNow > 0) { const t = tyEl("p", "tiny", tBefore > 0 ? ui("typing_tempo_cmp", tNow, tBefore) : ui("typing_tempo", tNow), b); t.id = "ty-tempo"; t.style.color = "var(--green)"; }
   if (S.ty) { const t = tyEl("p", "tiny", ui("typing_total", S.ty), b); t.style.color = "var(--green)"; }
-  const go = tyEl("button", "btn-primary", ui("typing_start"), b); go.id = "ty-go"; go.style.cssText = "width:100%;margin-top:14px"; go.hidden = !pool.length;
+  if (mode === 2 && !hasJaVoice()) { const t = tyEl("p", "tiny", ui("typing_no_tts"), b); t.style.color = "var(--red)"; }
+  const go = tyEl("button", "btn-primary", ui("typing_start"), b); go.id = "ty-go"; go.style.cssText = "width:100%;margin-top:14px";
+  go.hidden = !pool.length || (mode === 2 && !hasJaVoice());
   go.onclick = () => tyBegin(pool);
 }
 function tyBegin(pool) {
@@ -3433,68 +3582,130 @@ function tyBegin(pool) {
     left.splice(left.indexOf(x), 1); round.push(x);
   }
   if (!round.length) { toast(ui("practice_none")); return; }
-  Object.assign(TY, { round, pos: 0, ok: 0, sr: 0, st: 0, pts: 0, mis: new Set(), running: true });
+  Object.assign(TY, { round, pos: 0, ok: 0, sr: 0, st: 0, pts: 0, mis: new Set(), running: true, tsyl: 0, tms: 0, kata: SET.tyScript === 2 });
   tyAsk();
 }
-function tyAsk() {
-  const x = TY.round[TY.pos]; markShown(x.id);
-  TY.units = TYPE.units(tyWords(x, SET.tyScript)); TY.helped = false; TY.answered = false;
-  const b = $("ty-body"); b.innerHTML = "";
+function tyHead(b) {
   const pr = tyEl("b", null, ui("typing_progress", TY.pos + 1, TY.round.length), b); pr.style.color = "var(--blue)";
   const bar = tyEl("div", "goalbar", null, b); bar.style.width = "100%"; bar.innerHTML = "<i></i>"; bar.querySelector("i").style.width = (100 * TY.pos / TY.round.length) + "%";
-  const sent = tyEl("div", "ty-sent", null, b); sent.lang = "ja"; sent.id = "ty-sent";
-  let w = -1;
-  for (const u of TY.units) {
-    if (SET.tySpaces !== false && w >= 0 && u.w !== w) sent.append(" ");
-    w = u.w;
-    if (u.punct) { sent.append(u.k); continue; }
-    const sp = tyEl("span", "u", u.k, sent);
-    sp.onclick = () => { if (TY.answered) return; TY.helped = true; $("ty-help").textContent = u.k + "  =  " + (u.canon || "–"); };
+}
+function tyAsk() {
+  const x = TY.round[TY.pos], mode = SET.tyMode || 0; markShown(x.id);
+  TY.units = TYPE.units(tyWords(x, SET.tyScript)); TY.helped = false; TY.answered = false; TY.tapped = new Set(); TY.buf = "";
+  const b = $("ty-body"); b.innerHTML = ""; tyHead(b);
+  if (mode === 0) {
+    const sent = tyEl("div", "ty-sent", null, b); sent.lang = "ja"; sent.id = "ty-sent";
+    let w = -1;
+    for (const u of TY.units) {
+      if (SET.tySpaces !== false && w >= 0 && (u.w !== w || u.sep) && !u.punct) sent.append(" ");
+      w = u.w;
+      if (u.punct) { sent.append(u.k); continue; }
+      const sp = tyEl("span", "u", u.k, sent);
+      sp.onclick = () => { if (TY.answered) return; TY.helped = true; TY.tapped.add(u); $("ty-help").textContent = u.k + "  =  " + (u.canon || "–"); };
+    }
+    const help = tyEl("div", "ty-help", "", b); help.id = "ty-help"; help.lang = "ja";
+    tyEl("p", "tiny", ui("typing_tap"), b);
+    const inp = tyEl("input", "ty-in", null, b); inp.id = "ty-in"; inp.type = "text"; inp.placeholder = ui("typing_input_hint");
+    inp.autocomplete = "off"; inp.spellcheck = false; inp.setAttribute("autocapitalize", "off"); inp.setAttribute("autocorrect", "off"); inp.enterKeyHint = "done";
+    inp.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); tyCheck(); } };
+    setTimeout(() => inp.focus(), 60);
+  } else {
+    if (mode === 1) {
+      tyEl("p", "tiny", ui("typing_write_prompt"), b).style.marginTop = "18px";
+      const ro = tyEl("div", "ty-ro", TYPE.romaji(TY.units), b); ro.id = "ty-ro";
+      const tr = tyTrans(x); if (tr) tyEl("p", "ty-tr", "„" + tr + "“", b);
+    } else {
+      tyEl("p", "tiny", ui("typing_listen_prompt"), b).style.marginTop = "18px";
+      const spoken = TYPE.display(x.words, false), row = tyEl("div", "btnrow", null, b);
+      const a = tyEl("button", "card-btn", ui("typing_replay"), row); a.onclick = () => speak(spoken);
+      const sl = tyEl("button", "card-btn", ui("typing_slow"), row); sl.onclick = () => speak(spoken, 0.55);
+      setTimeout(() => speak(spoken), 300);
+    }
+    const buf = tyEl("div", "ty-buf", null, b); buf.id = "ty-buf"; buf.lang = "ja";
+    const kb = tyEl("div", null, null, b); kb.id = "ty-kb";
+    tyKeyboard();
   }
-  const help = tyEl("div", "ty-help", "", b); help.id = "ty-help"; help.lang = "ja";
-  tyEl("p", "tiny", ui("typing_tap"), b);
-  const inp = tyEl("input", "ty-in", null, b); inp.id = "ty-in"; inp.type = "text"; inp.placeholder = ui("typing_input_hint");
-  inp.autocomplete = "off"; inp.spellcheck = false; inp.setAttribute("autocapitalize", "off"); inp.setAttribute("autocorrect", "off"); inp.enterKeyHint = "done";
-  inp.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); tyCheck(); } };
   const ck = tyEl("button", "btn-primary", ui("typing_check"), b); ck.id = "ty-check"; ck.style.cssText = "width:100%;margin-top:12px"; ck.onclick = tyCheck;
-  const dk = tyEl("button", "link-btn", ui("dont_know"), b); dk.id = "ty-dk"; dk.onclick = () => { inp.value = ""; tyCheck(); };
-  setTimeout(() => inp.focus(), 60);
+  const dk = tyEl("button", "link-btn", ui("dont_know"), b); dk.id = "ty-dk"; dk.onclick = () => { TY.buf = ""; const i = $("ty-in"); if (i) i.value = ""; tyCheck(); };
+  TY.shown = performance.now();
   $("dlg-typing").querySelector(".sheet").scrollTop = 0;
+}
+function tyBufShow() { const e = $("ty-buf"); if (e) e.textContent = TY.buf + "▏"; }
+function tyKeyboard() {
+  const kb = $("ty-kb"); kb.innerHTML = "";
+  if (TY.own) {
+    $("ty-buf").hidden = true;
+    const inp = tyEl("input", "ty-in", null, kb); inp.id = "ty-in"; inp.type = "text"; inp.lang = "ja";
+    inp.autocomplete = "off"; inp.spellcheck = false; inp.setAttribute("autocapitalize", "off"); inp.enterKeyHint = "done";
+    inp.onkeydown = e => { if (e.key === "Enter" && !e.isComposing) { e.preventDefault(); tyCheck(); } };
+    tyEl("p", "tiny", ui("typing_kb_note"), kb);
+    setTimeout(() => inp.focus(), 60);
+  } else {
+    $("ty-buf").hidden = false; tyBufShow();
+    const g = tyEl("div", "kb", null, kb); g.lang = "ja";
+    for (let r = 0; r < 5; r++) for (const col of TY_COLS) {
+      const c = col[r], label = c === "・" ? "" : (TY.kata ? TYPE.toKata(c) : c);
+      const k = tyEl("button", label ? "" : "empty", label, g);
+      if (label) k.onclick = () => { TY.buf += label; tyBufShow(); };
+    }
+    const row = tyEl("div", "kb kb2", null, kb);
+    const mk = (t, f) => { const k = tyEl("button", t.length > 2 ? "w" : "", t, row); k.onclick = f; return k; };
+    const modLast = kind => { if (!TY.buf) return; const c = TY.buf.slice(-1), m = TYPE.mod(c, kind); if (m !== c) { TY.buf = TY.buf.slice(0, -1) + m; tyBufShow(); } };
+    mk(TY.kata ? "ア→あ" : "あ→ア", () => { TY.kata = !TY.kata; tyKeyboard(); }).id = "ty-kb-script";
+    mk(TY.kata ? "カ→ガ" : "か→が", () => modLast("daku")).id = "ty-kb-daku"; mk(TY.kata ? "ハ→パ" : "は→ぱ", () => modLast("handaku")).id = "ty-kb-handaku"; mk(ui("typing_kb_small"), () => modLast("small"));
+    mk("ー", () => { TY.buf += "ー"; tyBufShow(); });
+    mk("⌫", () => { TY.buf = [...TY.buf].slice(0, -1).join(""); tyBufShow(); }).id = "ty-kb-back";
+  }
+  const sw = tyEl("button", "link-btn", ui(TY.own ? "typing_kb_kana" : "typing_kb_own"), kb); sw.id = "ty-kb-switch";
+  sw.onclick = () => { TY.own = !TY.own; tyKeyboard(); };
 }
 function tyCheck() {
   if (TY.answered) return; TY.answered = true;
-  const x = TY.round[TY.pos], inp = $("ty-in"), r = TYPE.check(TY.units, inp.value);
+  const ms = performance.now() - TY.shown, x = TY.round[TY.pos], mode = SET.tyMode || 0, strict = !!SET.tyStrict;
+  let r, typed;
+  if (mode === 0) { typed = $("ty-in").value; r = TYPE.check(TY.units, typed, strict); }
+  else if (TY.own) { typed = $("ty-in").value; const latin = /[A-Za-z]/.test(typed); r = TYPE.checkKana(TY.units, latin ? toHiragana(typed) : typed, strict, latin); }
+  else { typed = TY.buf; r = TYPE.checkKana(TY.units, typed, strict, false); }
   TY.sr += r.right; TY.st += r.total; if (r.correct) TY.ok++;
-  const wrong = [];
-  for (const u of r.units) { if (u.ok) continue; const it = tyItem(u.k); if (it && !wrong.includes(it)) wrong.push(it); TY.mis.add(u.k); }
-  const pts = recordTyping(r.correct, r.total, TY.helped, wrong); TY.pts += pts;
-  inp.disabled = true; inp.blur(); $("ty-check").remove(); $("ty-dk").remove();
-  const b = $("ty-body");
+  const said = TY.units.filter(u => !u.punct), right = [], wrong = [];
+  r.units.forEach((u, i) => {
+    const it = tyItem(u.k);
+    if (!u.ok) { if (it && !wrong.includes(it)) wrong.push(it); TY.mis.add(u.k); }
+    else if (!u.soft && it && !TY.tapped.has(said[i]) && !right.includes(it)) right.push(it);
+  });
+  const pts = recordTyping(r.correct, r.total, TY.helped, right, wrong, ms, mode === 0); TY.pts += pts;
+  if (r.correct && !TY.helped && mode === 0 && ms < 120000) { TY.tsyl += r.total; TY.tms += ms; }
+  const b = $("ty-body"); b.innerHTML = "";
+  const pr = tyEl("b", null, ui("typing_progress", TY.pos + 1, TY.round.length), b); pr.style.color = "var(--blue)";
+  if (mode === 0) {
+    const sn = tyEl("div", "ty-sent", TYPE.display(tyWords(x, SET.tyScript), SET.tySpaces !== false), b); sn.lang = "ja"; sn.style.fontSize = "26px"; sn.style.margin = "10px 0 0";
+  } else tyEl("div", "ty-ro", TYPE.romaji(TY.units), b);
+  if (typed && typed.trim()) { const y = tyEl("p", "tiny", ui("typing_yours", typed.trim()), b); y.lang = mode === 0 ? lang : "ja"; y.id = "ty-yours"; }
   const half = r.right * 2 >= r.total;
   const v = tyEl("div", "ty-verdict", r.correct ? "✓  " + ui("typing_right") + (pts ? "   " + ui("typing_points", pts) : "") : half ? ui("typing_almost", r.right, r.total) : ui("typing_wrong", r.right, r.total), b);
   v.id = "ty-verdict"; v.style.color = r.correct ? "var(--green)" : half ? "var(--amber, var(--blue))" : "var(--red)";
-  const flow = tyEl("div", "ty-flow", null, b); flow.id = "ty-flow";
+  const flow = tyEl("div", "ty-flow" + (mode === 0 ? "" : " kana"), null, b); flow.id = "ty-flow";
   let w = -1, i = 0;
   for (const u of TY.units) {
     if (u.punct) continue;
     const ur = r.units[i++];
-    if (w >= 0 && u.w !== w) tyEl("span", "wgap", null, flow);
+    if (w >= 0 && (u.w !== w || u.sep)) tyEl("span", "wgap", null, flow);
     w = u.w;
     const c = tyEl("div", "ty-cell" + (ur.ok ? (ur.soft ? " soft" : "") : " bad"), null, flow);
     const k = tyEl("span", "k", ur.k, c); k.lang = "ja";
     tyEl("span", "r", ur.canon || "·", c);
-    if (!ur.ok) tyEl("span", "y", (ur.typed + ur.extra) || "–", c);
-    else if (ur.soft) tyEl("span", "y", ur.typed || "–", c);
+    if (!ur.ok || ur.soft) { const y = tyEl("span", "y", (ur.typed + ur.extra) || "–", c); if (mode) y.lang = "ja"; }
   }
   for (const h of r.hints) { const t = tyEl("p", "tiny", "ℹ  " + ui("typing_hint_" + h), b); t.style.color = "var(--blue)"; }
-  tyEl("p", null, ui("typing_solution", TYPE.romaji(TY.units)), b).id = "ty-sol";
+  const sol = tyEl("p", null, ui("typing_solution", mode === 0 ? TYPE.romaji(TY.units) : TYPE.display(tyWords(x, SET.tyScript), true)), b); sol.id = "ty-sol";
+  if (mode) sol.lang = "ja";
   const tr = tyTrans(x); if (tr) tyEl("p", "ty-tr", "„" + tr + "“", b);
   const spoken = TYPE.display(x.words, false);
   const ls = tyEl("button", "card-btn", ui("typing_listen"), b); ls.style.cssText = "width:100%;margin-top:6px"; ls.onclick = () => speak(spoken);
   const nx = tyEl("button", "btn-primary", ui("typing_next"), b); nx.id = "ty-next"; nx.style.cssText = "width:100%;margin-top:10px";
   nx.onclick = () => { TY.pos++; if (TY.pos >= TY.round.length) tySummary(); else tyAsk(); };
   setTimeout(() => nx.focus(), 30);
-  v.scrollIntoView({ block: "start", behavior: "smooth" });
+  $("dlg-typing").querySelector(".sheet").scrollTop = 0;
 }
 function tySummary() {
   TY.running = false;
@@ -3503,6 +3714,7 @@ function tySummary() {
   const s = tyEl("p", "ex-res", ui("typing_summary", TY.ok, TY.round.length, TY.st ? Math.floor(TY.sr * 100 / TY.st) : 0), b); s.id = "ty-sum";
   if (TY.ok * 2 >= TY.round.length) s.style.color = "var(--green)";
   if (TY.pts) { const p2 = tyEl("p", "ex-res", ui("typing_points", TY.pts), b); p2.style.color = "var(--green)"; }
+  if (TY.tms > 0 && TY.tsyl >= 10) { const t = tyEl("p", "ex-res", ui("typing_tempo_round", Math.round(TY.tsyl * 60000 / TY.tms)), b); t.id = "ty-sum-tempo"; t.style.color = "var(--blue)"; }
   if (TY.mis.size) { const m = tyEl("p", null, ui("typing_practice", [...TY.mis].join("  ")), b); m.lang = "ja"; }
   const a = tyEl("button", "btn-primary", ui("typing_again"), b); a.style.cssText = "width:100%;margin-top:14px"; a.onclick = tyStart;
   const d = tyEl("button", "card-btn", ui("finish"), b); d.style.cssText = "width:100%;margin-top:10px"; d.onclick = () => $("dlg-typing").close();
@@ -3866,7 +4078,7 @@ function applyStatic() {
   $("rc-show").textContent = ui("recall_show"); $("rc-again").textContent = ui("recall_again"); $("rc-knew").textContent = ui("recall_knew");
   document.title = ui("web_title");
 }
-function maxHintFor() { return R.duel ? 0 : q === Q_CARD ? (card && card.hint ? 1 : 0) : (q === Q_WORD || q === Q_LISTEN || isExtra()) ? 1 : 2; }
+function maxHintFor() { return R.duel || q === Q_TYPING ? 0 : q === Q_CARD ? (card && card.hint ? 1 : 0) : (q === Q_WORD || q === Q_LISTEN || isExtra()) ? 1 : 2; }
 $("hint-btn").onclick = () => { if (phase === "ask" && hint < maxHintFor()) { hint++; render(false); } };
 $("rc-show").onclick = recallShow;
 $("rc-again").onclick = () => recallRate(false);
