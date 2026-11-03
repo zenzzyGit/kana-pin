@@ -238,7 +238,7 @@ select, .text-in { background: var(--card); color: var(--ink); border: 1.5px sol
 @media (max-height: 640px) { .big { font-size: 110px; } .opt { min-height: 64px; } }
 /* ---------- ab Version 3.6 ---------- */
 .preview { min-height: 30px; text-align: center; font-family: var(--hand); font-weight: 600; font-size: 22px; color: var(--blue); margin-top: 4px; }
-.big.ws { word-break: keep-all; overflow-wrap: anywhere; line-height: 1.35; }
+.big.ws, .ex-big.ws { word-break: keep-all; overflow-wrap: anywhere; line-height: 1.35; }
 .big.sentence { font-size: 34px !important; line-height: 1.5; padding: 0 6px; }
 .script.cardsub { font-size: 16px; letter-spacing: 0; white-space: pre-line; color: var(--blue); }
 .recall { display: grid; gap: 12px; padding: 0 4px; }
@@ -4222,7 +4222,7 @@ function showListen(d) {
 // ------------------------------------------------------------------ Lernpfad (wie Path.java): Hauptziel Kana lesen, danach Aufbau
 const PATH_CORE = ["hira", "kata", "daku", "kana"], PATH_EXTRA = ["words", "numbers", "phrases", "grammar", "kanji", "reading", "vocab", "n5"];
 const PATH_STAGES = [...PATH_CORE, ...PATH_EXTRA];
-const hasMaterial = st => st !== "kana" && st !== "n5";
+const hasMaterial = st => st !== "kana" && !["n5", "n4", "n3", "n2"].includes(st);
 function pathProgress(st) {
   switch (st) {
     case "hira": return badgeProgress("hira_all");
@@ -4243,6 +4243,7 @@ const materialDone = st => !hasMaterial(st) || pathFraction(st) >= 1;
 const stageComplete = st => examPassed(st);  // Prüfung bestanden = Etappe geschafft
 function examOpen(st) {
   if (st === "kana") return ["hira", "kata", "daku"].every(materialDone);
+  if (["n4", "n3", "n2"].includes(st)) return true;   // Probeprüfungen N4–N2: jederzeit
   if (st === "n5") return examPassed("kana") && materialDone("words") && materialDone("grammar");
   return materialDone(st);
 }
@@ -5025,7 +5026,7 @@ function roadmap(st) {
     }
     if (readOf[lv].length) { const rn = add("read" + lv, "reading", "n" + lv, rKnown[lv], readOf[lv].length); rn.ids = readOf[lv].slice(); rn.level = lv; }
     if (lisOf[lv].length) { const ln = add("listen" + lv, "listening", "n" + lv, lKnown[lv], lisOf[lv].length); ln.ids = lisOf[lv].slice(); ln.level = lv; }
-    const g = add("m" + lv, "goal", "n" + lv, Math.min(ladder[5 - lv], 100), 100); g.complete = ladder[5 - lv] >= RM_REACHED; }
+    const g = add("n" + lv, "exam", "n" + lv, passedEx("n" + lv) ? 1 : 0, 1); g.complete = g.done === 1; }
   add("n1", "future", "n1", 0, 0);
   let reached = 0; for (let lv = 5; lv >= 2; lv--) { if (ladder[5 - lv] >= RM_REACHED) reached = lv; else break; }
   const next = reached === 0 ? 5 : reached - 1;
@@ -5272,8 +5273,9 @@ $("sx-chars").onclick = () => openChars();
 // ------------------------------------------------------------------ Abschlussprüfungen (wie Exam.java)
 const examPassed = id => !!(S.ex && S.ex[id] && S.ex[id][1] > 0);
 const examBest = id => S.ex && S.ex[id] ? S.ex[id][0] : -1;
-const examPass = id => id === "n5" ? 70 : 80;
-const examSize = id => ({ numbers: 15, phrases: 15, reading: 12, vocab: 30, kana: 30, n5: 40 })[id] || 20;
+const isMock = id => ["n5", "n4", "n3", "n2"].includes(id), isUpper = id => ["n4", "n3", "n2"].includes(id);
+const examPass = id => id === "n5" ? 70 : isUpper(id) ? 60 : 80;
+const examSize = id => ({ numbers: 15, phrases: 15, reading: 12, vocab: 30, kana: 30, n5: 40, n4: 40, n3: 40, n2: 40 })[id] || 20;
 const otherScript = t => [...t].map(c => c >= "ぁ" && c <= "ゖ" ? String.fromCharCode(c.charCodeAt(0) + 0x60) : c >= "ァ" && c <= "ヶ" ? String.fromCharCode(c.charCodeAt(0) - 0x60) : c).join("");
 function exFill(q, right, pool) {
   const labels = [right];
@@ -5380,6 +5382,98 @@ function exParticles(out, n) {
     out.push(q); n--;
   }
 }
+// Probeprüfungen N4–N2 (wie Exam.upperExam)
+function exUpper(lv) {
+  const words = shuffle(JWORDS.filter(w => w.level === lv)), glv = Math.max(lv, 3);
+  const a = []; exJReading(a, 6, words); exJSpelling(a, 4, words); exJMeaning(a, 6, words);
+  const b = []; exPatterns(b, 8, glv, false); exPatterns(b, 3, glv, true); exForms(b, 1, glv);
+  const c = []; exLevelReading(c, 6, glv);
+  const d = []; if (canListen()) exDialogs(d, 6, glv); else exJMeaning(d, 6, words.filter(w => !a.some(q => q.cardId === w.id)));
+  return [...a, ...b, ...c, ...d];
+}
+const exUsed = (out, id) => out.some(q => q.cardId === id);
+function exFillOrdered(q, right, pool) {
+  const labels = [right]; for (const s of pool) { if (labels.length >= 4) break; if (s && !labels.includes(s)) labels.push(s); }
+  if (labels.length < 4) return false;
+  const l = shuffle(labels); q.options = l; q.correct = l.indexOf(right); return true;
+}
+const shareKanji = (a, b) => [...a].some(c => FURI.isKanji(c) && b.includes(c));
+function exJReading(out, n, words) {
+  for (const w of words) {
+    if (n <= 0) break; if (!FURI.hasKanji(w.word) || exUsed(out, w.id)) continue;
+    const pool = shuffle(words.filter(o => o !== w && o.reading !== w.reading && shareKanji(w.word, o.word)).map(o => o.reading));
+    for (const o of words) if (pool.length < 12 && o !== w && Math.abs(o.reading.length - w.reading.length) <= 1 && o.reading !== w.reading) pool.push(o.reading);
+    const q = exQ({ section: "kanji", cardId: w.id, prompt: ui("exam_prompt_kanji_reading"), big: w.word, optJa: true });
+    if (!exFillOrdered(q, w.reading, pool)) continue;
+    out.push(q); n--;
+  }
+}
+function exJSpelling(out, n, words) {
+  for (const w of words) {
+    if (n <= 0) break; if (!FURI.hasKanji(w.word) || exUsed(out, w.id)) continue;
+    const pool = JWORDS.filter(o => o !== w && o.reading === w.reading && o.word !== w.word && FURI.hasKanji(o.word)).map(o => o.word);
+    pool.push(...shuffle(words.filter(o => o !== w && o.word !== w.word && FURI.hasKanji(o.word) && o.word.length === w.word.length && shareKanji(w.word, o.word)).map(o => o.word)));
+    for (const o of words) if (pool.length < 12 && o !== w && FURI.hasKanji(o.word) && o.word.length === w.word.length && o.word !== w.word) pool.push(o.word);
+    const q = exQ({ section: "kanji", cardId: w.id, prompt: ui("exam_prompt_spelling"), big: w.reading, optJa: true });
+    if (!exFillOrdered(q, w.word, pool)) continue;
+    out.push(q); n--;
+  }
+}
+function exJMeaning(out, n, words) {
+  for (const w of words) {
+    if (n <= 0) break; if (exUsed(out, w.id)) continue;
+    const q = exQ({ section: "vocab", cardId: w.id, prompt: ui("prompt_word_meaning"), big: w.word, sub: w.word === w.reading ? "" : w.reading });
+    if (!exFill(q, w.meaning, words.filter(o => o !== w && o.meaning !== w.meaning).map(o => o.meaning))) continue;
+    out.push(q); n--;
+  }
+}
+function exPatterns(out, n, lv, star) {
+  const pool = [];
+  for (const id of GPDATA.order) { const p = gpPoint(id); if (!p || (p.lv !== lv && !(lv === 3 && p.lv === 4 && Math.random() < 1 / 3))) continue; p.ex.forEach((e, i) => { if (!star || e.o) pool.push([id, i]); }); }
+  for (const [id, i] of shuffle(pool)) {
+    if (n <= 0) break; if (exUsed(out, id)) continue;
+    const e = gpPoint(id).ex[i], q = exQ({ section: "grammar", cardId: id, optJa: true });
+    if (star) {
+      const pos = Math.floor(Math.random() * 4), labels = shuffle(e.c.slice(1, 5));
+      Object.assign(q, { prompt: ui("prompt_star"), big: GPT.starText(e.c, pos), options: labels, correct: labels.indexOf(e.c[1 + pos]) });
+    } else {
+      const labels = shuffle([e.c[e.b], ...e.d]);
+      Object.assign(q, { prompt: ui("prompt_gap"), big: GPT.text(e, null), options: labels, correct: labels.indexOf(e.c[e.b]) });
+    }
+    out.push(q); n--;
+  }
+}
+function exForms(out, n, lv) {
+  for (const r of shuffle(GRAM.RULES.filter(r => GRAM.level(r) >= lv && GRAM.level(r) <= 4))) {
+    if (n <= 0) break;
+    const words = (GRAM.isAdj(r) ? GWORDS.adjs : GWORDS.verbs).filter(w => !GRAM.isAdj(r) || w.cls === GRAM.adjClass(r)); if (!words.length) continue;
+    const w = words[Math.floor(Math.random() * words.length)], gq = GRAM.question(r, w.reading, w.cls, Math.random);
+    out.push(exQ({ section: "grammar", cardId: "g:" + r, prompt: sect("gr", r) || r, big: w.word, sub: w.word === w.reading ? "" : w.reading, optJa: true,
+      options: gq.options.map(o => SET.kanamode ? o : o + "\n" + fromKana(o, false)), correct: gq.correct }));
+    n--;
+  }
+}
+function exLevelReading(out, n, lv) {
+  const sents = shuffle(READING.filter(t => t.lv === lv).flatMap(t => t.s.map(x => [x.text, x.tr]).filter(x => x[1])));
+  const trs = sents.map(x => x[1]);
+  for (const [jp, tr] of sents) {
+    if (n <= 0) break;
+    const q = exQ({ section: "reading", prompt: ui("exam_prompt_sentence"), big: jp });
+    if (!exFill(q, tr, trs.filter(x => x !== tr))) continue;
+    out.push(q); n--;
+  }
+}
+function exDialogs(out, n, lv) {
+  for (const d of shuffle(DIALOGS.filter(x => x.lv === lv))) {
+    const all = d.l.map(x => x.text).join("");
+    for (const qa of d.qs) {
+      if (n <= 0) return;
+      const labels = shuffle(qa.slice(1, 5));
+      out.push(exQ({ section: "listening", cardId: "h:" + d.id, prompt: qa[0], big: "🔊", listen: true, speak: all, options: labels, correct: labels.indexOf(qa[1]) }));
+      n--;
+    }
+  }
+}
 function exReading(out, n) {
   const sents = shuffle(READING.filter(t => t.lv === 5).flatMap(t => t.s.map((x, i) => [x.text, sect("rs", t.id + "#" + i) || ""]).filter(x => x[1])));
   const trs = sents.map(x => x[1]);
@@ -5404,6 +5498,7 @@ function buildExam(id) {
     case "grammar": exGrammar(out, n); break;
     case "kanji": exKanji(out, n); break;
     case "reading": exReading(out, n); break;
+    case "n4": case "n3": case "n2": return exUpper(+id[1]);
     default: {
       const a = []; exKana(a, 3, -1, -1); exKanji(a, 3); exVocab(a, 4, false, false);
       const b = []; exGrammar(b, 6); exParticles(b, 4);
@@ -5420,7 +5515,7 @@ function recordExam(id, right, total, wrongItems, wrongCards) {
   track("exam", right, total - right, 0);
   e[0] = Math.max(e[0], pct);
   let pts = 0;
-  if (pct >= examPass(id) && !e[1]) { e[1] = now; pts = id === "n5" ? 300 : 100; }
+  if (pct >= examPass(id) && !e[1]) { e[1] = now; pts = isMock(id) ? 300 : 100; }
   for (const it of wrongItems) { const s = st(it); s.l = Math.min(s.l, LESSON_LEVEL); s.d = now; }
   for (const c of wrongCards) { const s = S.cards[c]; if (s) { s.l = Math.min(s.l, 1); s.d = now; } }
   rollDay();
@@ -5429,13 +5524,14 @@ function recordExam(id, right, total, wrongItems, wrongCards) {
   return pts;
 }
 const EX = { id: null, qs: [], pos: 0, chosen: [], running: false };
-const examTitle = id => id === "n5" ? ui("path_n5") : id === "kana" ? ui("path_kana") : ui("exam_title", stageName(id));
+const examTitle = id => isMock(id) ? ui("path_" + id) : id === "kana" ? ui("path_kana") : ui("exam_title", stageName(id));
 function openExam(id) {
   document.querySelectorAll("dialog[open]").forEach(d => d.close());
   EX.id = id; EX.running = false;
   $("ex-title2").textContent = examTitle(id);
   const b = $("ex-body"); b.innerHTML = "";
   const p1 = document.createElement("p"); p1.textContent = ui("exam_intro", examSize(id), examPass(id)); b.appendChild(p1);
+  if (isUpper(id)) { const pn = document.createElement("p"); pn.className = "tiny"; pn.id = "ex-upper"; pn.textContent = ui("exam_upper_note"); b.appendChild(pn); }
   const best = examBest(id);
   if (best >= 0) { const p2 = document.createElement("p"); p2.className = "tiny"; p2.style.color = examPassed(id) ? "var(--green)" : ""; p2.textContent = (examPassed(id) ? "✓  " + ui("path_passed") + "  ·  " : "") + ui("exam_best", best); b.appendChild(p2); }
   const go = document.createElement("button"); go.className = "btn-primary"; go.style.width = "100%"; go.textContent = ui("exam_start");
@@ -5448,10 +5544,10 @@ function examAsk() {
   const wrap = document.createElement("div"); wrap.className = "ex-q";
   const pr = document.createElement("b"); pr.style.color = "var(--blue)"; pr.textContent = ui("exam_progress", EX.pos + 1, EX.qs.length); wrap.appendChild(pr);
   const bar = document.createElement("div"); bar.className = "goalbar"; bar.style.width = "100%"; bar.innerHTML = "<i></i>"; bar.querySelector("i").style.width = (100 * EX.pos / EX.qs.length) + "%"; wrap.appendChild(bar);
-  if (EX.id === "n5") { const sc = document.createElement("div"); sc.className = "ex-sec"; sc.textContent = ui("exam_sec_" + q.section).toUpperCase(); wrap.appendChild(sc); }
+  if (isMock(EX.id)) { const sc = document.createElement("div"); sc.className = "ex-sec"; sc.textContent = ui("exam_sec_" + q.section).toUpperCase(); wrap.appendChild(sc); }
   const g1 = document.createElement("div"); g1.className = "grow"; wrap.appendChild(g1);
   const pm = document.createElement("div"); pm.className = "ex-prompt"; pm.textContent = q.prompt; wrap.appendChild(pm);
-  const big = document.createElement("div"); big.className = "ex-big" + (q.bigJa ? "" : " latin"); big.lang = q.bigJa ? "ja" : lang; big.textContent = q.big;
+  const big = document.createElement("div"); big.className = "ex-big" + (q.bigJa ? "" : " latin") + (q.bigJa && q.big.includes(" ") ? " ws" : ""); big.lang = q.bigJa ? "ja" : lang; big.textContent = q.big;
   const n = [...q.big].length;
   big.style.fontSize = (q.listen ? 84 : !q.bigJa ? (n <= 12 ? 32 : n <= 24 ? 26 : 20) : n <= 2 ? 110 : n <= 4 ? 76 : n <= 6 ? 54 : n <= 9 ? 40 : Math.max(22, Math.floor(300 / n))) + "px";
   if (q.listen) { big.style.cursor = "pointer"; big.onclick = () => speak(q.speak); setTimeout(() => speak(q.speak), 250); }
