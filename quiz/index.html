@@ -274,6 +274,16 @@ select, .text-in { background: var(--card); color: var(--ink); border: 1.5px sol
 .rd-ownjp { font-size: 22px; }
 .ls-who { font-size: 12px; font-weight: 700; }
 .tk-cue { font-size: 22px; font-weight: 700; margin: 6px 0; }
+.pitch { display: inline-block; white-space: nowrap; line-height: 1.15; vertical-align: bottom; }
+.pitch > span { display: inline-block; position: relative; padding-top: .06em; border-top: .09em solid transparent; }
+.pitch > span.h { border-top-color: var(--blue); }
+.pitch > span.tr::after { content: ""; position: absolute; right: -.045em; top: -.09em; height: .4em; border-right: .09em solid var(--blue); }
+.pitch > span.pt { color: var(--muted); }
+.ex-main .pitch { padding-top: .12em; }
+.pt-opt { width: 100%; margin-top: 8px; text-align: left; padding: 12px 14px 8px; }
+.pt-opt .pitch { font-family: var(--hand); font-weight: 600; font-size: 26px; }
+.pt-opt small { display: block; font-size: 13px; color: var(--muted); margin-top: 2px; }
+.pt-opt.good { border-color: var(--green); color: var(--green); } .pt-opt.bad { border-color: var(--red); color: var(--red); }
 svg.pad { display: block; width: min(100%, 330px); aspect-ratio: 1; margin: 12px auto 0; touch-action: none; background: var(--card); border: 2px solid var(--red); border-radius: 18px; user-select: none; -webkit-user-select: none; }
 svg.pad .guide { stroke: var(--red); opacity: .45; stroke-width: .6; stroke-dasharray: 3 3; fill: none; }
 svg.pad path { fill: none; stroke-width: 6.5; stroke-linecap: round; stroke-linejoin: round; }
@@ -2486,7 +2496,7 @@ function buildCard(id) {
   if (c.deck === DECK_VOCAB || c.deck === DECK_JLPT) {
     const v = CARD_BY[id]; if (!v) return null;
     const m = vMeaning(v), rl = v.kanji.length ? withRomaji(v.reading, v.romaji) : (SET.kanamode ? "" : v.romaji);
-    c.speak = v.reading;
+    c.speak = v.reading; c.pitch = pitchOf(v.word, v.reading); c.pitchReading = v.reading;
     c.success = v.word + (v.kanji.length ? "（" + v.reading + "）" : "") + (SET.kanamode ? "" : " = " + v.romaji) + "  ·  " + m;
     if (fresh) { Object.assign(c, { kind: C_INTRO, badge: ui("badge_new_word"), prompt: v.level ? "JLPT N" + v.level : sect("vt", v.theme) || "", big: v.word, title: ui("intro_word"), main: rl || v.reading, tip: ui("label_meaning") + m }); return c; }
     c.badge = v.level ? "JLPT N" + v.level : ui("badge_vocab");
@@ -3316,7 +3326,8 @@ function successText() {
   return `${cur.kana} = ${ansOf(cur)}` + (isKanji(cur) ? "  ·  " + kMeaning(cur.kana) : "");
 }
 function setExplain(title, main, chosen, tipT, mn, strokesFor) {
-  $("ex-title").textContent = title; $("ex-main").textContent = main; $("ex-main").hidden = !main; $("ex-main").classList.toggle("long", main.length > 12); $("ex-main").classList.toggle("lines", main.includes("\n"));
+  $("ex-title").textContent = title; $("ex-main").textContent = main; $("ex-main").hidden = !main;
+  if (card && card.pitch >= 0 && (main === card.main)) applyPitch($("ex-main"), main, card.pitchReading, card.pitch); $("ex-main").classList.toggle("long", main.length > 12); $("ex-main").classList.toggle("lines", main.includes("\n"));
   $("ex-chosen").textContent = chosen; $("ex-chosen").hidden = !chosen;
   $("ex-tip").textContent = tipT; $("ex-tip").hidden = !tipT; $("ex-mn").textContent = mn; $("ex-mn").hidden = !mn;
   showStrokes(strokesFor);
@@ -4045,15 +4056,17 @@ function showReadList() {
 }
 function readInfo(tok) {
   const core = tok[0].replace(/[、。？！」「]+$/, "").replace(/^[「]/, ""), rd = tok[1].replace(/[、。？！」「]+$/, "").replace(/^[「]/, ""), m = tokenMeaning(tok[2]);
-  setReadInfo(core + (rd !== core ? "  ·  " + rd : "") + (SET.kanamode ? "" : "  ·  " + fromKana(rd, true)) + (m ? "\n" + m : ""), /^[jv]:/.test(tok[2] || "") ? cardForWord(tok[2].slice(2)) : null);
+  const dict = /^[jv]:/.test(tok[2] || "");
+  setReadInfo(core + (rd !== core ? "  ·  " + rd : "") + (SET.kanamode ? "" : "  ·  " + fromKana(rd, true)) + (m ? "\n" + m : ""), dict ? cardForWord(tok[2].slice(2)) : null, dict ? tok[2].slice(2) : core, rd);
   speak(rd);
 }
 /** Lernkarte zu einem Wort aus einem Text (JLPT- oder Grundwortschatz), sonst null. */
 function cardForWord(w) { if (!w) return null; const j = JWORDS.find(x => x.word === w); if (j) return j.id; const v = VOCAB.find(x => x.word === w); return v ? v.id : null; }
 /** Wort merken: neue Karten werden gleich fällig; gemerkte JLPT-Wörter zählen im JLPT-Stapel immer mit. */
 function saveCard(id) { const s = cardSt(id); s.sv = true; if (!s.i && !s.s) { const now = Date.now(); s.i = true; s.f = now; s.ls = now; s.d = now; } save(); }
-function setReadInfo(text, cardId) {
-  const box = $("rd-info"); box.textContent = text;
+function setReadInfo(text, cardId, word, reading) {
+  const box = $("rd-info"), acc = pitchOf(word, reading), at = acc >= 0 ? text.indexOf(reading) : -1;
+  box.textContent = at < 0 ? text : ""; if (at >= 0) box.append(text.slice(0, at), pitchEl(reading, acc, false), text.slice(at + reading.length));
   if (cardId) {
     const s = S.cards[cardId], have = !!s && (s.sv || s.i || s.s > 0);
     const bt = document.createElement("button"); bt.className = "card-btn"; bt.id = "rd-save"; bt.lang = document.documentElement.lang;
@@ -4158,7 +4171,7 @@ function showOwn(o) {
       sp.onclick = () => {
         let m = sg.meaning; if (!m && surface.length === 1 && KDICT[surface]) m = KDICT[surface][5] || "";
         setReadInfo(surface + (reading !== surface ? "  ·  " + reading : "") + (SET.kanamode ? "" : "  ·  " + fromKana(reading, true))
-          + (sg.guess ? "  ·  " + ui("read_guess") : "") + (sg.word && sg.word !== surface ? "\n" + sg.word : "") + (m ? "\n" + m : ""), cardForWord(sg.word || surface));
+          + (sg.guess ? "  ·  " + ui("read_guess") : "") + (sg.word && sg.word !== surface ? "\n" + sg.word : "") + (m ? "\n" + m : ""), cardForWord(sg.word || surface), sg.word || surface, reading);
         speak(reading);
       };
       jp.appendChild(sp);
@@ -4281,6 +4294,80 @@ function showListen(d) {
   }
   const back2 = kdEl("button", "btn-primary", ui("listen_back"), b); back2.style.cssText = "width:100%;margin:16px 0"; back2.onclick = showListenList;
   if (!same) $("dlg-listen").querySelector(".sheet").scrollTop = 0;
+}
+
+// ------------------------------------------------------------------ Tonhöhen-Akzent (wie Pitch.java, PitchSpan.java; Daten: Kanjium, CC BY-SA 4.0)
+const PITCH = {
+  data: null, SMALL: "ゃゅょぁぃぅぇぉゎャュョァィゥェォヮ",
+  morae(k) { const out = []; for (const c of k) { if (this.SMALL.includes(c) && out.length) out[out.length - 1] += c; else out.push(c); } return out; },
+  highs(n, m, particle) { const h = []; for (let i = 0; i < m + (particle ? 1 : 0); i++) h.push(n === 0 ? i > 0 : n === 1 ? i === 0 : i >= 1 && i < n); return h; },
+  kind(n, m) { return n === 0 ? 0 : n === 1 ? 1 : n >= m ? 3 : 2; },
+  pattern(n, m) { const h = this.highs(n, m, true); return h.map((x, i) => (i === m ? "(" : "") + (x ? "H" : "L")).join("") + ")"; },
+  options(n, m) {
+    const prio = a => a === 0 || a === 1 || a === m ? 0 : 1, pool = shuffle([...Array(m + 1).keys()].filter(a => a !== n)).sort((a, b) => prio(a) - prio(b));
+    return [n, ...pool].slice(0, 4).sort((a, b) => a - b);
+  },
+};
+async function loadPitch() { if (PITCH.data) return; try { PITCH.data = (await (await fetch("pitch.json")).json()).w || {}; } catch (e) { PITCH.data = {}; } }
+const hiraOf = s => s.replace(/ /g, "").replace(/[ァ-ヶ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60));
+function pitchOf(word, reading) { if (!PITCH.data || !word || !reading) return -1; const a = PITCH.data[word + "|" + hiraOf(reading)]; return a == null ? -1 : a; }
+/** Kana mit Tonhöhen-Linie; particle = letzte Mora ist eine Partikel (grau). */
+function pitchEl(kana, n, particle) {
+  const el = document.createElement("span"); el.className = "pitch"; el.lang = "ja";
+  const mo = PITCH.morae(kana), m = mo.length - (particle ? 1 : 0), h = PITCH.highs(n, m, particle);
+  mo.forEach((x, i) => { const sp = document.createElement("span"); sp.textContent = x; const c = []; if (h[i]) c.push("h"); if (i + 1 < h.length && h[i] !== h[i + 1]) c.push("tr"); if (particle && i === mo.length - 1) c.push("pt"); sp.className = c.join(" "); el.appendChild(sp); });
+  return el;
+}
+/** Ersetzt in el die (letzte) Stelle von reading im Text durch die Tonhöhen-Darstellung. */
+function applyPitch(el, text, reading, n) {
+  const at = n < 0 || !reading ? -1 : text.lastIndexOf(reading);
+  el.textContent = ""; if (at < 0) { el.textContent = text; return false; }
+  el.append(text.slice(0, at), pitchEl(reading, n, false), text.slice(at + reading.length)); return true;
+}
+function recordPitch(ok) {
+  track("pitch", ok ? 1 : 0, ok ? 0 : 1, 0); rollDay();
+  const pts = ok ? 5 : 0; if (ok) { S.lo = (S.lo || 0) + 1; award(pts); }
+  countDay(ok, pts); checkBadges(true); save(); return pts;
+}
+const PT = { words: [], pos: 0, right: 0, chosen: -1, opts: [] };
+const pitchKindName = k => ui(["pitch_heiban", "pitch_atamadaka", "pitch_nakadaka", "pitch_odaka"][k]);
+async function pitchStart() {
+  await loadPitch();
+  const pool = shuffle(JWORDS.filter(w => w.level === TK.lv && pitchOf(w.word, w.reading) >= 0 && PITCH.morae(w.reading).length >= 2 && PITCH.morae(w.reading).length <= 5));
+  Object.assign(PT, { words: pool.slice(0, TALK_SESSION), pos: 0, right: 0, chosen: -1 }); TK.view = 3;
+  pitchShow(); if (PT.words.length) pitchSay(PT.words[0]);
+}
+const pitchSay = w => speak(w.word + "が", 0.8);
+function pitchShow() {
+  const b = $("tk-body"); b.innerHTML = ""; talkBack(b);
+  if (PT.pos >= PT.words.length) {
+    talkHead(b, ui("pitch_title"));
+    const r = kdEl("p", null, ui("pitch_result", PT.right, PT.words.length), b); r.id = "pt-result"; r.style.cssText = "font-weight:700;color:var(--green);font-size:20px";
+    showNotices();
+    const again = kdEl("button", "btn-primary", ui("pitch_start", TALK_SESSION), b); again.style.width = "100%"; again.onclick = pitchStart;
+    const bk = kdEl("button", "card-btn", ui("talk_back"), b); bk.style.cssText = "width:100%;margin-top:8px"; bk.onclick = talkHub;
+    return;
+  }
+  const w = PT.words[PT.pos], n = pitchOf(w.word, w.reading), m = PITCH.morae(w.reading).length;
+  if (PT.chosen < 0) PT.opts = PITCH.options(n, m);
+  kdEl("p", "tiny", ui("write_word_count", PT.pos + 1, PT.words.length) + "  ·  N" + TK.lv, b).style.color = "var(--blue)";
+  kdEl("p", "tiny", ui("pitch_prompt"), b);
+  const big = kdEl("div", "tk-jp", w.word, b); big.lang = "ja"; big.id = "pt-word"; big.style.fontSize = "40px";
+  kdEl("p", "tiny", w.meaning, b);
+  const ls = kdEl("button", "link-btn", "🔊  " + ui("talk_listen"), b); ls.id = "pt-listen"; ls.onclick = () => pitchSay(w);
+  for (const a of PT.opts) {
+    const bt = kdEl("button", "card-btn pt-opt", null, b); bt.dataset.a = a;
+    bt.append(pitchEl(w.reading + "が", a, true)); kdEl("small", null, pitchKindName(PITCH.kind(a, m)), bt);
+    if (PT.chosen >= 0) { bt.disabled = true; if (a === n) bt.classList.add("good"); else if (a === PT.chosen) bt.classList.add("bad"); }
+    bt.onclick = () => { if (PT.chosen >= 0) return; PT.chosen = a; if (a === n) PT.right++; recordPitch(a === n); pitchShow(); pitchSay(w); };
+  }
+  if (PT.chosen >= 0) {
+    const r = kdEl("p", null, PT.chosen === n ? ui("pitch_right") : ui("pitch_wrong", pitchKindName(PITCH.kind(n, m))), b); r.id = "pt-res";
+    r.style.color = PT.chosen === n ? "var(--green)" : "var(--red)";
+    const nx = kdEl("button", "btn-primary", ui("talk_next"), b); nx.id = "pt-next"; nx.style.cssText = "width:100%;margin-top:12px";
+    nx.onclick = () => { PT.pos++; PT.chosen = -1; pitchShow(); if (PT.pos < PT.words.length) pitchSay(PT.words[PT.pos]); };
+  }
+  $("dlg-talk").querySelector(".sheet").scrollTop = 0;
 }
 
 // ------------------------------------------------------------------ Schreibtraining (wie Write.java, WriteActivity.java, DrawView.java, StrokeMatcher.java)
@@ -4592,6 +4679,9 @@ function talkHub() {
     const bt = kdEl("button", "card-btn tk-role", (ok ? "✓  " : "") + d.ti, b); bt.dataset.id = d.id; bt.style.cssText = "width:100%;margin-top:6px" + (ok ? ";color:var(--green)" : "");
     bt.onclick = () => roleStart(d, talkDefaultRole(d));
   }
+  kdEl("div", "rd-lv", ui("pitch_title"), b);
+  kdEl("p", "tiny", ui("pitch_hint"), b);
+  const pt = kdEl("button", "card-btn", ui("pitch_start", TALK_SESSION), b); pt.id = "tk-pitch"; pt.style.width = "100%"; pt.onclick = pitchStart;
   kdEl("div", "rd-lv", ui("talk_shadow"), b);
   const sh = kdEl("button", "card-btn", ui("talk_shadow_btn"), b); sh.style.width = "100%"; sh.onclick = () => { $("dlg-talk").close(); openSpeak(); };
   $("dlg-talk").querySelector(".sheet").scrollTop = 0;
@@ -5743,7 +5833,9 @@ function jlWords(lv) {
     const hits = all.filter(w => !t || w.word.includes(t) || w.reading.includes(t) || w.romaji.includes(t) || w.meaning.toLowerCase().includes(t));
     for (const w of hits.slice(0, 300)) {
       const s = S.cards[w.id], d = kdEl("div", "kd-word", null, list); const j = kdEl("span", "ja", w.word, d); j.lang = "ja";
-      d.append((w.word === w.reading ? "" : "  （" + w.reading + "）") + (s && s.l >= CARD_KNOWN ? "  ✓" : "") + "   " + w.romaji + "  ·  " + w.meaning);
+      const pa = pitchOf(w.word, w.reading);
+      if (pa >= 0 && w.word !== w.reading) d.append("  （", pitchEl(w.reading, pa, false), "）"); else if (pa >= 0) { j.textContent = ""; j.appendChild(pitchEl(w.reading, pa, false)); } else d.append(w.word === w.reading ? "" : "  （" + w.reading + "）");
+      d.append((s && s.l >= CARD_KNOWN ? "  ✓" : "") + "   " + w.romaji + "  ·  " + w.meaning);
       d.onclick = () => speak(w.reading);
     }
     if (hits.length > 300) kdEl("p", "tiny", "… +" + (hits.length - 300), list);
@@ -6256,7 +6348,7 @@ if ("speechSynthesis" in window) speechSynthesis.getVoices();
 (async () => {
   checkBadges(false);
   applyTheme();
-  await Promise.all([loadLang(pickLang()), loadJlpt()]);
+  await Promise.all([loadLang(pickLang()), loadJlpt(), loadPitch()]);
   applyStatic();
   recapNotice();
   startRound();
