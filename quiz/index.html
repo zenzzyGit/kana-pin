@@ -585,6 +585,7 @@ dialog#dlg-wrapped::backdrop { background: #000; }
     <div class="code" id="done-code" hidden></div>
     <div class="row">
       <button class="btn-primary" id="again"></button>
+      <button class="card-btn" id="done-endless" data-ui="endless_btn"></button>
       <button class="card-btn" id="done-share" hidden></button>
       <button class="card-btn" id="done-board"></button>
     </div>
@@ -2823,18 +2824,18 @@ let cur = null, word = null, lastWord = null, kw = null, lastKw = null, sent = n
 let q = Q_READ, phase = "ask", hint = 0, isNew = false, isRetry = false, shownAt = 0;
 let opts = [], wopts = [], xopts = [], xcorrect = -1;
 
-function startRound(focus) {
+function startRound(focus, endless) {
   trackCount("pr");
-  Object.assign(R, { need: Number(SET.per) || 5, streak: 0, answered: 0, points: 0, retry: [], gaps: [], focus: focus && focus.length ? focus : null, total: focus && focus.length ? 10 : 0, duel: null, deck: -1, intros: 0, ids: null });
+  Object.assign(R, { need: Number(SET.per) || 5, streak: 0, answered: 0, points: 0, retry: [], gaps: [], focus: focus && focus.length ? focus : null, total: focus && focus.length ? 10 : 0, duel: null, deck: -1, intros: 0, ids: null, endless: !!endless });
   newBadges = []; goalJust = false; clearTimeout(advTimer);
   cur = null; $("quiz").hidden = false; $("done").hidden = true; $("notice").hidden = true;
-  $("quit").hidden = !R.focus; $("brand").textContent = R.focus ? ui("practice_brand") : "かな";
+  $("quit").hidden = !R.focus && !R.endless; $("brand").textContent = R.focus ? ui("practice_brand") : R.endless ? ui("endless_brand") : "かな";
   next();
 }
 /** Nur Karten eines Stapels üben (Wörter, Zahlen, Sätze). */
 function startDeck(deck, ids) {
   if (!(ids || deckIds(deck)).length) { toast(ui("practice_none")); return false; }
-  Object.assign(R, { need: 1, streak: 0, answered: 0, points: 0, retry: [], gaps: [], focus: null, total: 10, duel: null, deck, intros: 0, ids: ids || null });
+  Object.assign(R, { need: 1, streak: 0, answered: 0, points: 0, retry: [], gaps: [], focus: null, total: 10, duel: null, deck, intros: 0, ids: ids || null, endless: false });
   newBadges = []; goalJust = false; clearTimeout(advTimer);
   cur = null; $("quiz").hidden = false; $("done").hidden = true; $("notice").hidden = true;
   $("quit").hidden = false; $("brand").textContent = ui("practice_brand");
@@ -2845,7 +2846,7 @@ function startDeck(deck, ids) {
 function startDuel(code, seed, kind, showCode, live) {
   if (R.duel && R.duel.live) clearInterval(R.duel.live.timer);
   clearTimeout(advTimer);
-  Object.assign(R, { need: 10, streak: 0, answered: 0, points: 0, retry: [], gaps: [], focus: null, total: 0, deck: -1, intros: 0,
+  Object.assign(R, { need: 10, streak: 0, answered: 0, points: 0, retry: [], gaps: [], focus: null, total: 0, deck: -1, intros: 0, endless: false,
     duel: { code, qs: duelQuestions(seed, kind), idx: 0, correct: 0, ms: 0, showCode, live: live || null } });
   cur = null; $("quiz").hidden = false; $("done").hidden = true; $("notice").hidden = true;
   $("quit").hidden = false; $("brand").textContent = "かな";
@@ -3099,6 +3100,7 @@ function buildWordOptions() {
 }
 function progressText() {
   if (R.duel) return ui("duel_progress", Math.min(R.duel.idx + 1, 10), 10);
+  if (R.endless) return "∞  ·  " + R.answered;
   if (R.focus || R.deck >= 0) return R.answered + " / " + R.total;
   let s = "";
   if (R.need > 1) s = Array.from({ length: R.need }, (_, i) => i < R.streak ? "●" : "○").join(" ");
@@ -3223,7 +3225,7 @@ function onType() {
   const ok = matches(cur, t); answer(ok, ok ? cur : findByRomaji(cur.script, canon(t)), t, -1, null);
   $("type-in").blur();
 }
-const willFinish = () => R.duel ? R.duel.idx >= R.duel.qs.length : R.focus || R.deck >= 0 ? R.answered >= R.total && !R.retry.length : (!R.retry.length && R.streak >= R.need);
+const willFinish = () => R.endless ? false : R.duel ? R.duel.idx >= R.duel.qs.length : R.focus || R.deck >= 0 ? R.answered >= R.total && !R.retry.length : (!R.retry.length && R.streak >= R.need);
 let pendingNotice = [];
 function showNotices() {
   const n = pendingNotice.splice(0);
@@ -3329,6 +3331,7 @@ function setExplain(title, main, chosen, tipT, mn, strokesFor) {
   $("ex-title").textContent = title; $("ex-main").textContent = main; $("ex-main").hidden = !main;
   if (card && card.pitch >= 0 && (main === card.main)) applyPitch($("ex-main"), main, card.pitchReading, card.pitch); $("ex-main").classList.toggle("long", main.length > 12); $("ex-main").classList.toggle("lines", main.includes("\n"));
   $("ex-chosen").textContent = chosen; $("ex-chosen").hidden = !chosen;
+  if (strokesFor && isKanji(strokesFor) && partsOf(strokesFor.kana).length) tipT = (tipT ? tipT + "\n" : "") + ui("parts_label", partsLine(strokesFor.kana));
   $("ex-tip").textContent = tipT; $("ex-tip").hidden = !tipT; $("ex-mn").textContent = mn; $("ex-mn").hidden = !mn;
   showStrokes(strokesFor);
 }
@@ -4370,6 +4373,59 @@ function pitchShow() {
   $("dlg-talk").querySelector(".sheet").scrollTop = 0;
 }
 
+// ------------------------------------------------------------------ Kanji-Bausteine (wie Parts.java; KanjiVG, Kanjium, KANJIDIC)
+const PARTS = { k: {}, m: {}, n: {}, loaded: false };
+async function loadParts() { if (PARTS.loaded) return; try { const j = await (await fetch("parts.json")).json(); Object.assign(PARTS, { k: j.k || {}, m: j.m || {}, n: j.n || {} }); } catch (e) {} PARTS.loaded = true; }
+const partsOf = k => PARTS.k[k] || [];
+const partsLine = k => partsOf(k).map(p => p + (PARTS.m[p] ? " " + PARTS.m[p] : "")).join("  +  ");
+const PARTS_TRIVIAL = "一丨丿丶亅乙乚⺄", partsShare = (a, b) => b.some(p => !PARTS_TRIVIAL.includes(p) && a.includes(p));
+function partsRelated(k, pool, max) { const mine = partsOf(k); if (!mine.length) return []; const out = []; for (const x of pool) { if (out.length >= max) break; if (x !== k && partsShare(mine, partsOf(x))) out.push(x); } return out; }
+function partsOptions(k, pool) {
+  const mine = partsOf(k), same = [], other = [];
+  for (const x of pool) { if (x === k || !partsOf(x).length) continue; (partsShare(mine, partsOf(x)) ? same : other).push(x); }
+  const out = [k]; for (const x of shuffle(same)) if (out.length < 4) out.push(x); for (const x of shuffle(other)) if (out.length < 4) out.push(x);
+  return shuffle(out);
+}
+const PQ = { qs: [], opts: null, chosen: null, done: 0, right: 0 };
+function recordParts(ok) { track("parts", ok ? 1 : 0, ok ? 0 : 1, 0); rollDay(); const pts = ok ? 5 : 0; if (ok) award(pts); countDay(ok, pts); checkBadges(true); save(); return pts; }
+async function partsStart() {
+  await loadParts();
+  const ks = writeKanji(WT.lv).filter(k => partsOf(k).length), known = shuffle(ks.filter(k => BY[k] && masteryOf(BY[k]) >= 1)), rest = shuffle(ks.filter(k => !(BY[k] && masteryOf(BY[k]) >= 1)));
+  Object.assign(PQ, { qs: known.concat(rest).slice(0, WRITE_SESSION), opts: null, chosen: null, done: 0, right: 0 }); WT.view = 3;
+  partsShow();
+}
+function partsShow() {
+  const b = $("wt-body"); b.innerHTML = "";
+  if (PQ.done >= PQ.qs.length) {
+    WT.view = 0; talkHead(b, ui("parts_quiz"));
+    const r = kdEl("p", null, ui("parts_result", PQ.right, PQ.done), b); r.id = "pq-result"; r.style.cssText = "font-weight:700;color:var(--green);font-size:20px";
+    showNotices();
+    const again = kdEl("button", "btn-primary", ui("parts_quiz_start", WRITE_SESSION), b); again.style.width = "100%"; again.onclick = partsStart;
+    const bk = kdEl("button", "card-btn", ui("write_back"), b); bk.style.cssText = "width:100%;margin-top:8px"; bk.onclick = writeHub;
+    return;
+  }
+  writeBack(b);
+  const k = PQ.qs[PQ.done];
+  if (!PQ.opts) { const pool = []; for (const lv of WRITE_LEVELS) if (lv >= WT.lv) pool.push(...writeKanji(lv)); PQ.opts = partsOptions(k, pool); }
+  kdEl("p", "tiny", ui("write_count", PQ.done + 1, PQ.qs.length) + "  ·  N" + WT.lv, b).style.color = "var(--blue)";
+  kdEl("p", "tiny", ui("parts_prompt"), b);
+  const q = kdEl("div", "wt-meaning", partsLine(k), b); q.id = "pq-parts"; q.lang = "ja";
+  const row = kdEl("div", "btnrow", null, b); row.id = "pq-opts"; row.style.marginTop = "12px";
+  for (const o of PQ.opts) {
+    const bt = kdEl("button", "card-btn", o, row); bt.lang = "ja"; bt.dataset.k = o; bt.style.cssText = "flex:1;min-width:0;font-family:var(--hand);font-weight:600;font-size:34px;padding:10px 0";
+    if (PQ.chosen) { bt.disabled = true; if (o === k) bt.style.color = "var(--green)"; else if (o === PQ.chosen) bt.style.color = "var(--red)"; }
+    bt.onclick = () => { if (PQ.chosen) return; PQ.chosen = o; if (o === k) PQ.right++; recordParts(o === k); partsShow(); };
+  }
+  if (PQ.chosen) {
+    const info = KDICT[k];
+    const r = kdEl("p", null, (PQ.chosen === k ? "✓  " : "") + k + (info ? "  ·  " + info[5].split(/,\s*/).slice(0, 3).join(", ") + (info[0] ? "  ·  " + info[0].split(" ").join("、") : "") + (info[1] ? "  ·  " + info[1].split(" ").join("、") : "") : ""), b);
+    r.id = "pq-res"; r.lang = "ja"; r.style.color = PQ.chosen === k ? "var(--green)" : "var(--red)";
+    const nx = kdEl("button", "btn-primary", ui("write_next"), b); nx.id = "pq-next"; nx.style.cssText = "width:100%;margin-top:12px";
+    nx.onclick = () => { PQ.done++; PQ.chosen = null; PQ.opts = null; partsShow(); };
+  }
+  $("dlg-write").querySelector(".sheet").scrollTop = 0;
+}
+
 // ------------------------------------------------------------------ Schreibtraining (wie Write.java, WriteActivity.java, DrawView.java, StrokeMatcher.java)
 const SM = (() => {
   const N = 24, MAX_AVG = 17, MAX_END = 30, SHORT = 18;
@@ -4515,6 +4571,9 @@ function writeHub() {
   kdEl("div", "rd-lv", ui("write_kanji"), b);
   kdEl("p", "tiny", ui("write_kanji_hint"), b);
   const go = kdEl("button", "btn-primary", ui("write_kanji_start", WRITE_SESSION), b); go.id = "wt-start"; go.style.width = "100%"; go.onclick = writeStart;
+  kdEl("div", "rd-lv", ui("parts_quiz"), b);
+  kdEl("p", "tiny", ui("parts_quiz_hint"), b);
+  const pqb = kdEl("button", "card-btn", ui("parts_quiz_start", WRITE_SESSION), b); pqb.id = "wt-parts"; pqb.style.width = "100%"; pqb.onclick = partsStart;
   kdEl("div", "rd-lv", ui("write_words"), b);
   kdEl("p", "tiny", ui("write_words_hint"), b);
   const ws = writeWords(WT.lv);
@@ -5515,6 +5574,17 @@ function openKanji(it) {
     kdEl("p", "tiny", ui("kj_readings_note"), b);
     if (info[5]) kdEl("p", null, ui("kj_meanings_en") + "  " + info[5], b).id = "kj-meanings";
   }
+  if (partsOf(it.kana).length) {
+    sec(ui("parts_title"));
+    const pb = kdEl("div", null, null, b); pb.id = "kd-parts"; pb.lang = "ja";
+    for (const p of partsOf(it.kana)) { const d = kdEl("p", null, p + (PARTS.m[p] ? "   " + PARTS.m[p] : "") + (PARTS.n[p] ? "  ·  " + PARTS.n[p] : ""), pb); if (BY[p] && isKanji(BY[p])) { d.style.cursor = "pointer"; d.onclick = () => openKanji(BY[p]); } }
+    const rel = partsRelated(it.kana, ALL.filter(isKanji).map(x => x.kana), 14);
+    if (rel.length) {
+      kdEl("p", "tiny", ui("parts_also"), b);
+      const rr = kdEl("div", null, null, b); rr.id = "kd-related"; rr.lang = "ja"; rr.style.cssText = "display:flex;flex-wrap:wrap;gap:4px";
+      for (const x of rel) { const c = kdEl("button", "link-btn", x, rr); c.style.cssText = "font-family:var(--hand);font-size:26px;padding:2px 8px"; c.onclick = () => openKanji(BY[x]); }
+    }
+  }
   sec(ui("kd_sec_write"));
   const row = kdEl("div", null, null, b); row.style.cssText = "display:flex;align-items:center;gap:16px";
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg"); svg.setAttribute("class", "strokes"); svg.setAttribute("viewBox", "0 0 109 109"); svg.id = "kd-strokes";
@@ -6323,7 +6393,8 @@ $("rc-show").onclick = recallShow;
 $("rc-again").onclick = () => recallRate(false);
 $("rc-knew").onclick = () => recallRate(true);
 $("dontknow").onclick = () => { if (phase !== "ask") return; if (R.duel) answerDuel(false, null); else answer(false, null, null, -1, null); };
-$("quit").onclick = () => { if (R.duel) finishDuel(true); else { R.focus = null; R.deck = -1; R.ids = null; startRound(); } };
+$("quit").onclick = () => { if (R.duel) finishDuel(true); else { if (R.endless && R.answered) toast(ui("endless_done", R.answered)); R.focus = null; R.deck = -1; R.ids = null; startRound(); } };
+$("done-endless").onclick = () => startRound(null, true);
 $("type-ok").onclick = onType;
 $("type-in").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); onType(); } });
 $("type-in").addEventListener("input", e => { const t = e.target.value.trim(); $("type-preview").textContent = t && (q === Q_DICT || (SET.kanamode && q === Q_TYPE)) ? toHiragana(t) : ""; });
@@ -6348,7 +6419,7 @@ if ("speechSynthesis" in window) speechSynthesis.getVoices();
 (async () => {
   checkBadges(false);
   applyTheme();
-  await Promise.all([loadLang(pickLang()), loadJlpt(), loadPitch()]);
+  await Promise.all([loadLang(pickLang()), loadJlpt(), loadPitch(), loadParts()]);
   applyStatic();
   recapNotice();
   startRound();
