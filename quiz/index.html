@@ -280,6 +280,9 @@ select, .text-in { background: var(--card); color: var(--ink); border: 1.5px sol
 .pitch > span.tr::after { content: ""; position: absolute; right: -.045em; top: -.09em; height: .4em; border-right: .09em solid var(--blue); }
 .pitch > span.pt { color: var(--muted); }
 .ex-main .pitch { padding-top: .12em; }
+.ex-example { margin-top: 12px; cursor: pointer; }
+.ex-example .ex-sent { font-family: var(--hand); font-weight: 600; font-size: 19px; line-height: 2; }
+.ex-example rt { font-family: var(--sans, system-ui); font-size: 10px; color: var(--blue); font-weight: 500; }
 .pt-opt { width: 100%; margin-top: 8px; text-align: left; padding: 12px 14px 8px; }
 .pt-opt .pitch { font-family: var(--hand); font-weight: 600; font-size: 26px; }
 .pt-opt small { display: block; font-size: 13px; color: var(--muted); margin-top: 2px; }
@@ -2505,6 +2508,7 @@ function buildCard(id) {
     const v = CARD_BY[id]; if (!v) return null;
     const m = vMeaning(v), rl = v.kanji.length ? withRomaji(v.reading, v.romaji) : (SET.kanamode ? "" : v.romaji);
     c.speak = v.reading; c.pitch = pitchOf(v.word, v.reading); c.pitchReading = v.reading;
+    const exs = exampleOf(v.word); if (exs) { c.example = exs[0]; c.exampleEn = exs[1]; }
     c.success = v.word + (v.kanji.length ? "（" + v.reading + "）" : "") + (SET.kanamode ? "" : " = " + v.romaji) + "  ·  " + m;
     if (fresh) { Object.assign(c, { kind: C_INTRO, badge: ui("badge_new_word"), prompt: v.level ? "JLPT N" + v.level : sect("vt", v.theme) || "", big: v.word, title: ui("intro_word"), main: rl || v.reading, tip: ui("label_meaning") + m }); return c; }
     c.badge = v.level ? "JLPT N" + v.level : ui("badge_vocab");
@@ -3339,7 +3343,13 @@ function setExplain(title, main, chosen, tipT, mn, strokesFor) {
   if (card && card.pitch >= 0 && (main === card.main)) applyPitch($("ex-main"), main, card.pitchReading, card.pitch); $("ex-main").classList.toggle("long", main.length > 12); $("ex-main").classList.toggle("lines", main.includes("\n"));
   $("ex-chosen").textContent = chosen; $("ex-chosen").hidden = !chosen;
   if (strokesFor && isKanji(strokesFor) && partsOf(strokesFor.kana).length) tipT = (tipT ? tipT + "\n" : "") + ui("parts_label", partsLine(strokesFor.kana));
-  $("ex-tip").textContent = tipT; $("ex-tip").hidden = !tipT; $("ex-mn").textContent = mn; $("ex-mn").hidden = !mn;
+  $("ex-tip").textContent = tipT; $("ex-tip").hidden = !tipT;
+  if (card && card.example && main === card.main) {
+    const box = document.createElement("div"); box.className = "ex-example"; box.id = "ex-example";
+    box.append(ui("example_label"), document.createElement("br"), exRubyEl(card.example), document.createElement("br"), card.exampleEn);
+    box.onclick = () => speak(exPlain(card.example));
+    $("ex-tip").appendChild(box); $("ex-tip").hidden = false;
+  } $("ex-mn").textContent = mn; $("ex-mn").hidden = !mn;
   showStrokes(strokesFor);
 }
 function explainChar(chosen, typed) {
@@ -4305,6 +4315,24 @@ function showListen(d) {
   }
   const back2 = kdEl("button", "btn-primary", ui("listen_back"), b); back2.style.cssText = "width:100%;margin:16px 0"; back2.onclick = showListenList;
   if (!same) $("dlg-listen").querySelector(".sheet").scrollTop = 0;
+}
+
+// ------------------------------------------------------------------ Beispielsätze (wie Examples.java; Tatoeba über Kanjium)
+const EXAMPLES = { w: null };
+async function loadExamples() { if (EXAMPLES.w) return; try { EXAMPLES.w = (await (await fetch("examples.json")).json()).w || {}; } catch (e) { EXAMPLES.w = {}; } }
+const exampleOf = w => EXAMPLES.w && EXAMPLES.w[w] || null;
+const exPlain = r => r.replace(/\{[^}]*\}/g, "").replace(/｜/g, "");
+function exRubyEl(ruby) {
+  const el = document.createElement("span"); el.lang = "ja"; el.className = "ex-sent";
+  const re = /([^{}]+?)\{([^}]*)\}/g; let pos = 0, m;
+  while ((m = re.exec(ruby))) {
+    const base = m[1], bar = base.lastIndexOf("｜"); let k = base.length;
+    if (bar >= 0) k = bar; else while (k > 0 && isHan(base[k - 1])) k--;
+    el.append(ruby.slice(pos, m.index) + base.slice(0, k));
+    const rb = document.createElement("ruby"); rb.append(base.slice(k).replace(/｜/g, "")); const rt = document.createElement("rt"); rt.textContent = m[2]; rb.appendChild(rt); el.appendChild(rb);
+    pos = re.lastIndex;
+  }
+  el.append(ruby.slice(pos)); return el;
 }
 
 // ------------------------------------------------------------------ Tonhöhen-Akzent (wie Pitch.java, PitchSpan.java; Daten: Kanjium, CC BY-SA 4.0)
@@ -6524,7 +6552,7 @@ if ("speechSynthesis" in window) speechSynthesis.getVoices();
 (async () => {
   checkBadges(false);
   applyTheme();
-  await Promise.all([loadLang(pickLang()), loadJlpt(), loadPitch(), loadParts()]);
+  await Promise.all([loadLang(pickLang()), loadJlpt(), loadPitch(), loadParts(), loadExamples()]);
   applyStatic();
   recapNotice();
   startRound();
