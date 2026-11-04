@@ -274,6 +274,14 @@ select, .text-in { background: var(--card); color: var(--ink); border: 1.5px sol
 .rd-ownjp { font-size: 22px; }
 .ls-who { font-size: 12px; font-weight: 700; }
 .tk-cue { font-size: 22px; font-weight: 700; margin: 6px 0; }
+details.grp { margin-top: 8px; border: 1.5px solid var(--rule); border-radius: 12px; background: var(--card); }
+details.grp > summary { cursor: pointer; padding: 12px 14px; font-weight: 700; list-style: none; }
+details.grp > summary::-webkit-details-marker { display: none; }
+details.grp > summary::before { content: "▸  "; color: var(--blue); }
+details.grp[open] > summary::before { content: "▾  "; }
+details.grp > :not(summary) { margin-left: 12px; margin-right: 12px; }
+details.grp[open] { padding-bottom: 12px; }
+.grp-h { margin: 16px 12px 6px; font-family: var(--hand); color: var(--red); font-size: 17px; }
 .pitch { display: inline-block; white-space: nowrap; line-height: 1.15; vertical-align: bottom; }
 .pitch > span { display: inline-block; position: relative; padding-top: .06em; border-top: .09em solid transparent; }
 .pitch > span.h { border-top-color: var(--blue); }
@@ -790,38 +798,48 @@ dialog#dlg-wrapped::backdrop { background: #000; }
     <div class="sec"><b>1</b><span data-ui="path_goal"></span></div>
     <b id="sx-path-pct" style="color:var(--blue)"></b>
     <div class="goalbar" id="sx-path-bar" style="width:100%;margin-top:6px"><i></i></div>
-    <ul class="path" id="sx-path"></ul>
+    <ul class="path" id="sx-path" hidden></ul>
     <button class="btn-primary" id="sx-path-btn" style="margin-top:10px;width:100%"></button>
-    <button class="link-btn" id="sx-place" data-ui="place_offer"></button>
     <button class="card-btn" id="sx-road" style="width:100%;margin-top:10px" data-ui="rm_btn"></button>
-    <button class="card-btn" id="sx-typing" style="width:100%;margin-top:10px"></button>
-    <button class="card-btn" id="sx-chars" style="width:100%;margin-top:10px" data-ui="kd_overview_btn"></button>
+    <button class="link-btn" id="sx-place" data-ui="place_offer"></button>
+    <div class="sec"><b>2</b><span data-ui="all_practice"></span></div>
+    <p class="tiny" id="sx-due" style="max-width:none"></p>
+    <details class="grp" id="grp-words"><summary data-ui="grp_words"></summary>
+      <p class="tiny" id="sx-ev" style="max-width:none;white-space:pre-line"></p>
+      <div class="ev-btns"><button class="card-btn" id="sx-ev-vocab" data-ui="practice_vocab"></button><button class="card-btn" id="sx-ev-num" data-ui="practice_numbers"></button>
+      <button class="card-btn" id="sx-ev-ph" data-ui="practice_phrases"></button><button class="card-btn" id="sx-ev-jlpt" data-ui="practice_jlpt"></button></div></details>
+    <details class="grp" id="grp-grammar"><summary data-ui="grp_grammar"></summary>
+      <div class="ev-btns"><button class="card-btn" id="sx-ev-gr" data-ui="practice_grammar"></button><button class="card-btn" id="sx-ev-keigo" data-ui="practice_keigo"></button></div></details>
+    <details class="grp" id="grp-read"><summary data-ui="grp_read"></summary>
+      <div class="ev-btns"><button class="card-btn" id="sx-ev-read" data-ui="practice_read"></button><button class="card-btn" id="sx-ev-own" data-ui="own_add_short"></button></div></details>
+    <details class="grp" id="grp-listen"><summary data-ui="grp_listen"></summary>
+      <div class="ev-btns"><button class="card-btn" id="sx-ev-listen" data-ui="practice_listen"></button><button class="card-btn" id="sx-ev-speak" data-ui="practice_speak"></button></div></details>
+    <details class="grp" id="grp-write"><summary data-ui="grp_write"></summary>
+      <div class="ev-btns"><button class="card-btn" id="sx-ev-write" data-ui="practice_write"></button><button class="card-btn" id="sx-typing"></button></div></details>
+    <details class="grp" id="grp-chars"><summary data-ui="grp_chars"></summary>
+      <button class="card-btn" id="sx-chars" style="width:100%;margin-top:8px" data-ui="kd_overview_btn"></button>
+      <button class="card-btn" id="sx-jlpt" style="width:100%;margin-top:8px" data-ui="rm_btn" hidden></button></details>
+    <div class="sec"><b>3</b><span data-ui="grp_stats_title"></span></div>
+    <details class="grp" id="grp-stats"><summary data-ui="grp_more"></summary>
     <button class="card-btn" id="sx-statx" style="width:100%;margin-top:10px" data-ui="st_btn"></button>
-    <div class="sec"><b>2</b><span data-ui="h_everyday"></span></div>
-    <p class="tiny" id="sx-ev" style="max-width:none;white-space:pre-line"></p>
-    <div class="ev-btns"><button class="btn-primary" id="sx-ev-vocab" data-ui="practice_vocab"></button><button class="card-btn" id="sx-ev-num" data-ui="practice_numbers"></button>
-      <button class="card-btn" id="sx-ev-ph" data-ui="practice_phrases"></button><button class="card-btn" id="sx-ev-speak" data-ui="practice_speak"></button>
-      <button class="card-btn" id="sx-ev-gr" data-ui="practice_grammar"></button><button class="card-btn" id="sx-ev-read" data-ui="practice_read"></button>
-      <button class="card-btn" id="sx-ev-jlpt" data-ui="practice_jlpt"></button><button class="card-btn" id="sx-jlpt" data-ui="rm_btn"></button>
-      <button class="card-btn" id="sx-ev-listen" data-ui="practice_listen"></button><button class="card-btn" id="sx-ev-own" data-ui="own_add_short"></button>
-      <button class="card-btn" id="sx-ev-write" data-ui="practice_write"></button><button class="card-btn" id="sx-ev-keigo" data-ui="practice_keigo"></button></div>
-    <div class="sec"><b>3</b><span data-ui="h_forecast"></span></div>
+    <h4 class="grp-h" data-ui="h_forecast"></h4>
     <p class="tiny" id="sx-fc-text" style="max-width:none"></p>
     <div class="fc" id="sx-fc"></div>
     <div class="fcd" id="sx-fc-days"></div>
-    <div class="sec"><b>4</b><span data-ui="h_calendar"></span></div>
+    <h4 class="grp-h" data-ui="h_calendar"></h4>
     <div class="cal" id="sx-cal"></div>
     <p class="tiny" id="sx-cal-text" style="max-width:none;margin-top:8px"></p>
-    <div class="sec"><b>5</b><span data-ui="history_days"></span></div>
+    <h4 class="grp-h" data-ui="history_days"></h4>
     <div class="bars" id="sx-bars"></div>
     <div class="days" id="sx-days"></div>
-    <div class="sec"><b>6</b><span data-ui="h_hardest"></span></div>
+    <h4 class="grp-h" data-ui="h_hardest"></h4>
     <div class="hard" id="sx-hard" lang="ja"></div>
     <button class="btn-primary" id="sx-hard-btn" style="margin-top:10px" data-ui="hardest_practice"></button>
-    <div class="sec"><b>7</b><span data-ui="h_badges"></span></div>
+    <h4 class="grp-h" data-ui="h_badges"></h4>
     <div class="tiny" id="sx-badgecount"></div>
     <div class="badges" id="sx-badges"></div>
     <p class="tiny" id="sx-badgedesc" style="margin-top:12px;min-height:3em"></p>
+    </details>
   </div>
 </dialog>
 
@@ -3925,6 +3943,7 @@ function openStats() {
   pathAutoUnlock();
   renderPath();
   $("sx-ev").textContent = everydaySummary();
+  { let due = 0; for (let d = 0; d < DECKS; d++) due += cardStats(deckIds(d))[1]; $("sx-due").textContent = due > 0 ? ui("all_practice_due", due) : ui("all_practice_hint"); }
   $("sx-badgecount").textContent = ui("badges_count", Object.keys(S.ach).length, BADGES.length);
   $("sx-badges").innerHTML = "";
   BADGES.forEach((id, i) => {
