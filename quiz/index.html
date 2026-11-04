@@ -2131,6 +2131,7 @@ function fsrsNext(S, D, g, t) {
   return [Math.max(0.01, Math.min(36500, ns)), nd];
 }
 let S = Object.assign({ items: {}, wk: "", wp: 0, tp: 0, st: 0, bs: 0, la: "", day: "", dc: 0, dw: 0, wr: 0, lo: 0, dk: 0, gd: 0, kw: 0, dt: 0, se: 0, du: 0, h: {}, ach: {}, cards: {}, xs: {}, ex: {}, mo: {} }, store.get("kp_state", {}));
+repairCounters(S);
 if (!S.ex) S.ex = {};
 if (!S.cards) S.cards = {};
 if (!S.xs) S.xs = {};
@@ -2756,7 +2757,20 @@ function merge(local, remote, base) {
   out.ach = out.ach || {};
   for (const [k, t] of Object.entries(local.ach || {})) if (!out.ach[k] || out.ach[k] > t) out.ach[k] = t;
   out.v = 2;
+  repairCounters(out);
   return out;
+}
+/** Wie Learner.repairCounters: von einer alten Version beim Abgleich verdoppelte Zähler auf plausible Werte setzen. */
+function repairCounters(st) {
+  let correct = 0; for (const a of Object.values(st.h || {})) correct += Math.max(0, (a && a[0]) || 0);
+  const base = Math.max(correct, Math.max(0, st.tp || 0)), limit = 2 * base + 100;
+  for (const k of ["dk", "ty", "kw", "dt", "se", "du", "sk", "lo"]) {
+    const v = st[k] || 0; if (v <= limit) continue;
+    let fixed = Math.min(v, base);
+    if (k === "dk") { let draws = 0; for (const o of Object.values(st.items || {})) draws += Math.max(0, (o && o.dr) || 0); fixed = Math.min(fixed, draws); }
+    else if (k === "ty") { let typed = 0; for (const m of Object.values(st.mo || {})) typed += Math.max(0, (m && m.q && m.q.typing && m.q.typing[0]) || 0); fixed = Math.min(fixed, typed); }
+    st[k] = fixed;
+  }
 }
 
 // ------------------------------------------------------------------ Duell (gleiche Fragen wie Duel.java)
