@@ -274,6 +274,22 @@ select, .text-in { background: var(--card); color: var(--ink); border: 1.5px sol
 .rd-ownjp { font-size: 22px; }
 .ls-who { font-size: 12px; font-weight: 700; }
 .tk-cue { font-size: 22px; font-weight: 700; margin: 6px 0; }
+svg.pad { display: block; width: min(100%, 330px); aspect-ratio: 1; margin: 12px auto 0; touch-action: none; background: var(--card); border: 2px solid var(--red); border-radius: 18px; user-select: none; -webkit-user-select: none; }
+svg.pad .guide { stroke: var(--red); opacity: .45; stroke-width: .6; stroke-dasharray: 3 3; fill: none; }
+svg.pad path { fill: none; stroke-width: 6.5; stroke-linecap: round; stroke-linejoin: round; }
+svg.pad .tpl { stroke: var(--ink); opacity: .18; }
+svg.pad .hint { stroke: var(--blue); opacity: .47; }
+svg.pad circle.hint { fill: var(--blue); stroke: none; }
+svg.pad .ok { stroke: var(--ink); }
+svg.pad .cur { stroke: var(--blue); }
+svg.pad .bad { stroke: var(--red); animation: padfade .7s forwards; }
+@keyframes padfade { from { opacity: 1; } to { opacity: 0; } }
+.wt-meaning { font-size: 24px; font-weight: 700; margin: 4px 0; }
+.wt-word { font-family: var(--hand); font-weight: 600; font-size: 34px; margin-top: 8px; letter-spacing: .05em; }
+.wt-word .cur { color: var(--blue); }
+.wt-status { text-align: center; min-height: 1.4em; color: var(--red); margin-top: 6px; }
+.wt-res { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+.wt-res .big { font-family: var(--hand); font-weight: 600; font-size: 56px; flex: 1; text-align: center; }
 .tk-jp { font-family: var(--hand); font-weight: 600; font-size: 26px; margin-top: 14px; }
 .tk-line.mine { background: color-mix(in srgb, var(--blue) 12%, var(--card)); }
 .ls-who.m { color: var(--blue); } .ls-who.f { color: var(--red); }
@@ -657,6 +673,13 @@ dialog#dlg-wrapped::backdrop { background: #000; }
   </div>
 </dialog>
 
+<dialog id="dlg-write">
+  <div class="sheet">
+    <div class="sheet-head"><h2 data-ui="write_title"></h2><button class="icon-btn" data-close>✕</button></div>
+    <div id="wt-body"></div>
+  </div>
+</dialog>
+
 <dialog id="dlg-listen">
   <div class="sheet">
     <div class="sheet-head"><h2 data-ui="listen_title"></h2><button class="icon-btn" data-close>✕</button></div>
@@ -759,7 +782,8 @@ dialog#dlg-wrapped::backdrop { background: #000; }
       <button class="card-btn" id="sx-ev-ph" data-ui="practice_phrases"></button><button class="card-btn" id="sx-ev-speak" data-ui="practice_speak"></button>
       <button class="card-btn" id="sx-ev-gr" data-ui="practice_grammar"></button><button class="card-btn" id="sx-ev-read" data-ui="practice_read"></button>
       <button class="card-btn" id="sx-ev-jlpt" data-ui="practice_jlpt"></button><button class="card-btn" id="sx-jlpt" data-ui="rm_btn"></button>
-      <button class="card-btn" id="sx-ev-listen" data-ui="practice_listen"></button><button class="card-btn" id="sx-ev-own" data-ui="own_add_short"></button></div>
+      <button class="card-btn" id="sx-ev-listen" data-ui="practice_listen"></button><button class="card-btn" id="sx-ev-own" data-ui="own_add_short"></button>
+      <button class="card-btn" id="sx-ev-write" data-ui="practice_write"></button></div>
     <div class="sec"><b>3</b><span data-ui="h_forecast"></span></div>
     <p class="tiny" id="sx-fc-text" style="max-width:none"></p>
     <div class="fc" id="sx-fc"></div>
@@ -3940,6 +3964,7 @@ $("sx-ev-vocab").onclick = () => startDeck(DECK_VOCAB);
 $("sx-ev-num").onclick = () => startDeck(DECK_NUM);
 $("sx-ev-ph").onclick = () => startDeck(DECK_PHRASE);
 $("sx-ev-speak").onclick = () => openTalk();
+$("sx-ev-write").onclick = () => openWrite();
 $("sp-listen").onclick = () => speak(PHRASES[SP.i].text);
 $("sp-slow").onclick = () => speak(PHRASES[SP.i].text, 0.55);
 $("sp-jp").onclick = () => { if (SP.hide && !SP.shown) { SP.shown = true; showSpeak(); } speak(PHRASES[SP.i].text); };
@@ -4239,6 +4264,263 @@ function showListen(d) {
   }
   const back2 = kdEl("button", "btn-primary", ui("listen_back"), b); back2.style.cssText = "width:100%;margin:16px 0"; back2.onclick = showListenList;
   if (!same) $("dlg-listen").querySelector(".sheet").scrollTop = 0;
+}
+
+// ------------------------------------------------------------------ Schreibtraining (wie Write.java, WriteActivity.java, DrawView.java, StrokeMatcher.java)
+const SM = (() => {
+  const N = 24, MAX_AVG = 17, MAX_END = 30, SHORT = 18;
+  const length = p => { let l = 0; for (let i = 2; i + 1 < p.length; i += 2) l += Math.hypot(p[i] - p[i - 2], p[i + 1] - p[i - 1]); return l; };
+  function resample(p, n) {
+    const total = length(p), out = new Array(2 * n);
+    if (total <= 0) { for (let i = 0; i < n; i++) { out[2 * i] = p[0]; out[2 * i + 1] = p[1]; } return out; }
+    const step = total / (n - 1); out[0] = p[0]; out[1] = p[1];
+    let k = 1, acc = 0, px = p[0], py = p[1];
+    for (let i = 2; i + 1 < p.length && k < n; i += 2) {
+      const qx = p[i], qy = p[i + 1], seg = Math.hypot(qx - px, qy - py);
+      while (seg > 0 && acc + seg >= step * k - 1e-4 && k < n) { const t = (step * k - acc) / seg; out[2 * k] = px + (qx - px) * t; out[2 * k + 1] = py + (qy - py) * t; k++; }
+      acc += seg; px = qx; py = qy;
+    }
+    while (k < n) { out[2 * k] = p[p.length - 2]; out[2 * k + 1] = p[p.length - 1]; k++; }
+    return out;
+  }
+  function segDist(px, py, ax, ay, bx, by) {
+    const dx = bx - ax, dy = by - ay, len2 = dx * dx + dy * dy;
+    const t = len2 === 0 ? 0 : Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / len2));
+    return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+  }
+  function avgMinDist(a, b) {
+    let sum = 0; const na = a.length / 2;
+    for (let i = 0; i < na; i++) { let best = Infinity; for (let j = 0; j + 3 < b.length; j += 2) { const d = segDist(a[2 * i], a[2 * i + 1], b[j], b[j + 1], b[j + 2], b[j + 3]); if (d < best) best = d; } sum += best; }
+    return sum / na;
+  }
+  const dist = (a, i, b, j) => Math.hypot(a[2 * i] - b[2 * j], a[2 * i + 1] - b[2 * j + 1]);
+  function score(user, ref) {
+    if (user.length < 4 || ref.length < 4) return Infinity;
+    const u = resample(user, N), r = resample(ref, N), lenU = length(user), lenR = length(ref);
+    const avg = (avgMinDist(u, r) + avgMinDist(r, u)) / 2;
+    if (avg > MAX_AVG) return Infinity;
+    if (lenR >= SHORT) {
+      if (dist(u, 0, r, 0) > MAX_END || dist(u, N - 1, r, N - 1) > MAX_END) return Infinity;
+      const ratio = lenU / lenR; if (ratio < 0.4 || ratio > 2.5) return Infinity;
+      const dxU = u[2 * (N - 1)] - u[0], dyU = u[2 * (N - 1) + 1] - u[1], dxR = r[2 * (N - 1)] - r[0], dyR = r[2 * (N - 1) + 1] - r[1];
+      const cos = (dxU * dxR + dyU * dyR) / (Math.hypot(dxU, dyU) * Math.hypot(dxR, dyR) + 1e-3);
+      if (Math.hypot(dxR, dyR) > 12 && cos < 0.3) return Infinity;
+    } else if (lenU > Math.max(lenR * 3, 30)) return Infinity;
+    return avg;
+  }
+  const matches = (u, r) => score(u, r) < Infinity;
+  function choose(u, ref, done, strict) {
+    for (let i = 0; i < ref.length; i++) { if (done[i]) continue; if (matches(u, ref[i])) return i; break; }
+    if (strict) { for (let i = 0; i < ref.length; i++) if (!done[i] && matches(u, ref[i])) return -2; return -1; }
+    let match = -1, best = Infinity;
+    for (let i = 0; i < ref.length; i++) { if (done[i]) continue; const sc = score(u, ref[i]); if (sc < best) { best = sc; match = i; } }
+    return best === Infinity ? -1 : match;
+  }
+  return { score, matches, choose, length, resample, MISS: -1, WRONG_ORDER: -2 };
+})();
+
+/** Zeichenfläche wie DrawView: jeder Strich wird nach dem Absetzen geprüft. opts: trace, strict, onStroke(ok, wrongOrder), onComplete(). */
+function makePad(svg, ref, opts) {
+  const NS = "http://www.w3.org/2000/svg", el = (n, a) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); return e; };
+  const d = p => { let s = `M${p[0]} ${p[1]}`; for (let i = 2; i + 1 < p.length; i += 2) s += ` L${p[i]} ${p[i + 1]}`; return p.length <= 2 ? s + ` L${p[0] + 0.1} ${p[1]}` : s; };
+  const pad = { done: ref.map(() => false), hinted: [], misses: 0, consec: 0, finished: false, wrongOrder: false, cur: null, fail: null };
+  svg.setAttribute("viewBox", "0 0 109 109"); svg.classList.add("pad");
+  function render() {
+    svg.innerHTML = "";
+    svg.appendChild(el("line", { x1: 54.5, y1: 4, x2: 54.5, y2: 105, class: "guide" }));
+    svg.appendChild(el("line", { x1: 4, y1: 54.5, x2: 105, y2: 54.5, class: "guide" }));
+    if (opts.trace) ref.forEach((p, i) => { if (!pad.done[i]) svg.appendChild(el("path", { d: d(p), class: "tpl" })); });
+    for (const i of pad.hinted) if (!pad.done[i]) { svg.appendChild(el("path", { d: d(ref[i]), class: "hint" })); svg.appendChild(el("circle", { cx: ref[i][0], cy: ref[i][1], r: 5.8, class: "hint" })); }
+    ref.forEach((p, i) => { if (pad.done[i]) svg.appendChild(el("path", { d: d(p), class: "ok" })); });
+    if (pad.fail) svg.appendChild(el("path", { d: d(pad.fail), class: "bad" }));
+    if (pad.cur && pad.cur.length >= 4) svg.appendChild(pad.curEl = el("path", { d: d(pad.cur), class: "cur" }));
+  }
+  pad.showHint = () => { if (pad.finished) return false; for (let i = 0; i < ref.length; i++) if (!pad.done[i] && !pad.hinted.includes(i)) { pad.hinted.push(i); render(); return true; } return false; };
+  pad.reset = () => { Object.assign(pad, { done: ref.map(() => false), hinted: [], misses: 0, consec: 0, finished: false, cur: null, fail: null }); render(); };
+  pad.stroke = u => {
+    if (pad.finished) return;
+    if (u.length === 4 || SM.length(u) < 1.5) u = [u[0], u[1], u[0] + 1.5, u[1] + 1.5];
+    const m = SM.choose(u, ref, pad.done, !!opts.strict);
+    pad.wrongOrder = m === SM.WRONG_ORDER; pad.fail = null;
+    if (m >= 0) {
+      pad.done[m] = true; pad.consec = 0; render(); opts.onStroke && opts.onStroke(true, false);
+      if (pad.done.every(x => x)) { pad.finished = true; opts.onComplete && opts.onComplete(); }
+    } else {
+      pad.misses++; pad.consec++; pad.fail = u;
+      if (pad.consec >= 3) { pad.consec = 0; if (!pad.showHint()) render(); } else render();
+      opts.onStroke && opts.onStroke(false, pad.wrongOrder);
+    }
+  };
+  const pt = e => { const r = svg.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * 109, (e.clientY - r.top) / r.height * 109]; };
+  svg.onpointerdown = e => { if (pad.finished) return; e.preventDefault(); try { svg.setPointerCapture(e.pointerId); } catch (x) {} pad.cur = pt(e); pad.fail = null; render(); };
+  svg.onpointermove = e => {
+    if (!pad.cur) return; e.preventDefault();
+    for (const c of (e.getCoalescedEvents ? e.getCoalescedEvents() : [e])) pad.cur.push(...pt(c));
+    if (pad.curEl && pad.curEl.isConnected) pad.curEl.setAttribute("d", d(pad.cur)); else render();
+  };
+  svg.onpointerup = e => { if (!pad.cur) return; pad.cur.push(...pt(e)); const u = pad.cur; pad.cur = null; pad.curEl = null; pad.stroke(u); };
+  svg.onpointercancel = () => { pad.cur = null; render(); };
+  render();
+  return pad;
+}
+
+const WRITE_TARGET = [0, 0, 80, 80, 60, 40], WRITE_LEVELS = [5, 4, 3, 2], WRITE_SESSION = 10, WRITE_WORDS = 5, WRITE_MAX_NEW = 8;
+const writeAllowed = n => n <= 4 ? 1 : Math.floor(n / 4);
+const writeIsKanji = c => { const x = c.charCodeAt(0); return x >= 0x4E00 && x <= 0x9FFF || c === "々"; };
+const writeIsKana = c => { const x = c.charCodeAt(0); return x >= 0x3041 && x <= 0x30FF; };
+function writeKanji(lv) {
+  const ks = kanjiOfLevel(lv).filter(it => !STROKES || STROKES.chars[it.kana]);
+  return ks.filter(it => masteryOf(it) >= 2).concat(ks.filter(it => masteryOf(it) < 2)).map(it => it.kana);
+}
+function writeStation(lv) {
+  const ks = writeKanji(lv), k = ks.filter(c => (S.cards["w:" + c] || {}).l >= CARD_KNOWN).length, t = Math.min(WRITE_TARGET[lv], ks.length);
+  return [Math.min(k, t), t, k, ks.length];
+}
+function writeWords(lv) {
+  const started = new Set(), seen = new Set(), out = [];
+  for (const k in S.cards) if (k.startsWith("w:") && S.cards[k].s > 0) started.add(k.slice(2));
+  for (const w of JWORDS) {
+    if (w.level < lv || seen.has(w.word)) continue; seen.add(w.word);
+    const cs = [...w.word]; if (cs.length < 2 || cs.length > 5) continue;
+    let any = false, ok = true;
+    for (const c of cs) { if (writeIsKanji(c)) { if (c === "々" || !STROKES || !STROKES.chars[c] || !started.has(c)) { ok = false; break; } any = true; } else if (!writeIsKana(c)) { ok = false; break; } }
+    if (ok && any) out.push(w);
+  }
+  return out;
+}
+function writeExample(k) {
+  const js = JWORDS.filter(w => w.word.includes(k)).sort((a, b) => a.level !== b.level ? b.level - a.level : a.word.length - b.word.length).slice(0, 6);
+  const w = js.find(x => x.word.length >= 2 && x.word !== k);
+  return w ? w.word.split(k).join("□") + "  ·  " + w.reading + "  ·  " + w.meaning : "";
+}
+const WT = { lv: 5, view: 0, done: 0, right: 0, total: 0, last: null, k: "", trace: false, pad: null, finished: false, shown: 0, words: [], word: null, pos: 0, shownTo: 0, wordOk: true };
+async function openWrite(lv) {
+  document.querySelectorAll("dialog[open]").forEach(d => d.close());
+  await loadStrokes();
+  WT.lv = lv || WRITE_LEVELS.find(l => { const s = writeStation(l); return s[0] < s[1]; }) || 2;
+  writeHub(); $("dlg-write").showModal();
+}
+function writeBack(b) { const bk = kdEl("button", "link-btn", ui("write_back"), b); bk.style.textAlign = "left"; bk.onclick = writeHub; }
+function writeHub() {
+  WT.view = 0; const b = $("wt-body"); b.innerHTML = "";
+  kdEl("p", "tiny", ui("write_intro"), b).style.maxWidth = "none";
+  const seg = kdEl("div", "btnrow", null, b); seg.id = "wt-lv";
+  for (const lv of WRITE_LEVELS) { const bt = kdEl("button", lv === WT.lv ? "btn-primary" : "card-btn", "N" + lv, seg); bt.style.flex = "1"; bt.dataset.lv = lv; bt.onclick = () => { WT.lv = lv; writeHub(); }; }
+  const st = writeStation(WT.lv);
+  kdEl("p", null, ui("write_progress", st[2], st[3], st[1]), b).id = "wt-progress";
+  kdEl("div", "rd-lv", ui("write_kanji"), b);
+  kdEl("p", "tiny", ui("write_kanji_hint"), b);
+  const go = kdEl("button", "btn-primary", ui("write_kanji_start", WRITE_SESSION), b); go.id = "wt-start"; go.style.width = "100%"; go.onclick = writeStart;
+  kdEl("div", "rd-lv", ui("write_words"), b);
+  kdEl("p", "tiny", ui("write_words_hint"), b);
+  const ws = writeWords(WT.lv);
+  if (ws.length >= 3) { const wb = kdEl("button", "card-btn", ui("write_words_start", Math.min(WRITE_WORDS, ws.length)), b); wb.id = "wt-words"; wb.style.width = "100%"; wb.onclick = wordsStart; }
+  else { const n = kdEl("p", null, ui("write_words_none"), b); n.id = "wt-words-none"; n.style.color = "var(--blue)"; }
+  $("dlg-write").querySelector(".sheet").scrollTop = 0;
+}
+function writeStart() { Object.assign(WT, { done: 0, right: 0, total: WRITE_SESSION, last: null }); writeNext(); }
+function writeNext() {
+  if (WT.done >= WT.total) return writeDone(false);
+  const id = pickCard(writeKanji(WT.lv).map(k => "w:" + k), WRITE_MAX_NEW, WT.last, true);
+  if (!id) return writeDone(false);
+  WT.last = id; WT.view = 1; WT.k = id.slice(2);
+  const s = S.cards[id];
+  writeChar(!s || !(s.l > 0));
+}
+function writeChar(trace) {
+  const b = $("wt-body"); b.innerHTML = ""; const k = WT.k, ref = STROKES.chars[k].map(p => p.map(v => v / STROKES.scale)), info = KDICT[k];
+  Object.assign(WT, { trace, finished: false, shown: Date.now() });
+  writeBack(b);
+  if (WT.view === 2) {
+    const w = WT.word;
+    kdEl("p", "tiny", ui("write_word_count", WT.done + 1, WT.total) + "  ·  N" + WT.lv, b).style.color = "var(--blue)";
+    kdEl("div", "wt-meaning", w.meaning, b).id = "wt-meaning";
+    const r = kdEl("div", "rd-rd", w.reading, b); r.lang = "ja";
+    const wv = kdEl("div", "wt-word", null, b); wv.id = "wt-word"; wv.lang = "ja"; writeWordView();
+    const idx = [...w.word].slice(0, WT.pos).filter(writeIsKanji).length, cnt = [...w.word].filter(writeIsKanji).length;
+    kdEl("p", "tiny", ui("write_word_part", idx + 1, cnt) + "  ·  " + ui("write_strokes", ref.length), b);
+  } else {
+    kdEl("p", "tiny", ui("write_count", WT.done + 1, WT.total) + "  ·  N" + WT.lv, b).style.color = "var(--blue)";
+    const md = kdEl("p", "tiny", ui(trace ? "write_trace" : "write_free"), b); md.id = "wt-mode"; if (trace) md.style.color = "var(--green)";
+    const mean = info ? info[5].split(/,\s*/).slice(0, 3).join(", ") : k;
+    kdEl("div", "wt-meaning", mean, b).id = "wt-meaning";
+    if (info) {
+      const rd = [info[0] ? ui("write_on", info[0].split(" ").join("、")) : "", info[1] ? ui("write_kun", info[1].split(" ").join("、")) : ""].filter(Boolean).join("\n");
+      if (rd) { const r = kdEl("div", "rd-rd", rd, b); r.lang = "ja"; r.style.whiteSpace = "pre-line"; }
+    }
+    const ex = writeExample(k); if (ex) { const e = kdEl("p", null, ex, b); e.lang = "ja"; e.id = "wt-example"; }
+    kdEl("p", "tiny", ui("write_strokes", ref.length), b);
+  }
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg"); svg.id = "wt-pad"; b.appendChild(svg);
+  const status = kdEl("div", "wt-status", "", b); status.id = "wt-status";
+  WT.pad = makePad(svg, ref, { trace, strict: true,
+    onStroke: (ok, wrongOrder) => { status.textContent = ok ? "" : ui(wrongOrder ? "write_order" : "write_miss"); },
+    onComplete: () => writeFinish(false) });
+  const row = kdEl("div", "btnrow", null, b); row.id = "wt-tools"; row.style.marginTop = "6px";
+  [["write_hint", () => WT.pad.showHint(), "wt-hint"], ["write_clear", () => WT.pad.reset(), "wt-clear"], ["write_giveup", () => writeFinish(true), "wt-giveup"]].forEach(([key, fn, id]) => {
+    const bt = kdEl("button", "card-btn", ui(key), row); bt.id = id; bt.style.cssText = "flex:1;min-width:0;font-size:13px;padding:8px 4px"; bt.onclick = () => { if (!WT.finished) fn(); };
+  });
+  kdEl("div", null, null, b).id = "wt-after";
+  $("dlg-write").querySelector(".sheet").scrollTop = 0;
+}
+function writeWordView() {
+  const wv = $("wt-word"); if (!wv) return; wv.innerHTML = "";
+  [...WT.word.word].forEach((c, i) => {
+    const sp = document.createElement("span");
+    if (!writeIsKanji(c) || i < WT.shownTo) sp.textContent = c; else { sp.textContent = i === WT.pos ? "＿" : "□"; if (i === WT.pos) sp.className = "cur"; }
+    wv.appendChild(sp);
+  });
+}
+function writeFinish(giveUp) {
+  if (WT.finished) return; WT.finished = true;
+  const k = WT.k, n = STROKES.chars[k].length, pad = WT.pad, misses = pad.misses, hints = pad.hinted.length;
+  const pass = !giveUp && misses <= writeAllowed(n), clean = pass && hints === 0 && !WT.trace, ms = Date.now() - WT.shown;
+  if (!pass) recordCard("w:" + k, false, false, false, 25, ms); else recordCard("w:" + k, true, !clean, false, 25, ms);
+  const st = S.items[k]; if (st) st.dr = (st.dr || 0) + 1; if (clean) S.dk = (S.dk || 0) + 1; save();
+  if (WT.view === 2) { if (!clean) WT.wordOk = false; } else { WT.done++; if (clean || (WT.trace && pass)) WT.right++; }
+  $("wt-tools").hidden = true; $("wt-status").textContent = "";
+  const a = $("wt-after");
+  const msg = giveUp ? "write_shown" : !pass ? "write_bad" : WT.trace ? "write_traced" : hints > 0 ? "write_hinted" : misses > 0 ? "write_ok_misses" : "write_ok";
+  const r = kdEl("p", null, ui(msg, misses), a); r.id = "wt-result";
+  r.style.cssText = "font-weight:700;font-size:18px;color:" + (giveUp ? "var(--ink)" : !pass ? "var(--red)" : hints > 0 && !WT.trace ? "var(--blue)" : "var(--green)");
+  const res = kdEl("div", "wt-res", null, a);
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg"); svg.setAttribute("class", "strokes"); svg.setAttribute("viewBox", "0 0 109 109"); svg.style.cssText = "width:110px;height:110px"; res.appendChild(svg);
+  showStrokes({ kana: k }, svg);
+  const big = kdEl("div", "big", k, res); big.lang = "ja";
+  let last = true;
+  if (WT.view === 2) {
+    WT.shownTo = WT.pos + 1; writeWordView();
+    last = [...WT.word.word].findIndex((c, i) => i > WT.pos && writeIsKanji(c)) < 0;
+    if (last) { WT.done++; if (WT.wordOk) WT.right++; const w = kdEl("p", null, WT.word.word + "  ·  " + WT.word.reading + "  ·  " + WT.word.meaning, a); w.lang = "ja"; w.style.color = WT.wordOk ? "var(--green)" : "var(--blue)"; }
+  }
+  const nx = kdEl("button", "btn-primary", ui("write_next"), a); nx.id = "wt-next"; nx.style.cssText = "width:100%;margin-top:12px";
+  nx.onclick = WT.view === 2 ? (last ? wordNext : wordChar) : writeNext;
+  const sh = $("dlg-write").querySelector(".sheet"); sh.scrollTop = sh.scrollHeight;
+}
+function writeDone(words) {
+  WT.view = 0; const b = $("wt-body"); b.innerHTML = "";
+  talkHead(b, ui(words ? "write_words" : "write_kanji"));
+  const r = kdEl("p", null, ui("write_result", WT.right, WT.done), b); r.id = "wt-done"; r.style.cssText = "font-weight:700;color:var(--green);font-size:20px";
+  const st = writeStation(WT.lv);
+  kdEl("p", null, ui("write_progress", st[2], st[3], st[1]), b);
+  showNotices();
+  const again = kdEl("button", "btn-primary", ui(words ? "write_words_start" : "write_kanji_start", words ? WRITE_WORDS : WRITE_SESSION), b); again.style.width = "100%"; again.onclick = words ? wordsStart : writeStart;
+  const bk = kdEl("button", "card-btn", ui("write_back"), b); bk.style.cssText = "width:100%;margin-top:8px"; bk.onclick = writeHub;
+}
+function wordsStart() {
+  WT.words = shuffle(writeWords(WT.lv)).slice(0, WRITE_WORDS);
+  Object.assign(WT, { done: 0, right: 0, total: WT.words.length });
+  wordNext();
+}
+function wordNext() {
+  if (WT.done >= WT.total) return writeDone(true);
+  WT.word = WT.words[WT.done]; WT.wordOk = true; WT.view = 2;
+  WT.pos = [...WT.word.word].findIndex(writeIsKanji); WT.shownTo = WT.pos; WT.k = [...WT.word.word][WT.pos];
+  writeChar(false);
+}
+function wordChar() {
+  WT.pos = [...WT.word.word].findIndex((c, i) => i > WT.pos && writeIsKanji(c)); WT.shownTo = WT.pos; WT.k = [...WT.word.word][WT.pos];
+  writeChar(false);
 }
 
 // ------------------------------------------------------------------ Sprechtraining (wie Talk.java / TalkActivity.java)
@@ -5197,6 +5479,8 @@ function roadmap(st) {
   for (let lv = 2; lv <= 5; lv++) rpKnown[lv] = lisOf[lv].filter(id => cardKnown("r:" + id.slice(2))).length;
   const speakNode = (lv, unit) => { if (!sAll[lv]) return; const t = Math.min(TALK_TARGET[lv], sAll[lv]); const n = add("speak" + lv, "speaking", unit, Math.min(sKnown[lv], t) + rpKnown[lv], t + lisOf[lv].length); n.level = lv; };
   speakNode(5, "n5");
+  const writeNode = (lv, unit) => { const ks = kanjiOf[lv]; if (!ks.length) return; const t = Math.min(WRITE_TARGET[lv], ks.length); const k = ks.filter(c => cardKnown("w:" + c)).length; const n = add("write" + lv, "writing", unit, Math.min(k, t), t); n.ids = ks.map(c => "w:" + c); n.level = lv; };
+  writeNode(5, "n5");
   add("n5", "exam", "n5", passedEx("n5") ? 1 : 0, 1);
   const kanaKnown = hira + kata + daku + yoon, ladder = [0, 0, 0, 0], wd = [], wa = [], kd = [], ka = [], gd = [], ga = [];
   let wDone = 0, wAll = 0, kDone = 0, kAll = 0, gDone = 0, gAll = 0;
@@ -5219,6 +5503,7 @@ function roadmap(st) {
     if (readOf[lv].length) { const rn = add("read" + lv, "reading", "n" + lv, rKnown[lv], readOf[lv].length); rn.ids = readOf[lv].slice(); rn.level = lv; }
     if (lisOf[lv].length) { const ln = add("listen" + lv, "listening", "n" + lv, lKnown[lv], lisOf[lv].length); ln.ids = lisOf[lv].slice(); ln.level = lv; }
     speakNode(lv, "n" + lv);
+    writeNode(lv, "n" + lv);
     const g = add("n" + lv, "exam", "n" + lv, passedEx("n" + lv) ? 1 : 0, 1); g.complete = g.done === 1; }
   add("n1", "future", "n1", 0, 0);
   let reached = 0; for (let lv = 5; lv >= 2; lv--) { if (ladder[5 - lv] >= RM_REACHED) reached = lv; else break; }
@@ -5242,9 +5527,9 @@ function roadDump(m) {
   for (const s of m.skills) o += s.id + " " + s.done + "/" + s.total + " L" + s.level + " " + s.prev + "-" + s.next + " " + Math.floor(skFrac(s) * 1000 + 1e-9) + "\n";
   return o;
 }
-const rmName = n => n.kind === "kanji" ? ui("rm_node_kanji", n.part, n.parts) : n.kind === "words" ? ui("rm_node_words", n.part, n.parts) : n.kind === "goal" ? ui("rm_node_goal", "N" + n.id.slice(1)) : n.kind === "grammar" ? ui("rm_node_grammar", "N" + n.level) : n.kind === "reading" ? ui("rm_node_reading", "N" + n.level) : n.kind === "listening" ? ui("rm_node_listening", "N" + n.level) : n.kind === "speaking" ? ui("rm_node_speaking", "N" + n.level) : n.kind === "future" ? "N1" : ui("path_" + n.id);
+const rmName = n => n.kind === "kanji" ? ui("rm_node_kanji", n.part, n.parts) : n.kind === "words" ? ui("rm_node_words", n.part, n.parts) : n.kind === "goal" ? ui("rm_node_goal", "N" + n.id.slice(1)) : n.kind === "grammar" ? ui("rm_node_grammar", "N" + n.level) : n.kind === "reading" ? ui("rm_node_reading", "N" + n.level) : n.kind === "listening" ? ui("rm_node_listening", "N" + n.level) : n.kind === "speaking" ? ui("rm_node_speaking", "N" + n.level) : n.kind === "writing" ? ui("rm_node_writing", "N" + n.level) : n.kind === "future" ? "N1" : ui("path_" + n.id);
 const RM_ICON = { hira: "あ", kata: "ア", daku: "が", words: "語", numbers: "数", phrases: "話", grammar: "文", reading: "読" };
-const rmIcon = n => RM_ICON[n.id] || (n.kind === "exam" ? "📝" : n.kind === "kanji" ? (n.ids[0] || "字") : n.kind === "words" ? "単" : n.kind === "grammar" ? "文" : n.kind === "reading" ? "読" : n.kind === "listening" ? "聞" : n.kind === "speaking" ? "話" : n.kind === "goal" ? "🏆" : "🔒");
+const rmIcon = n => RM_ICON[n.id] || (n.kind === "exam" ? "📝" : n.kind === "kanji" ? (n.ids[0] || "字") : n.kind === "words" ? "単" : n.kind === "grammar" ? "文" : n.kind === "reading" ? "読" : n.kind === "listening" ? "聞" : n.kind === "speaking" ? "話" : n.kind === "writing" ? "書" : n.kind === "goal" ? "🏆" : "🔒");
 function rmSummary(m) {
   const a = m.reached ? ui("rm_reached", "N" + m.reached) : ui("rm_below"), next = m.reached ? m.reached - 1 : 5;
   return next < 2 ? a : a + "\n" + ui("rm_missing_g", "N" + next, m.missingWords, m.missingKanji, m.missingGrammar);
@@ -5363,6 +5648,9 @@ function openNode(n) {
   } else if (n.kind === "speaking") {
     info.textContent = ui("rm_desc_speaking", "N" + n.level, TALK_TARGET[n.level], n.done, n.total);
     label = ui("talk_open"); action = () => { close(); openTalk(n.level); };
+  } else if (n.kind === "writing") {
+    info.textContent = ui("rm_desc_writing", "N" + n.level, n.total, n.done, n.total);
+    label = ui("write_kanji"); action = () => { close(); openWrite(n.level); };
   } else if (n.kind === "listening") {
     info.textContent = ui("rm_desc_listening", "N" + n.level, n.done, n.total);
     label = ui("practice_listen"); action = () => { close(); openListen(); };
